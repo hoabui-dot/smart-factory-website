@@ -1,0 +1,225 @@
+.grn-admin {
+  display: grid;
+  gap: 1rem;
+}
+
+.grn-admin__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.grn-admin__eyebrow {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.grn-admin__lead {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted, #64748b);
+}
+
+.grn-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.grn-admin__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.grn-admin__tabs button {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.grn-admin__tabs button[aria-selected='true'] {
+  background: var(--color-action, #155eef);
+  border-color: var(--color-action, #155eef);
+  color: #fff;
+}
+
+.grn-admin button,
+.grn-admin .grn-admin__btn {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-action, #155eef);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.grn-admin button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.grn-admin__btn--danger {
+  background: var(--color-danger, #dc2626);
+}
+
+.grn-admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.grn-admin label,
+.grn-admin__field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 12rem;
+}
+
+.grn-admin input,
+.grn-admin select {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.grn-admin__create {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.grn-admin__line-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.grn-admin__line-row input {
+  min-width: 0;
+}
+
+.grn-admin__state {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--color-banner-bg, #eef2ff);
+}
+
+.grn-admin__banner {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-success-bg, #dcfce7);
+  color: var(--color-success-text, #166534);
+}
+
+.grn-admin__error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-error-bg, #fee2e2);
+  color: var(--color-error-text, #991b1b);
+}
+
+.grn-admin__muted {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.grn-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(20rem, 1fr);
+  gap: 1rem;
+}
+
+.grn-admin__table-wrap,
+.grn-admin__detail {
+  overflow: auto;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.grn-admin__table,
+.grn-admin__lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.grn-admin__table th,
+.grn-admin__table td,
+.grn-admin__lines th,
+.grn-admin__lines td {
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--color-border, #cbd5e1);
+  text-align: left;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.grn-admin__row--active {
+  background: var(--color-row-active, #e8eefc);
+}
+
+.grn-admin__linkish {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--color-action, #155eef);
+  font-weight: 600;
+}
+
+.grn-admin__detail {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.grn-admin__confirm {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+}
+
+.grn-admin__cert-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.grn-admin__more {
+  margin: 0.75rem;
+}
+
+@media (max-width: 960px) {
+  .grn-admin__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .grn-admin__line-row {
+    grid-template-columns: 1fr;
+  }
+}

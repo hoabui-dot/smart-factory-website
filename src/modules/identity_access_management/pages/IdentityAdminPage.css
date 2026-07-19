@@ -1,0 +1,221 @@
+.identity-admin {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.identity-admin__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.identity-admin__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.identity-admin__header h2 {
+  margin: 0;
+}
+
+.identity-admin__lead {
+  margin: 0.4rem 0 0;
+  color: var(--color-text-secondary);
+  max-width: 40rem;
+}
+
+.identity-admin__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.identity-admin__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.identity-admin__tabs button {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0.5rem;
+  background: var(--color-surface-card);
+  cursor: pointer;
+  font-weight: 600;
+  font: inherit;
+}
+
+.identity-admin__tabs button[aria-selected='true'] {
+  background: var(--color-action-primary);
+  border-color: var(--color-action-primary);
+  color: var(--color-text-on-primary);
+}
+
+.identity-admin__filters,
+.identity-admin__create,
+.identity-admin__detail,
+.identity-admin__state,
+.identity-admin__table-wrap {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-card);
+  padding: 1rem;
+}
+
+.identity-admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.identity-admin__field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(100%, 16rem);
+  margin-bottom: 0.65rem;
+}
+
+.identity-admin__field span {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.identity-admin__field input {
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  background: var(--color-surface-card);
+}
+
+.identity-admin__btn {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 0.95rem;
+  background: var(--color-action-primary);
+  color: var(--color-text-on-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.identity-admin__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.identity-admin__btn--secondary {
+  background: transparent;
+  color: var(--color-action-primary);
+  border: 1px solid var(--color-border-default);
+}
+
+.identity-admin__btn--danger {
+  background: var(--color-danger);
+}
+
+.identity-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .identity-admin__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.identity-admin__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.identity-admin__table th,
+.identity-admin__table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.identity-admin__linkish {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-action-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.identity-admin__muted {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.identity-admin__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.identity-admin__chip {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  font-size: 0.8rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+}
+
+.identity-admin__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.identity-admin__banner {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  background: var(--color-info-bg);
+}
+
+.identity-admin__error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
+.identity-admin__detail h3,
+.identity-admin__detail h4 {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.identity-admin__detail h3 {
+  margin-top: 0;
+}
+
+.identity-admin__row--active {
+  background: var(--color-row-active, #e8eefc);
+}
+
+.identity-admin__more {
+  margin: 0.75rem;
+}
+
+.identity-admin__confirm {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0.5rem;
+  margin-top: 0.75rem;
+}

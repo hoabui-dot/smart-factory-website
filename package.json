@@ -1,0 +1,48 @@
+{
+  "name": "@smartfactory/web",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "serve --single --listen 3000 dist",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node --experimental-strip-types --test src/shared/lib/landingRoute.test.ts src/shared/api/tokenRefreshPolicy.test.ts src/shared/store/authFailure.test.ts src/modules/identity_access_management/pages/loginAlert.test.ts src/modules/identity_access_management/lib/identityProjection.test.ts src/modules/audit_log/lib/auditProjection.test.ts src/modules/audit_log/lib/auditApiHelpers.test.ts src/modules/rbac_engine/lib/rbacProjection.test.ts src/modules/file_storage/lib/fileProjection.test.ts src/modules/label_printing/lib/printProjection.test.ts src/modules/realtime_event_stream/lib/eventProjection.test.ts src/modules/excel_import_export/lib/importExportProjection.test.ts src/modules/notification_center/lib/notificationProjection.test.ts src/modules/notification_delivery/lib/deliveryProjection.test.ts src/modules/worker_scheduling/lib/workerJobProjection.test.ts src/modules/item_master/lib/itemProjection.test.ts src/modules/bin_location/lib/locationProjection.test.ts src/modules/routing/lib/routingProjection.test.ts src/modules/bom/lib/bomProjection.test.ts src/modules/shift_management/lib/shiftSkillProjection.test.ts src/modules/supplier_master/lib/supplierProjection.test.ts src/modules/lot_management/lib/lotProjection.test.ts src/modules/cross_entity_content/lib/sharedContentProjection.test.ts src/modules/goods_receipt/lib/goodsReceiptProjection.test.ts src/modules/qc_master/lib/qcMasterProjection.test.ts src/modules/work_order/lib/workOrderProjection.test.ts src/modules/inspection_result/lib/inspectionProjection.test.ts src/modules/qc_report/lib/ncrProjection.test.ts src/modules/customer_order/lib/customerOrderProjection.test.ts src/modules/goods_issue/lib/goodsIssueProjection.test.ts src/modules/inventory/lib/inventoryProjection.test.ts src/modules/user_aggregator/lib/myWorkProjection.test.ts src/modules/user_aggregator/lib/wo360Projection.test.ts src/modules/user_aggregator/lib/approvalInboxProjection.test.ts src/modules/user_aggregator/lib/refDataProjection.test.ts src/modules/document_management/lib/documentProjection.test.ts src/modules/traceability/lib/traceProjection.test.ts src/modules/station_execution/lib/productionLogProjection.test.ts src/modules/production_report/lib/dashboardProjection.test.ts src/modules/engineering_change/lib/changeRequestProjection.test.ts tests/e2e-flows/shouldRunFlowsAuthSetup.test.ts",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:flows": "playwright test --project=flows",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@sentry/react": "~8.45.0",
+    "@supabase/supabase-js": "~2.47.0",
+    "@tanstack/react-query": "~5.62.0",
+    "axios": "~1.7.9",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
+    "react-hook-form": "~7.54.0",
+    "react-router": "~7.1.0",
+    "tailwindcss": "~4.0.0",
+    "zod": "~3.24.1",
+    "zustand": "~5.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@playwright/test": "~1.49.1",
+    "@types/react": "~19.2.0",
+    "@types/react-dom": "~19.2.0",
+    "@vitejs/plugin-react": "~6.0.2",
+    "eslint": "~9.17.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "~3.4.2",
+    "serve": "^14.2.6",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.64.0",
+    "vite": "~8.0.0"
+  }
+}

@@ -1,0 +1,25 @@
+.shell-card {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  max-width: 48rem;
+}
+
+.shell-card h2 {
+  margin: 0 0 0.5rem;
+}
+
+.shell-card p {
+  margin: 0.4rem 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.boot-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+}

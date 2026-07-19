@@ -1,0 +1,223 @@
+.routing-admin {
+  display: grid;
+  gap: 1rem;
+}
+
+.routing-admin__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.routing-admin__eyebrow {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.routing-admin__lead {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted, #64748b);
+}
+
+.routing-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.routing-admin__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.routing-admin__tabs button {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.routing-admin__tabs button[aria-selected='true'] {
+  background: var(--color-action, #155eef);
+  border-color: var(--color-action, #155eef);
+  color: #fff;
+}
+
+.routing-admin button,
+.routing-admin .routing-admin__btn {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-action, #155eef);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.routing-admin button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.routing-admin__btn--danger {
+  background: var(--color-danger, #dc2626);
+}
+
+.routing-admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.routing-admin label,
+.routing-admin__field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 12rem;
+}
+
+.routing-admin input,
+.routing-admin select {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.routing-admin__create {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.routing-admin__state {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--color-banner-bg, #eef2ff);
+}
+
+.routing-admin__banner {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-success-bg, #dcfce7);
+  color: var(--color-success-text, #166534);
+}
+
+.routing-admin__error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-error-bg, #fee2e2);
+  color: var(--color-error-text, #991b1b);
+}
+
+.routing-admin__muted {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.85rem;
+}
+
+.routing-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 0.8fr);
+  gap: 1rem;
+}
+
+.routing-admin__table-wrap,
+.routing-admin__detail {
+  overflow: auto;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.routing-admin__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.routing-admin__table th,
+.routing-admin__table td {
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--color-border, #cbd5e1);
+  text-align: left;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.routing-admin__table--compact th,
+.routing-admin__table--compact td {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+  white-space: normal;
+}
+
+.routing-admin__row--active {
+  background: var(--color-row-active, #e8eefc);
+}
+
+.routing-admin__linkish {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+  color: var(--color-action, #155eef);
+  font-weight: 600;
+}
+
+.routing-admin__detail {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.routing-admin__meta {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.routing-admin__meta dt {
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.8rem;
+}
+
+.routing-admin__meta dd {
+  margin: 0.2rem 0 0;
+  word-break: break-word;
+}
+
+.routing-admin__confirm {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+}
+
+.routing-admin__more {
+  margin: 0.75rem;
+}
+
+@media (max-width: 960px) {
+  .routing-admin__layout {
+    grid-template-columns: 1fr;
+  }
+}

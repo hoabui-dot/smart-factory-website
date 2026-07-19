@@ -1,0 +1,129 @@
+.ndl-admin {
+  display: grid;
+  gap: 1rem;
+}
+
+.ndl-admin__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ndl-admin__eyebrow {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ndl-admin__lead {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted, #64748b);
+}
+
+.ndl-admin__filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.ndl-admin label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ndl-admin input {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+  font: inherit;
+}
+
+.ndl-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ndl-admin button {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-action, #155eef);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ndl-admin button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ndl-admin__state {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+}
+
+.ndl-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(16rem, 0.7fr);
+  gap: 1rem;
+}
+
+@media (max-width: 960px) {
+  .ndl-admin__layout,
+  .ndl-admin__filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ndl-admin__table-wrap,
+.ndl-admin__detail {
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+.ndl-admin__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ndl-admin__table th,
+.ndl-admin__table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.ndl-admin__row--active {
+  background: #eff6ff;
+}
+
+.ndl-admin__link {
+  background: transparent !important;
+  color: var(--color-action, #155eef) !important;
+  padding: 0 !important;
+  min-height: auto !important;
+}
+
+.ndl-admin__detail dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.ndl-admin__detail dt {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.ndl-admin__detail dd {
+  margin: 0.15rem 0 0;
+}

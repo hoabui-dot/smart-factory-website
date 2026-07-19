@@ -1,0 +1,155 @@
+.file-admin {
+  display: grid;
+  gap: 1rem;
+}
+
+.file-admin__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.file-admin__eyebrow {
+  margin: 0;
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.file-admin__lead {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted, #64748b);
+}
+
+.file-admin__back {
+  color: var(--color-action, #155eef);
+  text-decoration: none;
+}
+
+.file-admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.file-admin__field {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 16rem;
+}
+
+.file-admin__field input {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+}
+
+.file-admin__filters button,
+.file-admin__actions button,
+.file-admin__more {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--color-action, #155eef);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.file-admin__filters button[type='button'],
+.file-admin__actions button:last-child {
+  background: var(--color-text-subtle, #64748b);
+}
+
+.file-admin__state {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--color-banner-bg, #eef2ff);
+}
+
+.file-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.9fr);
+  gap: 1rem;
+}
+
+.file-admin__table-wrap,
+.file-admin__detail {
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.file-admin__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.file-admin__table th,
+.file-admin__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border, #cbd5e1);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.file-admin__row {
+  cursor: pointer;
+}
+
+.file-admin__row--active {
+  background: var(--color-row-active, #e8eefc);
+}
+
+.file-admin__more {
+  margin: 0.75rem;
+}
+
+.file-admin__detail {
+  padding: 1rem;
+}
+
+.file-admin__detail dl {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.file-admin__detail dt {
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.8rem;
+}
+
+.file-admin__detail dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+}
+
+.file-admin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.file-admin__confirm {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 0.5rem;
+}
+
+.file-admin__muted,
+.file-admin__download {
+  color: var(--color-text-muted, #64748b);
+}
+
+@media (max-width: 960px) {
+  .file-admin__layout {
+    grid-template-columns: 1fr;
+  }
+}

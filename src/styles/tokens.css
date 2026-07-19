@@ -1,0 +1,26 @@
+/* DESIGN.sf.md semantic tokens — APP-WEB-SHELL baseline */
+:root {
+  --color-nav-surface: #11192d;
+  --color-nav-content: #e2e8f0;
+  --color-nav-muted: #94a3b8;
+  --color-nav-active: #2563eb;
+  --color-page-surface: #f6f8fb;
+  --color-surface-card: #ffffff;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-on-primary: #ffffff;
+  --color-action-primary: #1d4ed8;
+  --color-action-primary-hover: #1a45be;
+  --color-border-default: #e2e8f0;
+  --color-focus-ring: #2563eb;
+  --color-danger: #dc2626;
+  --color-danger-bg: #fef2f2;
+  --color-info-bg: #eff6ff;
+  --color-warn-bg: #fff7ed;
+  --color-row-active: #eff6ff;
+  --radius-card: 12px;
+  --size-sidebar: 256px;
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 6%), 0 8px 24px rgb(15 23 42 / 4%);
+  --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+}

@@ -1,0 +1,122 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--size-sidebar) 1fr;
+  min-height: 100vh;
+}
+
+.shell__sidebar {
+  background: var(--color-nav-surface);
+  color: var(--color-nav-content);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.shell__brand {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.shell__brand-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(145deg, var(--color-nav-active), var(--color-action-primary));
+}
+
+.shell__brand strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.shell__brand p {
+  margin: 0.15rem 0 0;
+  color: var(--color-nav-muted);
+  font-size: 0.75rem;
+}
+
+.shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shell__nav-link {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.65rem;
+  color: var(--color-nav-content);
+}
+
+.shell__nav-link:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+.shell__nav-link--active {
+  background: color-mix(in srgb, var(--color-nav-active) 28%, transparent);
+  color: var(--color-text-on-primary);
+}
+
+.shell__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--color-surface-card);
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.shell__header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.shell__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shell__user {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.shell__signout {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-card);
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.8rem;
+  cursor: pointer;
+}
+
+.shell__content {
+  padding: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell__sidebar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .shell__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

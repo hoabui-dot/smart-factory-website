@@ -1,0 +1,29 @@
+.my-work { display: grid; gap: 1rem; }
+.my-work__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.my-work__header h2 { margin: 0.2rem 0; }
+.my-work__eyebrow { margin: 0; color: var(--color-action-primary); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
+.my-work__lead { margin: 0.35rem 0 0; color: var(--color-text-muted); }
+.my-work button { min-height: 2.4rem; padding: 0.5rem 0.85rem; border: 1px solid var(--color-border-default); border-radius: 0.55rem; background: var(--color-surface-card); color: var(--color-text-primary); cursor: pointer; font: inherit; }
+.my-work button:disabled { opacity: 0.55; cursor: not-allowed; }
+.my-work__toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.65rem; padding: 0.8rem; border: 1px solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); }
+.my-work__toolbar label { display: grid; flex: 1 1 18rem; gap: 0.35rem; color: var(--color-text-secondary); font-size: 0.85rem; }
+.my-work__toolbar input { min-height: 2.4rem; padding: 0.5rem 0.65rem; border: 1px solid var(--color-border-default); border-radius: 0.5rem; font: inherit; }
+.my-work__refresh, .my-work__state { margin: 0; padding: 0.8rem 1rem; border-radius: 0.65rem; background: var(--color-info-bg); }
+.my-work__groups { display: grid; gap: 1rem; }
+.my-work__group { display: grid; gap: 0.65rem; }
+.my-work__group > header { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--color-border-default); }
+.my-work__group h3 { margin: 0 0 0.45rem; font-size: 0.9rem; color: var(--color-text-secondary); letter-spacing: 0.06em; }
+.my-work__group > header span { color: var(--color-text-muted); font-size: 0.8rem; }
+.my-work__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: 0.75rem; }
+.my-work__card { display: grid; align-content: start; gap: 0.65rem; padding: 1rem; border: 1px solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); box-shadow: var(--shadow-card); }
+.my-work__card h4, .my-work__card p { margin: 0; }
+.my-work__card-top { display: flex; justify-content: space-between; gap: 0.5rem; color: var(--color-text-muted); font-size: 0.72rem; text-transform: uppercase; }
+.my-work__target { color: var(--color-text-secondary); font-family: ui-monospace, monospace; font-size: 0.82rem; }
+.my-work__card dl { display: grid; gap: 0.35rem; margin: 0; }
+.my-work__card dl div { display: flex; justify-content: space-between; gap: 1rem; }
+.my-work__card dt { color: var(--color-text-muted); }
+.my-work__card dd { margin: 0; text-align: right; }
+.my-work__open { display: flex; justify-content: space-between; margin-top: auto; padding-top: 0.65rem; border-top: 1px solid var(--color-border-default); font-weight: 650; }
+.my-work__blocked { color: var(--color-danger); font-size: 0.82rem; }
+.my-work__next { justify-self: center; }
+@media (max-width: 600px) { .my-work__header { flex-direction: column; } .my-work__toolbar > button { width: 100%; } }
