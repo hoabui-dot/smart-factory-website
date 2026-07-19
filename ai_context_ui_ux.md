@@ -81,8 +81,8 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Path**: `/login`
 - **Component**: [LoginPage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/identity_access_management/pages/LoginPage.tsx)
 - **Role**: Guest (Unauthenticated)
-- **Layout**: Centered login panel card with custom branding.
-- **UX Features**: Dynamic login alerts, direct integration with Supabase Auth client, form validation with busy indicators.
+- **Layout**: Two-column layout (55% brand story / illustration blueprint panel on left, 45% login card on right) on desktop, single centered card on tablet, single column on mobile.
+- **UX Features**: IBM Plex Sans typography, product branding (SmartFactory, MES, WMS, QMS), Caps Lock activation indicators, show/hide password buttons, localStorage remember-email toggles, inline errors, loading spinners, and complete removal of backend internal parameters.
 
 #### 2. ShellHomePage
 - **Path**: `/home`
