@@ -477,8 +477,8 @@ export function ItemMasterPage() {
       ) : null}
 
       {admin.listState === 'ready' ? (
-        <div className="w-full flex flex-col gap-4">
-          <Table>
+        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          <Table containerClassName="relative w-full overflow-auto">
             <TableHeader>
               <TableRow className="pointer-events-none hover:bg-transparent">
                 <TableHead>Code</TableHead>
@@ -527,7 +527,7 @@ export function ItemMasterPage() {
             </TableBody>
           </Table>
           
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-2">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
             <div className="flex-1">
               {admin.hasMore && (
                 <Button variant="secondary" size="sm" onClick={admin.loadMore}>
