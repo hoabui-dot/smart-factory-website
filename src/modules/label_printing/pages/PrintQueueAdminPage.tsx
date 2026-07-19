@@ -7,6 +7,36 @@ import { isSystemAdminSession } from '@/shared/api'
 import { usePrintQueueAdmin } from '../hooks/usePrintQueueAdmin'
 import type { PrintJobAction } from '../types/labelPrinting'
 
+// Import Tailwind Shadcn UI & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/components/ui/Table'
+import {
+  Printer,
+  FileText,
+  Play,
+  RotateCw,
+  Search,
+  AlertCircle,
+  Clock,
+  PrinterIcon,
+  PlusCircle,
+  FileSpreadsheet,
+  Terminal,
+  Activity,
+  XCircle,
+} from 'lucide-react'
+
 import './PrintQueueAdminPage.css'
 
 function listStateMessage(state: string): string {
@@ -33,9 +63,9 @@ function actionLabel(action: PrintJobAction): string {
     case 'cancel':
       return 'Cancel'
     case 'request_reprint':
-      return 'Request reprint'
+      return 'Reprint'
     case 'approve_reprint':
-      return 'Approve reprint'
+      return 'Approve Reprint'
     default:
       return action
   }
@@ -44,6 +74,11 @@ function actionLabel(action: PrintJobAction): string {
 export function PrintQueueAdminPage() {
   const session = useAuthStore((s) => s.session)
   const admin = usePrintQueueAdmin()
+  
+  const [isJobDetailOpen, setIsJobDetailOpen] = useState(false)
+  const [isPrinterDetailOpen, setIsPrinterDetailOpen] = useState(false)
+  const [isTemplateDetailOpen, setIsTemplateDetailOpen] = useState(false)
+
   const [enqueueForm, setEnqueueForm] = useState({
     entity_type: 'LOT',
     entity_id: '',
@@ -73,18 +108,19 @@ export function PrintQueueAdminPage() {
 
   if (!isSystemAdminSession(session)) {
     return (
-      <section className="print-admin" aria-labelledby="print-admin-title">
-        <header className="print-admin__header">
-          <div>
-            <p className="print-admin__eyebrow">WEB-NB-05-PRINT-QUEUE</p>
-            <h2 id="print-admin-title">Print Queue / Printer Management</h2>
-          </div>
-          <Link className="print-admin__back" to="/admin">
-            Về quản trị
-          </Link>
-        </header>
-        <div className="print-admin__state" role="alert">
-          Bạn không có quyền xem Print Queue (system_admin_only).
+      <section className="flex flex-col gap-6 font-sans">
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Trang chủ', href: '/home' },
+            { label: 'Quản trị hệ thống', href: '/admin' },
+            { label: 'Print Management' },
+          ]}
+          title="Print Queue"
+          subtitle="Hệ thống quản trị hàng đợi in ấn nhãn công nghiệp."
+        />
+        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-sm flex items-center gap-2" role="alert">
+          <AlertCircle size={16} />
+          <span>Bạn không có quyền xem hàng đợi in ấn (chỉ dành cho system_admin).</span>
         </div>
       </section>
     )
@@ -140,28 +176,41 @@ export function PrintQueueAdminPage() {
   }
 
   return (
-    <section className="print-admin" aria-labelledby="print-admin-title">
-      <header className="print-admin__header">
-        <div>
-          <p className="print-admin__eyebrow">WEB-NB-05-PRINT-QUEUE · `/web/admin/print-queue`</p>
-          <h2 id="print-admin-title">Print Queue / Printer Management</h2>
-          <p className="print-admin__lead">
-            Xem queue, retry/cancel/reprint và quản lý printer/template (system_admin).
-          </p>
-        </div>
-        <Link className="print-admin__back" to="/admin">
-          Về quản trị
-        </Link>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Quản trị', href: '/admin' },
+          { label: 'Print Queue' },
+        ]}
+        title="Print Queue / Printer"
+        subtitle="Hệ thống quản lý hàng đợi in ấn nhãn công nghiệp, thiết bị in ZPL/TSPL và template nhãn vạch."
+      />
 
-      <div className="print-admin__tabs" role="tablist" aria-label="Print admin sections">
-        <button type="button" role="tab" aria-selected={admin.tab === 'jobs'} onClick={() => admin.setTab('jobs')}>
-          Print jobs
+      {/* Tabs Switcher */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={admin.tab === 'jobs'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            admin.tab === 'jobs'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+          }`}
+          onClick={() => admin.setTab('jobs')}
+        >
+          Print Jobs
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={admin.tab === 'printers'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            admin.tab === 'printers'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+          }`}
           onClick={() => admin.setTab('printers')}
         >
           Printers
@@ -170,554 +219,795 @@ export function PrintQueueAdminPage() {
           type="button"
           role="tab"
           aria-selected={admin.tab === 'templates'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            admin.tab === 'templates'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+          }`}
           onClick={() => admin.setTab('templates')}
         >
           Templates
         </button>
       </div>
 
-      {banner ? (
-        <div className="print-admin__state" role="status">
+      {banner && (
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 text-sm">
           {banner}
         </div>
-      ) : null}
+      )}
 
-      {admin.tab === 'jobs' ? (
-        <>
-          <form
-            className="print-admin__filters"
-            onSubmit={(event) => {
-              event.preventDefault()
-              admin.applySearch()
-            }}
-          >
-            <label className="print-admin__field">
-              <span>Tìm kiếm</span>
-              <input
-                value={admin.searchInput}
-                onChange={(event) => admin.setSearchInput(event.target.value)}
-                placeholder="code, label type…"
-              />
-            </label>
-            <button type="submit">Lọc</button>
-            <button type="button" onClick={admin.refresh}>
-              Làm mới
-            </button>
-          </form>
-
-          <div className="print-admin__panel">
-            <h3>Enqueue print job</h3>
-            <form className="print-admin__form" onSubmit={onEnqueue}>
-              <label className="print-admin__field">
-                <span>entity_type</span>
-                <input
-                  value={enqueueForm.entity_type}
-                  onChange={(e) => setEnqueueForm((s) => ({ ...s, entity_type: e.target.value }))}
-                />
-              </label>
-              <label className="print-admin__field">
-                <span>entity_id</span>
-                <input
-                  value={enqueueForm.entity_id}
-                  onChange={(e) => setEnqueueForm((s) => ({ ...s, entity_id: e.target.value }))}
-                />
-              </label>
-              <label className="print-admin__field">
-                <span>template_code</span>
-                <select
-                  value={enqueueForm.template_code}
-                  onChange={(e) => setEnqueueForm((s) => ({ ...s, template_code: e.target.value }))}
-                >
-                  <option value="">Chọn template</option>
-                  {admin.templates.map((t) => (
-                    <option key={t.code} value={t.code}>
-                      {t.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="print-admin__field">
-                <span>printer_code</span>
-                <select
-                  value={enqueueForm.printer_code}
-                  onChange={(e) => setEnqueueForm((s) => ({ ...s, printer_code: e.target.value }))}
-                >
-                  <option value="">Chọn printer</option>
-                  {admin.printers.map((p) => (
-                    <option key={p.code} value={p.code}>
-                      {p.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="print-admin__field">
-                <span>copies</span>
-                <input
-                  value={enqueueForm.copies}
-                  onChange={(e) => setEnqueueForm((s) => ({ ...s, copies: e.target.value }))}
-                />
-              </label>
-              <button type="submit" disabled={admin.enqueuePending}>
-                Enqueue
-              </button>
-            </form>
-            {admin.enqueueError ? (
-              <p className="print-admin__state" role="alert">
-                {admin.enqueueError.code}: {admin.enqueueError.message}
-              </p>
-            ) : null}
-            {admin.enqueueSuccess ? (
-              <p className="print-admin__state" role="status">
-                Đã enqueue print job.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="print-admin__layout">
-            <div className="print-admin__table-wrap">
-              <table className="print-admin__table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Status</th>
-                    <th>Label</th>
-                    <th>Printer</th>
-                    <th>Template</th>
-                    <th>Requested at</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {admin.jobRows.map((row) => (
-                    <tr
-                      key={row.code}
-                      className={
-                        row.code === admin.selectedCode
-                          ? 'print-admin__row print-admin__row--active'
-                          : 'print-admin__row'
-                      }
-                      onClick={() => admin.setSelectedCode(row.code)}
-                    >
-                      <td>{row.code}</td>
-                      <td>{row.status}</td>
-                      <td>{row.labelType}</td>
-                      <td>{row.printerLabel}</td>
-                      <td>{row.templateLabel}</td>
-                      <td>{row.requestedAt}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {admin.hasMore ? (
-                <button type="button" className="print-admin__more" onClick={admin.loadMore}>
-                  Tải thêm
-                </button>
-              ) : null}
+      {/* JOBS TAB CONTENT */}
+      {admin.tab === 'jobs' && (
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Form: Enqueue print job */}
+            <div className="lg:col-span-1 flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-fit">
+              <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250 flex items-center gap-2">
+                <PlusCircle size={16} className="text-blue-600" />
+                Yêu cầu in mới (Enqueue)
+              </h3>
+              <form className="flex flex-col gap-3" onSubmit={onEnqueue}>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">Loại đối tượng (entity_type)</span>
+                  <Input
+                    value={enqueueForm.entity_type}
+                    onChange={(e) => setEnqueueForm((s) => ({ ...s, entity_type: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">ID đối tượng (entity_id)</span>
+                  <Input
+                    value={enqueueForm.entity_id}
+                    onChange={(e) => setEnqueueForm((s) => ({ ...s, entity_id: e.target.value }))}
+                    placeholder="Ví dụ: 101"
+                    className="h-9"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">Template</span>
+                  <Select
+                    value={enqueueForm.template_code}
+                    onChange={(e) => setEnqueueForm((s) => ({ ...s, template_code: e.target.value }))}
+                    className="h-9"
+                  >
+                    <option value="">Chọn template</option>
+                    {admin.templates.map((t) => (
+                      <option key={t.code} value={t.code}>
+                        {t.code}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">Máy in (Printer)</span>
+                  <Select
+                    value={enqueueForm.printer_code}
+                    onChange={(e) => setEnqueueForm((s) => ({ ...s, printer_code: e.target.value }))}
+                    className="h-9"
+                  >
+                    <option value="">Chọn máy in</option>
+                    {admin.printers.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.code}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">Số bản sao (copies)</span>
+                  <Input
+                    value={enqueueForm.copies}
+                    onChange={(e) => setEnqueueForm((s) => ({ ...s, copies: e.target.value }))}
+                    className="h-9"
+                  />
+                </div>
+                <Button type="submit" size="sm" disabled={admin.enqueuePending} className="h-9 mt-2">
+                  Gửi yêu cầu in
+                </Button>
+              </form>
+              
+              {admin.enqueueError && (
+                <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{admin.enqueueError.code}: {admin.enqueueError.message}</span>
+                </div>
+              )}
+              {admin.enqueueSuccess && (
+                <div className="p-3 rounded bg-green-50/40 dark:bg-green-950/10 text-green-650 border border-green-200 text-xs" role="status">
+                  Đã xếp hàng yêu cầu in thành công.
+                </div>
+              )}
             </div>
 
-            <aside className="print-admin__detail" aria-label="Chi tiết print job">
-              {admin.detailRow ? (
-                <>
-                  <h3>{admin.detailRow.code}</h3>
-                  <dl>
-                    <div>
-                      <dt>Status</dt>
-                      <dd>{admin.detailRow.status}</dd>
-                    </div>
-                    <div>
-                      <dt>Printer</dt>
-                      <dd>{admin.detailRow.printerLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Template</dt>
-                      <dd>{admin.detailRow.templateLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Parent</dt>
-                      <dd>
-                        {admin.detailRow.parentType}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Copies</dt>
-                      <dd>{admin.detailRow.copies}</dd>
-                    </div>
-                    <div>
-                      <dt>Requested at</dt>
-                      <dd>{admin.detailRow.requestedAt}</dd>
-                    </div>
-                    <div>
-                      <dt>Printed at</dt>
-                      <dd>{admin.detailRow.printedAt}</dd>
-                    </div>
-                    <div>
-                      <dt>Error</dt>
-                      <dd>{admin.detailRow.errorMessage}</dd>
-                    </div>
-                    <div>
-                      <dt>Payload</dt>
-                      <dd className="print-admin__payload">{admin.detailRow.payloadPreview}</dd>
-                    </div>
-                  </dl>
+            {/* Print Jobs List */}
+            <div className="lg:col-span-2 flex flex-col gap-3">
+              {/* Search Toolbar */}
+              <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <form
+                  className="flex-1 flex gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    admin.applySearch()
+                  }}
+                >
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      value={admin.searchInput}
+                      onChange={(event) => admin.setSearchInput(event.target.value)}
+                      placeholder="Tìm kiếm theo mã in, loại nhãn..."
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="h-9">
+                    Lọc
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" className="h-9" onClick={admin.refresh}>
+                    <RotateCw size={14} />
+                  </Button>
+                </form>
+              </div>
 
-                  <div className="print-admin__actions">
-                    {admin.detailRow.actions.map((action) => (
-                      <button
-                        key={action}
-                        type="button"
+              <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+                <Table containerClassName="relative w-full overflow-auto">
+                  <TableHeader>
+                    <TableRow className="pointer-events-none hover:bg-transparent">
+                      <TableHead>Mã in (Code)</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Loại nhãn</TableHead>
+                      <TableHead>Máy in</TableHead>
+                      <TableHead>Template</TableHead>
+                      <TableHead>Thời gian yêu cầu</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {admin.jobRows.map((row) => (
+                      <TableRow
+                        key={row.code}
+                        className={`hover:bg-slate-50/50 cursor-pointer ${
+                          row.code === admin.selectedCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''
+                        }`}
                         onClick={() => {
-                          admin.setActionReason('')
-                          admin.setConfirmAction(action)
+                          admin.setSelectedCode(row.code)
+                          setIsJobDetailOpen(true)
                         }}
                       >
-                        {actionLabel(action)}
-                      </button>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="px-0 py-0 h-auto font-semibold hover:underline"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              admin.setSelectedCode(row.code)
+                              setIsJobDetailOpen(true)
+                            }}
+                          >
+                            {row.code}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === 'COMPLETED' ? 'active' : row.status === 'FAILED' ? 'inactive' : 'default'}>
+                            {row.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-semibold text-slate-850 dark:text-slate-100">{row.labelType}</TableCell>
+                        <TableCell className="text-slate-550 font-mono text-xs">{row.printerLabel}</TableCell>
+                        <TableCell className="text-slate-550 font-mono text-xs">{row.templateLabel}</TableCell>
+                        <TableCell className="text-slate-400 whitespace-nowrap">{row.requestedAt}</TableCell>
+                      </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+                {admin.hasMore && (
+                  <div className="flex justify-center p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1.5 px-6"
+                      onClick={admin.loadMore}
+                    >
+                      Tải thêm print jobs
+                    </Button>
                   </div>
+                )}
+              </div>
+            </div>
 
-                  {admin.confirmAction ? (
-                    <div className="print-admin__confirm" role="dialog" aria-label="Xác nhận action">
-                      <p>
-                        Xác nhận <strong>{actionLabel(admin.confirmAction)}</strong> cho{' '}
-                        {admin.detailRow.code}?
-                      </p>
-                      {admin.reasonRequired ? (
-                        <label className="print-admin__field">
-                          <span>Lý do</span>
-                          <input
-                            value={admin.actionReason}
-                            onChange={(event) => admin.setActionReason(event.target.value)}
-                            placeholder="Bắt buộc theo contract"
-                          />
-                        </label>
-                      ) : null}
-                      <div className="print-admin__actions">
-                        <button
-                          type="button"
-                          disabled={
-                            (admin.reasonRequired && admin.actionReason.trim().length === 0) ||
-                            admin.actionState === 'pending'
-                          }
-                          onClick={admin.requestJobAction}
-                        >
-                          Xác nhận
-                        </button>
-                        <button type="button" onClick={() => admin.setConfirmAction(null)}>
-                          Hủy
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {admin.actionError ? (
-                    <p className="print-admin__state" role="alert">
-                      {admin.actionError.code}: {admin.actionError.message}
-                    </p>
-                  ) : null}
-                  {admin.actionState === 'success' ? (
-                    <p className="print-admin__state" role="status">
-                      Action thành công.
-                    </p>
-                  ) : null}
-                </>
-              ) : (
-                <p className="print-admin__muted">Chọn một print job để xem chi tiết.</p>
-              )}
-            </aside>
           </div>
-        </>
-      ) : null}
+        </div>
+      )}
 
-      {admin.tab === 'printers' ? (
-        <div className="print-admin__layout">
-          <div className="print-admin__table-wrap">
-            {admin.printersError ? (
-              <div className="print-admin__state" role="alert">
+      {/* PRINTERS TAB CONTENT */}
+      {admin.tab === 'printers' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form: Create printer */}
+          <div className="lg:col-span-1 flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-fit">
+            <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250 flex items-center gap-2">
+              <PlusCircle size={16} className="text-green-600" />
+              Đăng ký Máy in (Printer)
+            </h3>
+            <form className="flex flex-col gap-3" onSubmit={onCreatePrinter}>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Mã máy in (code)</span>
+                <Input
+                  value={printerForm.code}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, code: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Tên máy in (printer_name)</span>
+                <Input
+                  value={printerForm.printer_name}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, printer_name: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Model máy in</span>
+                <Input
+                  value={printerForm.model}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, model: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Giao thức truyền (protocol)</span>
+                <Select
+                  value={printerForm.protocol}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, protocol: e.target.value }))}
+                  className="h-9"
+                >
+                  <option value="ZPL">ZPL (Zebra)</option>
+                  <option value="TSPL">TSPL (TSC)</option>
+                  <option value="ESC_POS">ESC/POS (Thermal)</option>
+                  <option value="PDF">PDF Document</option>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Mã vị trí (location_id)</span>
+                <Input
+                  value={printerForm.location_id}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, location_id: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">IP Address (Không bắt buộc)</span>
+                <Input
+                  value={printerForm.ip_address}
+                  onChange={(e) => setPrinterForm((s) => ({ ...s, ip_address: e.target.value }))}
+                  placeholder="192.168.1.100"
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Supported labels</span>
+                <Input
+                  value={printerForm.supported_label_types}
+                  onChange={(e) =>
+                    setPrinterForm((s) => ({ ...s, supported_label_types: e.target.value }))
+                  }
+                  className="h-9"
+                />
+              </div>
+              <Button type="submit" size="sm" disabled={admin.createPrinterPending} className="h-9 mt-2">
+                Đăng ký máy in
+              </Button>
+            </form>
+            {admin.createPrinterError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5" role="alert">
+                <AlertCircle size={14} />
+                <span>{admin.createPrinterError.message}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Printers List Table */}
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            {admin.printersError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs">
                 {admin.printersError.message}
               </div>
-            ) : null}
-            {admin.printersLoading ? (
-              <div className="print-admin__state" role="status">
-                Đang tải printers…
-              </div>
-            ) : null}
-            <table className="print-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Name</th>
-                  <th>Protocol</th>
-                  <th>Status</th>
-                  <th>Active</th>
-                </tr>
-              </thead>
-              <tbody>
-                {admin.printers.map((p) => (
-                  <tr
-                    key={p.code}
-                    className={
-                      p.code === admin.selectedPrinterCode
-                        ? 'print-admin__row print-admin__row--active'
-                        : 'print-admin__row'
-                    }
-                    onClick={() => admin.setSelectedPrinterCode(p.code)}
-                  >
-                    <td>{p.code}</td>
-                    <td>{p.printer_name}</td>
-                    <td>{p.protocol}</td>
-                    <td>{p.status}</td>
-                    <td>{p.is_active ? 'yes' : 'no'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <aside className="print-admin__detail" aria-label="Printer detail">
-            <div className="print-admin__panel" style={{ border: 0, padding: 0 }}>
-              <h3>Create printer</h3>
-              <form className="print-admin__form" onSubmit={onCreatePrinter}>
-                <label className="print-admin__field">
-                  <span>code</span>
-                  <input
-                    value={printerForm.code}
-                    onChange={(e) => setPrinterForm((s) => ({ ...s, code: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field">
-                  <span>printer_name</span>
-                  <input
-                    value={printerForm.printer_name}
-                    onChange={(e) => setPrinterForm((s) => ({ ...s, printer_name: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field">
-                  <span>model</span>
-                  <input
-                    value={printerForm.model}
-                    onChange={(e) => setPrinterForm((s) => ({ ...s, model: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field">
-                  <span>protocol</span>
-                  <select
-                    value={printerForm.protocol}
-                    onChange={(e) => setPrinterForm((s) => ({ ...s, protocol: e.target.value }))}
-                  >
-                    <option value="ZPL">ZPL</option>
-                    <option value="TSPL">TSPL</option>
-                    <option value="ESC_POS">ESC_POS</option>
-                    <option value="PDF">PDF</option>
-                  </select>
-                </label>
-                <label className="print-admin__field">
-                  <span>location_id</span>
-                  <input
-                    value={printerForm.location_id}
-                    onChange={(e) => setPrinterForm((s) => ({ ...s, location_id: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field print-admin__field--wide">
-                  <span>supported_label_types</span>
-                  <input
-                    value={printerForm.supported_label_types}
-                    onChange={(e) =>
-                      setPrinterForm((s) => ({ ...s, supported_label_types: e.target.value }))
-                    }
-                  />
-                </label>
-                <button type="submit" disabled={admin.createPrinterPending}>
-                  Tạo printer
-                </button>
-              </form>
-              {admin.createPrinterError ? (
-                <p className="print-admin__state" role="alert">
-                  {admin.createPrinterError.message}
-                </p>
-              ) : null}
-            </div>
-
-            {admin.selectedPrinterCode ? (
-              <>
-                <h3>{admin.selectedPrinterCode}</h3>
-                <div className="print-admin__actions">
-                  <button type="button" onClick={() => admin.setConfirmArchivePrinter(true)}>
-                    Deactivate
-                  </button>
-                </div>
-                {admin.confirmArchivePrinter ? (
-                  <div className="print-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-                    <p>Deactivate printer {admin.selectedPrinterCode}? Hành động cần xác nhận.</p>
-                    <div className="print-admin__actions">
-                      <button
-                        type="button"
-                        disabled={admin.archivePrinterState === 'pending'}
-                        onClick={admin.requestArchivePrinter}
-                      >
-                        Xác nhận
-                      </button>
-                      <button type="button" onClick={() => admin.setConfirmArchivePrinter(false)}>
-                        Hủy
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                {admin.archivePrinterError ? (
-                  <p className="print-admin__state" role="alert">
-                    {admin.archivePrinterError.message}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="print-admin__muted">Chọn printer để deactivate.</p>
             )}
-          </aside>
+            {admin.printersLoading && <div className="text-sm text-slate-450">Đang tải danh sách printers...</div>}
+            
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Mã máy in</TableHead>
+                    <TableHead>Tên máy in</TableHead>
+                    <TableHead>Protocol</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Kích hoạt</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {admin.printers.map((p) => (
+                    <TableRow
+                      key={p.code}
+                      className={`hover:bg-slate-50/50 cursor-pointer ${
+                        p.code === admin.selectedPrinterCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''
+                      }`}
+                      onClick={() => {
+                        admin.setSelectedPrinterCode(p.code)
+                        setIsPrinterDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 py-0 h-auto font-semibold hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            admin.setSelectedPrinterCode(p.code)
+                            setIsPrinterDetailOpen(true)
+                          }}
+                        >
+                          {p.code}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-850 dark:text-slate-100">{p.printer_name}</TableCell>
+                      <TableCell className="text-slate-500 font-mono text-xs">{p.protocol}</TableCell>
+                      <TableCell>
+                        <Badge variant={p.status === 'READY' ? 'active' : 'default'}>
+                          {p.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={p.is_active ? 'active' : 'inactive'}>
+                          {p.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </div>
-      ) : null}
+      )}
 
-      {admin.tab === 'templates' ? (
-        <div className="print-admin__layout">
-          <div className="print-admin__table-wrap">
-            {admin.templatesError ? (
-              <div className="print-admin__state" role="alert">
+      {/* TEMPLATES TAB CONTENT */}
+      {admin.tab === 'templates' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Form: Create template */}
+          <div className="lg:col-span-1 flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm h-fit">
+            <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250 flex items-center gap-2">
+              <PlusCircle size={16} className="text-orange-600" />
+              Tạo Template Nhãn mới
+            </h3>
+            <form className="flex flex-col gap-3" onSubmit={onCreateTemplate}>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Mã template (code)</span>
+                <Input
+                  value={templateForm.code}
+                  onChange={(e) => setTemplateForm((s) => ({ ...s, code: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Loại nhãn (label_type)</span>
+                <Select
+                  value={templateForm.label_type}
+                  onChange={(e) => setTemplateForm((s) => ({ ...s, label_type: e.target.value }))}
+                  className="h-9"
+                >
+                  <option value="LOT">LOT (Nhãn lô vật tư)</option>
+                  <option value="CON">CON (Container/Pallet)</option>
+                  <option value="FC">FC (Phiếu nhập xuất)</option>
+                  <option value="BIN">BIN (Vị trí kho)</option>
+                  <option value="MACHINE">MACHINE (Máy móc/Thiết bị)</option>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Phiên bản (version)</span>
+                <Input
+                  value={templateForm.version}
+                  onChange={(e) => setTemplateForm((s) => ({ ...s, version: e.target.value }))}
+                  className="h-9"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Định dạng template</span>
+                <Select
+                  value={templateForm.template_format}
+                  onChange={(e) =>
+                    setTemplateForm((s) => ({ ...s, template_format: e.target.value }))
+                  }
+                  className="h-9"
+                >
+                  <option value="ZPL">ZPL (Zebra Markup)</option>
+                  <option value="TSPL">TSPL (Command Language)</option>
+                  <option value="HTML">HTML (Raw Document)</option>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Nội dung template (ZPL/HTML)</span>
+                <textarea
+                  value={templateForm.template_body}
+                  onChange={(e) =>
+                    setTemplateForm((s) => ({ ...s, template_body: e.target.value }))
+                  }
+                  rows={4}
+                  className="w-full text-xs font-mono p-2.5 border border-slate-350 dark:border-slate-800 rounded bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+              <Button type="submit" size="sm" disabled={admin.createTemplatePending} className="h-9 mt-2">
+                Tạo template
+              </Button>
+            </form>
+            {admin.createTemplateError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5" role="alert">
+                <AlertCircle size={14} />
+                <span>{admin.createTemplateError.message}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Templates List Table */}
+          <div className="lg:col-span-2 flex flex-col gap-3">
+            {admin.templatesError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs">
                 {admin.templatesError.message}
               </div>
-            ) : null}
-            {admin.templatesLoading ? (
-              <div className="print-admin__state" role="status">
-                Đang tải templates…
-              </div>
-            ) : null}
-            <table className="print-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Type</th>
-                  <th>Version</th>
-                  <th>Format</th>
-                  <th>Active</th>
-                </tr>
-              </thead>
-              <tbody>
-                {admin.templates.map((t) => (
-                  <tr
-                    key={t.code}
-                    className={
-                      t.code === admin.selectedTemplateCode
-                        ? 'print-admin__row print-admin__row--active'
-                        : 'print-admin__row'
-                    }
-                    onClick={() => admin.setSelectedTemplateCode(t.code)}
-                  >
-                    <td>{t.code}</td>
-                    <td>{t.label_type}</td>
-                    <td>{t.version}</td>
-                    <td>{t.template_format}</td>
-                    <td>{t.is_active ? 'yes' : 'no'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            )}
+            {admin.templatesLoading && <div className="text-sm text-slate-450">Đang tải danh sách templates...</div>}
+
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Mã Template</TableHead>
+                    <TableHead>Label Type</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Format</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {admin.templates.map((t) => (
+                    <TableRow
+                      key={t.code}
+                      className={`hover:bg-slate-50/50 cursor-pointer ${
+                        t.code === admin.selectedTemplateCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''
+                      }`}
+                      onClick={() => {
+                        admin.setSelectedTemplateCode(t.code)
+                        setIsTemplateDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 py-0 h-auto font-semibold hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            admin.setSelectedTemplateCode(t.code)
+                            setIsTemplateDetailOpen(true)
+                          }}
+                        >
+                          {t.code}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-850 dark:text-slate-100">{t.label_type}</TableCell>
+                      <TableCell className="text-slate-500 font-mono text-xs">{t.version}</TableCell>
+                      <TableCell className="text-slate-500 font-mono text-xs">{t.template_format}</TableCell>
+                      <TableCell>
+                        <Badge variant={t.is_active ? 'active' : 'inactive'}>
+                          {t.is_active ? 'ACTIVE' : 'DEACTIVATED'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-          <aside className="print-admin__detail" aria-label="Template detail">
-            <div className="print-admin__panel" style={{ border: 0, padding: 0 }}>
-              <h3>Create template</h3>
-              <form className="print-admin__form" onSubmit={onCreateTemplate}>
-                <label className="print-admin__field">
-                  <span>code</span>
-                  <input
-                    value={templateForm.code}
-                    onChange={(e) => setTemplateForm((s) => ({ ...s, code: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field">
-                  <span>label_type</span>
-                  <select
-                    value={templateForm.label_type}
-                    onChange={(e) => setTemplateForm((s) => ({ ...s, label_type: e.target.value }))}
-                  >
-                    <option value="LOT">LOT</option>
-                    <option value="CON">CON</option>
-                    <option value="FC">FC</option>
-                    <option value="BIN">BIN</option>
-                    <option value="MACHINE">MACHINE</option>
-                  </select>
-                </label>
-                <label className="print-admin__field">
-                  <span>version</span>
-                  <input
-                    value={templateForm.version}
-                    onChange={(e) => setTemplateForm((s) => ({ ...s, version: e.target.value }))}
-                  />
-                </label>
-                <label className="print-admin__field">
-                  <span>template_format</span>
-                  <select
-                    value={templateForm.template_format}
-                    onChange={(e) =>
-                      setTemplateForm((s) => ({ ...s, template_format: e.target.value }))
-                    }
-                  >
-                    <option value="ZPL">ZPL</option>
-                    <option value="TSPL">TSPL</option>
-                    <option value="HTML">HTML</option>
-                  </select>
-                </label>
-                <label className="print-admin__field print-admin__field--wide">
-                  <span>template_body</span>
-                  <textarea
-                    value={templateForm.template_body}
-                    onChange={(e) =>
-                      setTemplateForm((s) => ({ ...s, template_body: e.target.value }))
-                    }
-                  />
-                </label>
-                <button type="submit" disabled={admin.createTemplatePending}>
-                  Tạo template
-                </button>
-              </form>
-              {admin.createTemplateError ? (
-                <p className="print-admin__state" role="alert">
-                  {admin.createTemplateError.message}
-                </p>
-              ) : null}
+        </div>
+      )}
+
+      {/* JOBS DETAIL DIALOG OVERLAY */}
+      <Dialog
+        isOpen={isJobDetailOpen && !!admin.selectedCode && admin.tab === 'jobs'}
+        onClose={() => {
+          setIsJobDetailOpen(false)
+          admin.setConfirmAction(null)
+        }}
+        title={admin.detailRow ? `Print Job: ${admin.detailRow.code}` : 'Chi tiết in'}
+      >
+        {admin.detailRow ? (
+          <div className="flex flex-col gap-4 font-sans text-sm">
+            {/* Job metrics metadata */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Trạng thái</span>
+                <div className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                  <Badge variant={admin.detailRow.status === 'COMPLETED' ? 'active' : admin.detailRow.status === 'FAILED' ? 'inactive' : 'default'}>
+                    {admin.detailRow.status}
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Số bản in</span>
+                <div className="mt-1 font-semibold text-slate-800 dark:text-slate-200">
+                  {admin.detailRow.copies} bản
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Đối tượng chính</span>
+                <div className="mt-1 font-semibold text-slate-850 dark:text-slate-200 truncate" title={admin.detailRow.parentType}>
+                  {admin.detailRow.parentType}
+                </div>
+              </div>
             </div>
 
-            {admin.selectedTemplateCode ? (
-              <>
-                <h3>{admin.selectedTemplateCode}</h3>
-                <div className="print-admin__actions">
-                  <button type="button" onClick={() => admin.setConfirmArchiveTemplate(true)}>
-                    Deactivate
-                  </button>
+            {/* Time Metrics */}
+            <div className="flex flex-col gap-2 p-3 rounded-lg border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+              <div className="flex items-center gap-1.5 text-xs text-slate-550 dark:text-slate-400">
+                <Clock size={13} className="text-slate-400" />
+                <span>Thời gian yêu cầu: {admin.detailRow.requestedAt || '-'}</span>
+              </div>
+              {admin.detailRow.printedAt && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-550 dark:text-slate-400">
+                  <PrinterIcon size={13} className="text-green-500" />
+                  <span>Thời gian in thực tế: {admin.detailRow.printedAt}</span>
                 </div>
-                {admin.confirmArchiveTemplate ? (
-                  <div className="print-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-                    <p>Deactivate template {admin.selectedTemplateCode}?</p>
-                    <div className="print-admin__actions">
-                      <button
-                        type="button"
-                        disabled={admin.archiveTemplateState === 'pending'}
-                        onClick={admin.requestArchiveTemplate}
-                      >
-                        Xác nhận
-                      </button>
-                      <button type="button" onClick={() => admin.setConfirmArchiveTemplate(false)}>
-                        Hủy
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                {admin.archiveTemplateError ? (
-                  <p className="print-admin__state" role="alert">
-                    {admin.archiveTemplateError.message}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="print-admin__muted">Chọn template để deactivate.</p>
+              )}
+            </div>
+
+            {/* Linked hardware logs */}
+            <div className="grid grid-cols-2 gap-3 text-xs text-slate-655 bg-slate-50/50 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+              <div>
+                <span className="text-slate-400 block">Printer Code:</span>
+                <strong className="font-semibold text-slate-850 dark:text-slate-200">{admin.detailRow.printerLabel}</strong>
+              </div>
+              <div>
+                <span className="text-slate-400 block">Template Code:</span>
+                <strong className="font-semibold text-slate-850 dark:text-slate-200">{admin.detailRow.templateLabel}</strong>
+              </div>
+            </div>
+
+            {/* Error Message log if any */}
+            {admin.detailRow.errorMessage && (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs">
+                <strong>Thông báo lỗi:</strong> {admin.detailRow.errorMessage}
+              </div>
             )}
-          </aside>
+
+            {/* ZPL Payload preview */}
+            <div className="flex flex-col gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                <Terminal size={13} />
+                Nội dung nhãn (Payload Preview)
+              </span>
+              <pre className="p-3 rounded-lg bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto max-h-48 leading-relaxed">
+                {admin.detailRow.payloadPreview}
+              </pre>
+            </div>
+
+            {/* Action buttons list */}
+            <div className="flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              {admin.detailRow.actions.map((action) => (
+                <Button
+                  key={action}
+                  variant={action === 'cancel' ? 'danger' : 'secondary'}
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    admin.setActionReason('')
+                    admin.setConfirmAction(action)
+                  }}
+                >
+                  <Activity size={13} />
+                  {actionLabel(action)}
+                </Button>
+              ))}
+            </div>
+
+            {/* Action Confirmation Inline panel inside dialog */}
+            {admin.confirmAction && (
+              <div className="p-3.5 rounded-lg border border-yellow-250 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-850 dark:text-slate-200 mt-2 flex flex-col gap-3">
+                <p className="text-xs leading-relaxed">
+                  Xác nhận thực hiện hành động <strong className="uppercase font-bold text-blue-650 dark:text-blue-400">{actionLabel(admin.confirmAction)}</strong> cho mã in {admin.detailRow.code}?
+                </p>
+                {admin.reasonRequired && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-400">Lý do thực hiện</span>
+                    <Input
+                      value={admin.actionReason}
+                      onChange={(event) => admin.setActionReason(event.target.value)}
+                      placeholder="Bắt buộc nhập lý do..."
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 py-0"
+                    onClick={() => admin.setConfirmAction(null)}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 py-0"
+                    disabled={
+                      (admin.reasonRequired && admin.actionReason.trim().length === 0) ||
+                      admin.actionState === 'pending'
+                    }
+                    onClick={admin.requestJobAction}
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {admin.actionError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5 mt-2" role="alert">
+                <AlertCircle size={14} />
+                <span>{admin.actionError.code}: {admin.actionError.message}</span>
+              </div>
+            )}
+            {admin.actionState === 'success' && (
+              <div className="p-3 rounded bg-green-50/40 dark:bg-green-950/10 text-green-650 border border-green-200 text-xs mt-2" role="status">
+                Thực hiện hành động thành công.
+              </div>
+            )}
+
+            <div className="flex justify-end border-t border-slate-100 dark:border-slate-800 pt-3 mt-4">
+              <Button variant="secondary" onClick={() => setIsJobDetailOpen(false)}>
+                Đóng chi tiết
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400">Chọn một print job để xem chi tiết.</p>
+        )}
+      </Dialog>
+
+      {/* PRINTER DETAIL DIALOG OVERLAY */}
+      <Dialog
+        isOpen={isPrinterDetailOpen && !!admin.selectedPrinterCode && admin.tab === 'printers'}
+        onClose={() => {
+          setIsPrinterDetailOpen(false)
+          admin.setConfirmArchivePrinter(false)
+        }}
+        title={`Máy in: ${admin.selectedPrinterCode}`}
+      >
+        <div className="flex flex-col gap-4 font-sans text-sm">
+          <p className="text-slate-600 dark:text-slate-350 leading-relaxed">
+            Quản trị trạng thái và cấu hình phần cứng cho thiết bị in mã{' '}
+            <strong className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+              {admin.selectedPrinterCode}
+            </strong>.
+          </p>
+
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              variant="danger"
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => admin.setConfirmArchivePrinter(true)}
+            >
+              <XCircle size={14} />
+              Deactivate Printer
+            </Button>
+          </div>
+
+          {/* Confirm archive printer */}
+          {admin.confirmArchivePrinter && (
+            <div className="p-3.5 rounded-lg border border-yellow-250 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-850 dark:text-slate-205 mt-2 flex flex-col gap-3">
+              <p className="text-xs leading-relaxed">
+                Deactivate máy in <strong className="font-mono">{admin.selectedPrinterCode}</strong>? Nhấp xác nhận để lưu cấu hình.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" className="h-8 py-0" onClick={() => admin.setConfirmArchivePrinter(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="h-8 py-0"
+                  disabled={admin.archivePrinterState === 'pending'}
+                  onClick={admin.requestArchivePrinter}
+                >
+                  Xác nhận
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {admin.archivePrinterError && (
+            <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5 mt-2" role="alert">
+              <AlertCircle size={14} />
+              <span>{admin.archivePrinterError.message}</span>
+            </div>
+          )}
+
+          <div className="flex justify-end border-t border-slate-100 dark:border-slate-800 pt-3 mt-4">
+            <Button variant="secondary" onClick={() => setIsPrinterDetailOpen(false)}>
+              Đóng chi tiết
+            </Button>
+          </div>
         </div>
-      ) : null}
+      </Dialog>
+
+      {/* TEMPLATE DETAIL DIALOG OVERLAY */}
+      <Dialog
+        isOpen={isTemplateDetailOpen && !!admin.selectedTemplateCode && admin.tab === 'templates'}
+        onClose={() => {
+          setIsTemplateDetailOpen(false)
+          admin.setConfirmArchiveTemplate(false)
+        }}
+        title={`Template: ${admin.selectedTemplateCode}`}
+      >
+        <div className="flex flex-col gap-4 font-sans text-sm">
+          <p className="text-slate-655 dark:text-slate-350 leading-relaxed">
+            Quản trị phiên bản cấu trúc nhãn và cấu hình markup cho bản mẫu nhãn{' '}
+            <strong className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
+              {admin.selectedTemplateCode}
+            </strong>.
+          </p>
+
+          <div className="flex items-center gap-2 mt-2">
+            <Button
+              variant="danger"
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => admin.setConfirmArchiveTemplate(true)}
+            >
+              <XCircle size={14} />
+              Deactivate Template
+            </Button>
+          </div>
+
+          {/* Confirm archive template */}
+          {admin.confirmArchiveTemplate && (
+            <div className="p-3.5 rounded-lg border border-yellow-250 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-850 dark:text-slate-205 mt-2 flex flex-col gap-3">
+              <p className="text-xs leading-relaxed">
+                Deactivate mẫu thiết kế nhãn <strong className="font-mono">{admin.selectedTemplateCode}</strong>?
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" className="h-8 py-0" onClick={() => admin.setConfirmArchiveTemplate(false)}>
+                  Hủy
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  className="h-8 py-0"
+                  disabled={admin.archiveTemplateState === 'pending'}
+                  onClick={admin.requestArchiveTemplate}
+                >
+                  Xác nhận
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {admin.archiveTemplateError && (
+            <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-1.5 mt-2" role="alert">
+              <AlertCircle size={14} />
+              <span>{admin.archiveTemplateError.message}</span>
+            </div>
+          )}
+
+          <div className="flex justify-end border-t border-slate-100 dark:border-slate-800 pt-3 mt-4">
+            <Button variant="secondary" onClick={() => setIsTemplateDetailOpen(false)}>
+              Đóng chi tiết
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </section>
   )
 }

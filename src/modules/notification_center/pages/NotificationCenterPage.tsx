@@ -1,6 +1,25 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { useNotificationCenter } from '../hooks/useNotificationCenter'
+import { usePagination } from '@/shared/lib/usePagination'
+import { DataTablePagination } from '@/shared/components/DataTablePagination'
+
+// Import Tailwind Shadcn UI & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input } from '@/shared/components/ui/Input'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/components/ui/Table'
+import { Search, RotateCw, CheckCheck, ExternalLink, Calendar, AlertCircle } from 'lucide-react'
 
 import './NotificationCenterPage.css'
 
@@ -24,165 +43,246 @@ function stateMessage(state: string): string {
 export function NotificationCenterPage() {
   const center = useNotificationCenter()
   const banner = stateMessage(center.listState)
+  const pagination = usePagination(center.rows, 10)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   return (
-    <section className="ntf-center" aria-labelledby="ntf-center-title">
-      <header className="ntf-center__header">
-        <div>
-          <p className="ntf-center__eyebrow">WEB-NB-08-NOTIFICATION-CENTER</p>
-          <h2 id="ntf-center-title">Notification Center</h2>
-          <p className="ntf-center__lead">
-            Hộp thư cá nhân — mark read / deep-link. Không gọi fanout hoặc broadcast.
-          </p>
-        </div>
-        <div className="ntf-center__actions">
-          <span className="ntf-center__badge" aria-label="Unread count">
-            Unread: {center.unreadCount}
-          </span>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Thông báo' },
+        ]}
+        title="Notification Center"
+        subtitle="Hộp thư cá nhân — quản lý thông báo, Deep-link và cập nhật trạng thái đã đọc."
+        actions={
+          <div className="flex items-center gap-2">
+            <Badge variant={center.unreadCount > 0 ? 'active' : 'inactive'} className="py-1.5 px-2.5 h-9 flex items-center text-xs font-semibold">
+              Chưa đọc: {center.unreadCount}
+            </Badge>
+            <Button
+              variant="secondary"
+              onClick={center.refresh}
+              title="Làm mới hộp thư"
+            >
+              <RotateCw size={14} className="mr-1.5" />
+              Làm mới
+            </Button>
+            <Button
+              disabled={center.markState === 'pending' || center.unreadCount === 0}
+              onClick={center.markAllRead}
+            >
+              <CheckCheck size={14} className="mr-1.5" />
+              Đánh dấu tất cả đã đọc
+            </Button>
+          </div>
+        }
+      />
 
-      <form
-        className="ntf-center__filters"
-        onSubmit={(event) => {
-          event.preventDefault()
-          center.applyFilters()
-        }}
-      >
-        <label>
-          <span>Tìm kiếm</span>
-          <input
-            value={center.draftQ}
-            onChange={(event) => center.setDraftQ(event.target.value)}
-            placeholder="title / event_type"
-          />
-        </label>
-        <div className="ntf-center__actions">
-          <button type="submit">Lọc</button>
-          <button type="button" onClick={center.clearFilters}>
-            Xóa lọc
-          </button>
-          <button type="button" onClick={center.refresh}>
-            Làm mới
-          </button>
-          <button
-            type="button"
-            disabled={center.markState === 'pending'}
-            onClick={center.markAllRead}
-          >
-            Đánh dấu tất cả đã đọc
-          </button>
-        </div>
-      </form>
+      {/* Filters Toolbar */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+        <form
+          className="flex flex-1 items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg max-w-md"
+          onSubmit={(event) => {
+            event.preventDefault()
+            center.applyFilters()
+          }}
+        >
+          <div className="flex-1">
+            <Input
+              value={center.draftQ}
+              onChange={(event) => center.setDraftQ(event.target.value)}
+              placeholder="Tìm kiếm theo tiêu đề, loại sự kiện..."
+              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-8 px-2"
+              autoComplete="off"
+            />
+          </div>
+          <Button type="submit" size="sm" className="h-8 w-8 px-0" aria-label="Lọc">
+            <Search size={14} />
+          </Button>
+        </form>
 
-      {banner ? (
-        <p className="ntf-center__state" role="status">
+        {center.draftQ && (
+          <Button variant="secondary" size="sm" onClick={center.clearFilters} className="h-9">
+            Xóa bộ lọc
+          </Button>
+        )}
+      </div>
+
+      {banner && (
+        <p
+          className={`p-4 rounded text-sm border ${
+            center.listState === 'error' || center.listState === 'permission-denied'
+              ? 'bg-red-50 dark:bg-red-950/20 text-red-650 border-red-200'
+              : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-250 dark:border-slate-800'
+          }`}
+          role={center.listState === 'error' ? 'alert' : 'status'}
+        >
           {banner}
           {center.listError ? ` (${center.listError.code})` : ''}
         </p>
-      ) : null}
+      )}
 
-      <div className="ntf-center__layout">
-        <div className="ntf-center__table-wrap">
-          <table className="ntf-center__table">
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Title</th>
-                <th>Priority</th>
-                <th>Created</th>
-                <th>Read</th>
-              </tr>
-            </thead>
-            <tbody>
-              {center.rows.map((row) => (
-                <tr
+      {center.listState === 'ready' && (
+        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+          <Table containerClassName="relative w-full overflow-auto">
+            <TableHeader>
+              <TableRow className="pointer-events-none hover:bg-transparent">
+                <TableHead>Code</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Read</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagination.paginatedItems.map((row) => (
+                <TableRow
                   key={row.code}
-                  className={row.code === center.selectedCode ? 'ntf-center__row--active' : ''}
+                  className={row.code === center.selectedCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+                  onClick={() => {
+                    center.setSelectedCode(row.code)
+                    setIsDetailOpen(true)
+                  }}
                 >
-                  <td>
-                    <button
-                      type="button"
-                      className="ntf-center__link"
-                      onClick={() => center.setSelectedCode(row.code)}
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-0 py-0 h-auto font-semibold hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        center.setSelectedCode(row.code)
+                        setIsDetailOpen(true)
+                      }}
                     >
                       {row.code}
-                    </button>
-                  </td>
-                  <td>{row.title}</td>
-                  <td>{row.priority}</td>
-                  <td>{row.createdAt}</td>
-                  <td>{row.isRead ? 'READ' : 'UNREAD'}</td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-850 dark:text-slate-100 max-w-sm truncate" title={row.title}>
+                    {row.title}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={row.priority === 'HIGH' ? 'active' : 'inactive'}
+                      className="px-2 py-0.5 text-xs font-medium"
+                    >
+                      {row.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-400">{row.createdAt}</TableCell>
+                  <TableCell>
+                    <Badge variant={row.isRead ? 'inactive' : 'active'}>
+                      {row.isRead ? 'Đã đọc' : 'Chưa đọc'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-          {center.hasMore ? (
-            <button type="button" className="ntf-center__more" onClick={center.loadMore}>
-              Tải thêm
-            </button>
-          ) : null}
-        </div>
+            </TableBody>
+          </Table>
 
-        <aside className="ntf-center__detail" aria-label="Chi tiết thông báo">
-          {center.detailRow ? (
-            <>
-              <h3>{center.detailRow.code}</h3>
-              <dl>
-                <div>
-                  <dt>Title</dt>
-                  <dd>{center.detailRow.title}</dd>
-                </div>
-                <div>
-                  <dt>Body</dt>
-                  <dd>{center.detailRow.body}</dd>
-                </div>
-                <div>
-                  <dt>Event / priority / mode</dt>
-                  <dd>
-                    {center.detailRow.eventType} · {center.detailRow.priority} ·{' '}
-                    {center.detailRow.displayMode}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Group</dt>
-                  <dd>{center.detailRow.groupLabel}</dd>
-                </div>
-                <div>
-                  <dt>Related</dt>
-                  <dd>{center.detailRow.relatedEntity}</dd>
-                </div>
-                <div>
-                  <dt>Read at</dt>
-                  <dd>{center.detailRow.readAt}</dd>
-                </div>
-              </dl>
-              <div className="ntf-center__actions">
-                {!center.detailRow.isRead ? (
-                  <button
-                    type="button"
-                    disabled={center.markState === 'pending'}
-                    onClick={center.markRead}
-                  >
-                    Đánh dấu đã đọc
-                  </button>
-                ) : null}
-                {center.detailRow.deepLink ? (
-                  <Link to={center.detailRow.deepLink}>Mở deep link</Link>
-                ) : null}
+          <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
+            <div className="flex-1">
+              <DataTablePagination {...pagination} />
+            </div>
+            {center.hasMore && (
+              <div className="pr-5 pb-3 sm:pb-0">
+                <Button variant="secondary" size="sm" onClick={center.loadMore}>
+                  Tải thêm từ Server
+                </Button>
               </div>
-              {center.markError ? (
-                <p className="ntf-center__state" role="alert">
-                  {center.markError.code}: {center.markError.message}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p>Chọn thông báo để xem chi tiết.</p>
-          )}
-        </aside>
-      </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Notification Details Dialog Modal Overlay */}
+      <Dialog
+        isOpen={isDetailOpen && !!center.detailRow}
+        onClose={() => setIsDetailOpen(false)}
+        title={center.detailRow ? `Thông báo: ${center.detailRow.code}` : 'Chi tiết thông báo'}
+      >
+        {center.detailRow && (
+          <div className="flex flex-col gap-5 font-sans text-sm">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tiêu đề</span>
+              <p className="font-semibold text-base text-slate-900 dark:text-slate-100">{center.detailRow.title}</p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Nội dung chi tiết</span>
+              <div className="p-3.5 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 leading-relaxed font-sans break-words whitespace-pre-wrap">
+                {center.detailRow.body}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Loại sự kiện</span>
+                <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 w-fit text-slate-700 dark:text-slate-350">
+                  {center.detailRow.eventType}
+                </span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Độ ưu tiên</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{center.detailRow.priority}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Hiển thị</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{center.detailRow.displayMode}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Nhãn nhóm</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{center.detailRow.groupLabel}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Thực thể liên quan</span>
+              <span className="font-mono text-xs">{center.detailRow.relatedEntity || '-'}</span>
+            </div>
+
+            {center.detailRow.readAt && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-450 mt-1">
+                <Calendar size={13} />
+                <span>Đã đọc lúc: {center.detailRow.readAt}</span>
+              </div>
+            )}
+
+            {center.markError && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200" role="alert">
+                <AlertCircle size={15} />
+                <span className="text-xs">{center.markError.code}: {center.markError.message}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>
+                Đóng
+              </Button>
+              {!center.detailRow.isRead && (
+                <Button
+                  disabled={center.markState === 'pending'}
+                  onClick={() => {
+                    center.markRead()
+                  }}
+                >
+                  <CheckCheck size={14} className="mr-1.5" />
+                  Đánh dấu đã đọc
+                </Button>
+              )}
+              {center.detailRow.deepLink && (
+                <Link to={center.detailRow.deepLink} className="inline-flex">
+                  <Button variant="primary">
+                    <ExternalLink size={14} className="mr-1.5" />
+                    Mở Deep Link
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </Dialog>
     </section>
   )
 }

@@ -2,23 +2,54 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { useImportExportCenter } from '../hooks/useImportExportCenter'
+import { usePagination } from '@/shared/lib/usePagination'
+import { DataTablePagination } from '@/shared/components/DataTablePagination'
+
+// Import Tailwind Shadcn UI & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/components/ui/Table'
+import {
+  Search,
+  RotateCw,
+  Download,
+  PlusCircle,
+  FileSpreadsheet,
+  AlertCircle,
+  Play,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  User,
+  Info,
+} from 'lucide-react'
 
 import './ImportExportCenterPage.css'
 
 function batchStateMessage(state: string): string {
   switch (state) {
     case 'idle':
-      return 'Chọn template và tải batch theo mã, hoặc tạo batch mới từ source_file_id.'
+      return 'Chọn template và tải batch theo mã, hoặc tạo batch mới từ file nguồn.'
     case 'loading':
-      return 'Đang tải import batch...'
+      return 'Đang tải thông tin import batch...'
     case 'empty':
-      return 'Không có batch đang mở.'
+      return 'Không có batch nào đang mở.'
     case 'permission-denied':
       return 'Bạn không có quyền trên owning module của template này.'
     case 'not-found':
-      return 'Không tìm thấy import batch.'
+      return 'Không tìm thấy import batch tương ứng.'
     case 'error':
-      return 'Không tải được import batch.'
+      return 'Không tải được thông tin import batch.'
     default:
       return ''
   }
@@ -27,364 +58,520 @@ function batchStateMessage(state: string): string {
 export function ImportExportCenterPage() {
   const center = useImportExportCenter()
   const [tab, setTab] = useState<'import' | 'export'>('import')
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   const banner = batchStateMessage(center.batchState)
+  const sessionPagination = usePagination(center.sessionBatches, 10)
 
   return (
-    <section className="ie-center" aria-labelledby="ie-center-title">
-      <header className="ie-center__header">
-        <div>
-          <p className="ie-center__eyebrow">WEB-NB-07-IMPORT-EXPORT</p>
-          <h2 id="ie-center-title">Import / Export Center</h2>
-          <p className="ie-center__lead">
-            Hub gọi public endpoint của owning MES/WMS/QMS — không gọi internal NB-07.
-          </p>
-        </div>
-        <Link to="/home">Về trang chủ</Link>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Import / Export' },
+        ]}
+        title="Import / Export Center"
+        subtitle="Hub quản lý và thực thi nạp/xuất dữ liệu Excel tích hợp cho các phân hệ MES, WMS và QMS."
+      />
 
-      <div className="ie-center__tabs" role="tablist" aria-label="Import export sections">
+      {/* Modern Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'import'}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tab === 'import'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100'
+          }`}
           onClick={() => setTab('import')}
         >
-          Import
+          Import Center
         </button>
         <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'export'}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tab === 'export'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100'
+          }`}
           onClick={() => setTab('export')}
         >
-          Export
+          Export Center
         </button>
       </div>
 
       {tab === 'import' ? (
         <>
-          <form
-            className="ie-center__filters"
-            onSubmit={(event) => {
-              event.preventDefault()
-              center.loadBatch()
-            }}
-          >
-            <label>
-              <span>Template (Ownership Map)</span>
-              <select
-                value={center.templateCode}
-                onChange={(event) => center.setTemplateCode(event.target.value)}
+          {/* Dual Panel Configuration Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Card: Load / Inquiry Batch */}
+            <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Search size={16} className="text-blue-600 dark:text-blue-500" />
+                Tải / Tra cứu Batch
+              </h3>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  center.loadBatch()
+                }}
               >
-                {center.templates.map((item) => (
-                  <option key={item.templateCode} value={item.templateCode}>
-                    {item.label} — {item.templateCode}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Batch code</span>
-              <input
-                value={center.batchCodeInput}
-                onChange={(event) => center.setBatchCodeInput(event.target.value)}
-                placeholder="IMP-000001"
-              />
-            </label>
-            <div className="ie-center__actions">
-              <button type="submit">Tải batch</button>
-              <button type="button" onClick={center.refresh} disabled={!center.detailRow}>
-                Làm mới
-              </button>
-              <button
-                type="button"
-                onClick={center.downloadTemplate}
-                disabled={center.downloadPending}
-              >
-                Tải template
-              </button>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Template Ownership</span>
+                  <Select
+                    value={center.templateCode}
+                    onChange={(event) => center.setTemplateCode(event.target.value)}
+                    className="h-9"
+                  >
+                    {center.templates.map((item) => (
+                      <option key={item.templateCode} value={item.templateCode}>
+                        {item.label} ({item.templateCode})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mã Batch</span>
+                  <Input
+                    value={center.batchCodeInput}
+                    onChange={(event) => center.setBatchCodeInput(event.target.value)}
+                    placeholder="IMP-000001"
+                    className="h-9"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Button type="submit" size="sm" className="h-9 flex-1">
+                    Tải batch
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-9"
+                    onClick={center.refresh}
+                    disabled={!center.detailRow}
+                  >
+                    <RotateCw size={14} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="h-9 gap-1.5"
+                    onClick={center.downloadTemplate}
+                    disabled={center.downloadPending}
+                  >
+                    <Download size={14} />
+                    Tải template
+                  </Button>
+                </div>
+              </form>
+              {center.downloadError && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 flex items-center gap-2 text-xs" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{center.downloadError.code}: {center.downloadError.message}</span>
+                </div>
+              )}
             </div>
-          </form>
 
-          {center.downloadError ? (
-            <p className="ie-center__state" role="alert">
-              {center.downloadError.code}: {center.downloadError.message}
-            </p>
-          ) : null}
-
-          <form
-            className="ie-center__filters"
-            onSubmit={(event) => {
-              event.preventDefault()
-              center.createBatch()
-            }}
-          >
-            <label>
-              <span>source_file_id (NB-04)</span>
-              <input
-                value={center.sourceFileId}
-                onChange={(event) => center.setSourceFileId(event.target.value)}
-                placeholder="123"
-              />
-            </label>
-            <label>
-              <span>mode</span>
-              <select value={center.mode} onChange={(event) => center.setMode(event.target.value)}>
-                {(center.template?.commitModes ?? ['ALL_OR_NOTHING', 'PARTIAL']).map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>import_mode</span>
-              <select
-                value={center.importMode}
-                onChange={(event) => center.setImportMode(event.target.value)}
+            {/* Right Card: Initialize New Batch */}
+            <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <PlusCircle size={16} className="text-green-600 dark:text-green-500" />
+                Khởi tạo Batch mới
+              </h3>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  center.createBatch()
+                }}
               >
-                {(center.template?.importModes ?? ['UPSERT']).map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="ie-center__actions">
-              <button type="submit" disabled={center.createPending}>
-                Tạo import batch
-              </button>
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Source File ID (NB-04)</span>
+                  <Input
+                    value={center.sourceFileId}
+                    onChange={(event) => center.setSourceFileId(event.target.value)}
+                    placeholder="Nhập ID file nguồn (ví dụ: 123)"
+                    className="h-9"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Commit Mode</span>
+                    <Select
+                      value={center.mode}
+                      onChange={(event) => center.setMode(event.target.value)}
+                      className="h-9"
+                    >
+                      {(center.template?.commitModes ?? ['ALL_OR_NOTHING', 'PARTIAL']).map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Import Mode</span>
+                    <Select
+                      value={center.importMode}
+                      onChange={(event) => center.setImportMode(event.target.value)}
+                      className="h-9"
+                    >
+                      {(center.template?.importModes ?? ['UPSERT']).map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+                <Button type="submit" disabled={center.createPending} size="sm" className="h-9 mt-2">
+                  Tạo import batch
+                </Button>
+              </form>
+              {center.createError && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 flex items-center gap-2 text-xs" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{center.createError.code}: {center.createError.message}</span>
+                </div>
+              )}
             </div>
-          </form>
+          </div>
 
-          {center.createError ? (
-            <p className="ie-center__state" role="alert">
-              {center.createError.code}: {center.createError.message}
-            </p>
-          ) : null}
-
-          {banner ? (
-            <p className="ie-center__state" role="status">
+          {banner && (
+            <p
+              className={`p-4 rounded border text-sm ${
+                center.batchState === 'error' || center.batchState === 'permission-denied'
+                  ? 'bg-red-50 dark:bg-red-950/20 text-red-650 border-red-200'
+                  : 'bg-slate-50 dark:bg-slate-900 text-slate-500 border-slate-250 dark:border-slate-800'
+              }`}
+              role={center.batchState === 'error' ? 'alert' : 'status'}
+            >
               {banner}
               {center.batchError ? ` (${center.batchError.code})` : ''}
             </p>
-          ) : null}
+          )}
 
-          <div className="ie-center__layout">
-            <div className="ie-center__table-wrap">
-              <h3>Session batches</h3>
-              <table className="ie-center__table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Template</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {center.sessionBatches.map((code) => (
-                    <tr key={code}>
-                      <td>
-                        <button
-                          type="button"
-                          className="ie-center__link"
-                          onClick={() => center.selectSessionBatch(code)}
+          {/* Session Batches Table */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-1">
+              <FileSpreadsheet size={16} className="text-slate-400" />
+              Session Batches
+            </h3>
+            
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Mã Batch</TableHead>
+                    <TableHead>Template Code</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sessionPagination.paginatedItems.map((code) => (
+                    <TableRow
+                      key={code}
+                      className={code === center.detailRow?.code ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+                      onClick={() => {
+                        center.selectSessionBatch(code)
+                        setIsDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 py-0 h-auto font-semibold hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            center.selectSessionBatch(code)
+                            setIsDetailOpen(true)
+                          }}
                         >
                           {code}
-                        </button>
-                      </td>
-                      <td>{center.templateCode}</td>
-                    </tr>
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-800 dark:text-slate-250">{center.templateCode}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-              {center.sessionBatches.length === 0 ? (
-                <p className="ie-center__state">Chưa có batch trong phiên làm việc.</p>
-              ) : null}
-            </div>
-
-            <aside className="ie-center__detail" aria-label="Chi tiết import batch">
-              {center.detailRow ? (
-                <>
-                  <h3>{center.detailRow.code}</h3>
-                  <dl>
-                    <div>
-                      <dt>Status</dt>
-                      <dd>{center.detailRow.status}</dd>
-                    </div>
-                    <div>
-                      <dt>Target</dt>
-                      <dd>{center.detailRow.targetEntity}</dd>
-                    </div>
-                    <div>
-                      <dt>Mode / import_mode</dt>
-                      <dd>
-                        {center.detailRow.mode} / {center.detailRow.importMode}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Rows</dt>
-                      <dd>
-                        total {center.detailRow.totalRows} · ok {center.detailRow.successRows} · fail{' '}
-                        {center.detailRow.failedRows} · skip {center.detailRow.skippedRows}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Started</dt>
-                      <dd>
-                        {center.detailRow.startedAt} (by #{center.detailRow.startedBy})
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Completed</dt>
-                      <dd>{center.detailRow.completedAt}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="ie-center__actions">
-                    <button
-                      type="button"
-                      disabled={!center.detailRow.canValidate || center.mutationState === 'pending'}
-                      onClick={center.runValidate}
-                    >
-                      Validate
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!center.detailRow.canCommit}
-                      onClick={() => center.setConfirmAction('commit')}
-                    >
-                      Commit
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!center.detailRow.canCancel}
-                      onClick={() => center.setConfirmAction('cancel')}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {center.confirmAction ? (
-                    <div className="ie-center__confirm" role="dialog" aria-label="Xác nhận action">
-                      <p>
-                        Xác nhận {center.confirmAction}? Availability lấy từ server{' '}
-                        <code>allowed_actions</code>.
-                      </p>
-                      <div className="ie-center__actions">
-                        <button
-                          type="button"
-                          disabled={center.mutationState === 'pending'}
-                          onClick={center.runConfirmedAction}
-                        >
-                          Xác nhận
-                        </button>
-                        <button type="button" onClick={() => center.setConfirmAction(null)}>
-                          Đóng
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {center.actionError ? (
-                    <p className="ie-center__state" role="alert">
-                      {center.actionError.code}: {center.actionError.message}
-                    </p>
-                  ) : null}
-
-                  <h4>Error rows</h4>
-                  {center.errorsLoading ? (
-                    <p className="ie-center__state">Đang tải lỗi...</p>
-                  ) : null}
-                  {center.errorsError ? (
-                    <p className="ie-center__state" role="alert">
-                      {center.errorsError.code}: {center.errorsError.message}
-                    </p>
-                  ) : null}
-                  <table className="ie-center__table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>Column</th>
-                        <th>Error</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {center.errors.map((row) => (
-                        <tr key={row.code}>
-                          <td>{row.code}</td>
-                          <td>{row.column_name ?? '-'}</td>
-                          <td>
-                            {row.error_code}: {row.error_message_vi}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              ) : (
-                <p>Chưa chọn batch.</p>
+                </TableBody>
+              </Table>
+              {center.sessionBatches.length === 0 && (
+                <div className="p-8 text-center text-sm text-slate-400 bg-slate-50/50 dark:bg-slate-900/30">
+                  Chưa có batch nào trong phiên làm việc.
+                </div>
               )}
-            </aside>
+              <DataTablePagination {...sessionPagination} />
+            </div>
           </div>
         </>
       ) : (
-        <div className="ie-center__layout">
-          <form
-            className="ie-center__filters"
-            onSubmit={(event) => {
-              event.preventDefault()
-              center.createExport()
-            }}
-          >
-            <label>
-              <span>Export template</span>
-              <select
-                value={center.exportTemplateCode}
-                onChange={(event) => center.setExportTemplateCode(event.target.value)}
-              >
-                {center.exportTemplates.map((item) => (
-                  <option key={item.templateCode} value={item.templateCode}>
-                    {item.label} — {item.templateCode}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="ie-center__actions">
-              <button type="submit" disabled={center.exportPending}>
+        /* Export Tab Content */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Download size={16} className="text-blue-600 dark:text-blue-500" />
+              Tạo Export Job mới
+            </h3>
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault()
+                center.createExport()
+              }}
+            >
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Export Template</span>
+                <Select
+                  value={center.exportTemplateCode}
+                  onChange={(event) => center.setExportTemplateCode(event.target.value)}
+                  className="h-9"
+                >
+                  {center.exportTemplates.map((item) => (
+                    <option key={item.templateCode} value={item.templateCode}>
+                      {item.label} ({item.templateCode})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <Button type="submit" disabled={center.exportPending} className="h-9">
                 Tạo export job
-              </button>
-            </div>
-          </form>
-          <aside className="ie-center__detail">
-            <p>
-              Status/download/retry public facades chưa đủ trên mọi owner — center chỉ enqueue
-              create qua owning prefix.
+              </Button>
+            </form>
+          </div>
+
+          <div className="lg:col-span-2 flex flex-col gap-4 bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Info size={16} className="text-slate-400" />
+              Kết quả xuất dữ liệu
+            </h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Owning prefix module sẽ xử lý tác vụ bất đồng bộ và trả về kết quả trạng thái chi tiết của Export Job.
             </p>
-            {center.exportError ? (
-              <p className="ie-center__state" role="alert">
-                {center.exportError.code}: {center.exportError.message}
-              </p>
-            ) : null}
+            {center.exportError && (
+              <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 flex items-center gap-2 text-xs" role="alert">
+                <AlertCircle size={14} />
+                <span>{center.exportError.code}: {center.exportError.message}</span>
+              </div>
+            )}
             {center.exportResult ? (
-              <dl>
-                <div>
-                  <dt>Job code</dt>
-                  <dd>{center.exportResult.code}</dd>
+              <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-sm mt-2">
+                <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <dt className="text-xs font-semibold text-slate-400 uppercase">Mã Job (Job Code)</dt>
+                  <dd className="font-mono text-base font-semibold text-slate-800 dark:text-slate-100 mt-1">
+                    {center.exportResult.code}
+                  </dd>
                 </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{center.exportResult.status}</dd>
+                <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <dt className="text-xs font-semibold text-slate-400 uppercase">Trạng thái (Status)</dt>
+                  <dd className="mt-1">
+                    <Badge variant={center.exportResult.status === 'COMPLETED' ? 'active' : 'inactive'}>
+                      {center.exportResult.status}
+                    </Badge>
+                  </dd>
                 </div>
-                <div>
-                  <dt>Report type</dt>
-                  <dd>{center.exportResult.report_type}</dd>
+                <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <dt className="text-xs font-semibold text-slate-400 uppercase">Loại báo cáo</dt>
+                  <dd className="font-semibold text-slate-800 dark:text-slate-200 mt-1">
+                    {center.exportResult.report_type}
+                  </dd>
                 </div>
               </dl>
-            ) : null}
-          </aside>
+            ) : (
+              <div className="text-sm text-slate-400 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-white dark:bg-slate-900/10">
+                Chưa khởi chạy export job nào.
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Import Batch Details Dialog Modal Overlay */}
+      <Dialog
+        isOpen={isDetailOpen && !!center.detailRow}
+        onClose={() => {
+          setIsDetailOpen(false)
+          center.setConfirmAction(null)
+        }}
+        title={center.detailRow ? `Import Batch: ${center.detailRow.code}` : 'Chi tiết Batch'}
+      >
+        {center.detailRow && (
+          <div className="flex flex-col gap-5 font-sans text-sm">
+            {/* Batch Status Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Trạng thái</span>
+                <div className="mt-1 font-semibold text-sm text-slate-800 dark:text-slate-200">
+                  <Badge variant={center.detailRow.status === 'COMMITTED' ? 'active' : center.detailRow.status === 'FAILED' ? 'inactive' : 'default'}>
+                    {center.detailRow.status}
+                  </Badge>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Target Entity</span>
+                <div className="mt-1 font-semibold text-sm text-slate-700 dark:text-slate-300 font-mono truncate" title={center.detailRow.targetEntity}>
+                  {center.detailRow.targetEntity}
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Commit Mode</span>
+                <div className="mt-1 font-semibold text-sm text-slate-800 dark:text-slate-200">
+                  {center.detailRow.mode}
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Import Mode</span>
+                <div className="mt-1 font-semibold text-sm text-slate-800 dark:text-slate-200">
+                  {center.detailRow.importMode}
+                </div>
+              </div>
+            </div>
+
+            {/* Row Counts */}
+            <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Dòng dữ liệu</span>
+              <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5">
+                <span>Tổng số: <strong className="font-semibold text-slate-800 dark:text-slate-100">{center.detailRow.totalRows}</strong></span>
+                <span>Thành công: <strong className="font-semibold text-green-600">{center.detailRow.successRows}</strong></span>
+                <span>Lỗi: <strong className="font-semibold text-red-650">{center.detailRow.failedRows}</strong></span>
+                <span>Bỏ qua: <strong className="font-semibold text-slate-450">{center.detailRow.skippedRows}</strong></span>
+              </div>
+            </div>
+
+            {/* Metadata Timestamps */}
+            <div className="flex flex-col gap-2.5 px-1 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <Clock size={13} className="text-slate-400" />
+                <span>Bắt đầu: {center.detailRow.startedAt || '-'}</span>
+                <User size={13} className="ml-3 text-slate-400" />
+                <span>Bởi user #{center.detailRow.startedBy}</span>
+              </div>
+              {center.detailRow.completedAt && (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 size={13} className="text-green-500" />
+                  <span>Hoàn tất: {center.detailRow.completedAt}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex-1 gap-1.5"
+                disabled={!center.detailRow.canValidate || center.mutationState === 'pending'}
+                onClick={center.runValidate}
+              >
+                <Play size={13} />
+                Validate
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                className="flex-1 gap-1.5"
+                disabled={!center.detailRow.canCommit}
+                onClick={() => center.setConfirmAction('commit')}
+              >
+                <CheckCircle2 size={13} />
+                Commit
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                className="flex-1 gap-1.5"
+                disabled={!center.detailRow.canCancel}
+                onClick={() => center.setConfirmAction('cancel')}
+              >
+                <XCircle size={13} />
+                Cancel
+              </Button>
+            </div>
+
+            {/* Action Confirmation Panel Overlay */}
+            {center.confirmAction && (
+              <div className="p-3.5 rounded-lg border border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-800 dark:text-slate-200 mt-2 flex flex-col gap-3">
+                <p className="text-xs leading-relaxed">
+                  Xác nhận thực hiện hành động <strong className="uppercase font-bold text-blue-650 dark:text-blue-400">{center.confirmAction}</strong>? 
+                  Hành động này được cấp quyền bất đồng bộ từ metadata <code>allowed_actions</code> của máy chủ.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 py-0"
+                    onClick={() => center.setConfirmAction(null)}
+                  >
+                    Đóng
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 py-0"
+                    disabled={center.mutationState === 'pending'}
+                    onClick={center.runConfirmedAction}
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {center.actionError && (
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 flex items-center gap-2 text-xs mt-2" role="alert">
+                <AlertCircle size={14} />
+                <span>{center.actionError.code}: {center.actionError.message}</span>
+              </div>
+            )}
+
+            {/* Error rows nested section */}
+            <div className="flex flex-col gap-2.5 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                Dòng dữ liệu lỗi
+              </h4>
+              {center.errorsLoading && <p className="text-xs text-slate-400">Đang tải chi tiết lỗi...</p>}
+              {center.errorsError && (
+                <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs" role="alert">
+                  {center.errorsError.code}: {center.errorsError.message}
+                </div>
+              )}
+              
+              <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                <Table containerClassName="relative w-full overflow-auto max-h-48">
+                  <TableHeader>
+                    <TableRow className="pointer-events-none hover:bg-transparent">
+                      <TableHead>Mã</TableHead>
+                      <TableHead>Cột dữ liệu</TableHead>
+                      <TableHead>Chi tiết lỗi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {center.errors.map((row) => (
+                      <TableRow key={row.code}>
+                        <TableCell className="font-semibold text-slate-800 dark:text-slate-250 font-mono text-xs">{row.code}</TableCell>
+                        <TableCell className="font-medium text-slate-500 font-mono text-xs">{row.column_name ?? '-'}</TableCell>
+                        <TableCell className="text-xs text-red-600 dark:text-red-400">
+                          {row.error_code}: {row.error_message_vi}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {center.errors.length === 0 && !center.errorsLoading && (
+                  <div className="p-4 text-center text-xs text-slate-400 bg-slate-50/50 dark:bg-slate-900/30">
+                    Không có dòng lỗi nào được ghi nhận.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>
+                Đóng chi tiết
+              </Button>
+            </div>
+          </div>
+        )}
+      </Dialog>
     </section>
   )
 }

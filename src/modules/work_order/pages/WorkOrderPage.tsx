@@ -3,6 +3,12 @@ import { Link } from 'react-router'
 
 import { useWorkOrder } from '../hooks/useWorkOrder'
 import type { WorkOrderRecord } from '../types/workOrder'
+import { usePagination } from '@/shared/lib/usePagination'
+import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Search } from 'lucide-react'
 
 import './WorkOrderPage.css'
 
@@ -13,9 +19,9 @@ function listStateMessage(state: string): string {
     case 'loading':
       return 'Đang tải danh sách Work Order…'
     case 'empty':
-      return 'Chưa có Work Order nào.'
+      return 'Chưa có Work Order nào. Nhấp vào "Tạo Work Order" để lập lệnh.'
     case 'no-result':
-      return 'Không có kết quả khớp bộ lọc.'
+      return 'Không có kết quả khớp bộ lọc. Thử từ khóa khác.'
     case 'permission-denied':
       return 'Bạn không có quyền xem danh sách Work Order.'
     case 'error':
@@ -30,6 +36,16 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
   const [itemRevisionId, setItemRevisionId] = useState<number | null>(detail.item_revision_id ?? null)
   const [plannedQty, setPlannedQty] = useState(detail.planned_qty)
   const [plannedStart, setPlannedStart] = useState(detail.planned_start.slice(0, 16))
+
+  // Confirmation modal states
+  const [isConfirmEditOpen, setIsConfirmEditOpen] = useState(false)
+  const [isConfirmPlanOpen, setIsConfirmPlanOpen] = useState(false)
+  const [isConfirmReleaseOpen, setIsConfirmReleaseOpen] = useState(false)
+  const [isConfirmPauseOpen, setIsConfirmPauseOpen] = useState(false)
+  const [isConfirmResumeOpen, setIsConfirmResumeOpen] = useState(false)
+  const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false)
+  const [isConfirmCancelOpen, setIsConfirmCancelOpen] = useState(false)
+
   const row = admin.detailRow
 
   return (
@@ -39,7 +55,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         {row?.itemLabel ?? '-'} · rev {row?.itemRevisionLabel ?? '-'} · {detail.status}
       </p>
       <p>
-        <Link to={`/web/shared/wo-360/${detail.id}`}>Mở WO 360</Link>
+        <Link className="wo-admin__link-wo360" to={`/web/shared/wo-360/${detail.id}`}>Mở WO 360 ↗</Link>
       </p>
       <dl className="wo-admin__meta">
         <div>
@@ -121,6 +137,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         <span>Sản phẩm (item)</span>
         <select
           value={itemId}
+          disabled={!row?.canUpdate}
           onChange={(e) => {
             const id = Number(e.target.value)
             setItemId(id)
@@ -138,6 +155,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         <span>Item revision</span>
         <select
           value={itemRevisionId ?? 0}
+          disabled={!row?.canUpdate}
           onChange={(e) => setItemRevisionId(Number(e.target.value) || null)}
         >
           <option value={0}>(giữ hiện tại)</option>
@@ -153,6 +171,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         <input
           type="number"
           min={1}
+          disabled={!row?.canUpdate}
           value={plannedQty}
           onChange={(e) => setPlannedQty(Number(e.target.value))}
         />
@@ -161,6 +180,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         <span>Planned start</span>
         <input
           type="datetime-local"
+          disabled={!row?.canUpdate}
           value={plannedStart}
           onChange={(e) => setPlannedStart(e.target.value)}
         />
@@ -170,14 +190,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         className="wo-admin__btn"
         disabled={!row?.canUpdate || admin.updatePending}
         title={row?.updateDisabledReason ?? undefined}
-        onClick={() =>
-          admin.saveEdit({
-            item_id: itemId,
-            item_revision_id: itemRevisionId,
-            planned_qty: plannedQty,
-            planned_start: plannedStart,
-          })
-        }
+        onClick={() => setIsConfirmEditOpen(true)}
       >
         {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
       </button>
@@ -197,14 +210,14 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
         </p>
       ) : null}
 
-      <h4>State transitions (state machine — không PATCH status)</h4>
+      <h4>Điều khiển trạng thái (State Machine)</h4>
       <div className="wo-admin__actions">
         <button
           type="button"
           className="wo-admin__btn"
           disabled={!row?.canPlan}
           title={row?.planDisabledReason ?? undefined}
-          onClick={() => admin.setConfirmPlan(true)}
+          onClick={() => setIsConfirmPlanOpen(true)}
         >
           Plan
         </button>
@@ -213,7 +226,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           className="wo-admin__btn"
           disabled={!row?.canRelease}
           title={row?.releaseDisabledReason ?? undefined}
-          onClick={() => admin.setConfirmRelease(true)}
+          onClick={() => setIsConfirmReleaseOpen(true)}
         >
           Release
         </button>
@@ -222,7 +235,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           className="wo-admin__btn"
           disabled={!row?.canPause}
           title={row?.pauseDisabledReason ?? undefined}
-          onClick={admin.openPause}
+          onClick={() => setIsConfirmPauseOpen(true)}
         >
           Pause
         </button>
@@ -231,7 +244,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           className="wo-admin__btn"
           disabled={!row?.canResume}
           title={row?.resumeDisabledReason ?? undefined}
-          onClick={() => admin.setConfirmResume(true)}
+          onClick={() => setIsConfirmResumeOpen(true)}
         >
           Resume
         </button>
@@ -240,7 +253,7 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           className="wo-admin__btn"
           disabled={!row?.canClose}
           title={row?.closeDisabledReason ?? undefined}
-          onClick={() => admin.setConfirmClose(true)}
+          onClick={() => setIsConfirmCloseOpen(true)}
         >
           Close
         </button>
@@ -249,161 +262,147 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           className="wo-admin__btn wo-admin__btn--danger"
           disabled={!row?.canCancel}
           title={row?.cancelDisabledReason ?? undefined}
-          onClick={admin.openCancel}
+          onClick={() => setIsConfirmCancelOpen(true)}
         >
           Cancel
         </button>
       </div>
 
-      {admin.confirmPlan ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận plan">
-          <p>
-            Xác nhận plan <strong>{detail.code}</strong>? WO sẽ chuyển DRAFT → PLANNED.
-          </p>
-          <div className="wo-admin__actions">
-            <button type="button" disabled={admin.planState === 'pending'} onClick={admin.plan}>
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmPlan(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
       {admin.planError ? (
         <p className="wo-admin__error" role="alert">
           {admin.planError.code}: {admin.planError.message}
         </p>
-      ) : null}
-
-      {admin.confirmRelease ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận release">
-          <p>
-            Xác nhận release <strong>{detail.code}</strong>? Hệ thống sẽ sinh yêu cầu cấp vật tư (nếu
-            cần) và WO chuyển MATERIAL_PREPARING/MATERIAL_READY. Không thể hoàn tác qua UI này.
-          </p>
-          <div className="wo-admin__actions">
-            <button type="button" disabled={admin.releaseState === 'pending'} onClick={admin.release}>
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmRelease(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
       ) : null}
       {admin.releaseError ? (
         <p className="wo-admin__error" role="alert">
           {admin.releaseError.code}: {admin.releaseError.message}
         </p>
       ) : null}
-
-      {admin.showPause ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận pause">
-          <p>
-            Pause <strong>{detail.code}</strong>? IN_PROGRESS → PAUSED.
-          </p>
-          <label className="wo-admin__field">
-            <span>Lý do (bắt buộc)</span>
-            <input
-              value={admin.pauseForm.reason}
-              onChange={(e) => admin.setPauseForm({ reason: e.target.value })}
-            />
-          </label>
-          <div className="wo-admin__actions">
-            <button
-              type="button"
-              disabled={admin.pauseErrors.length > 0 || admin.pauseState === 'pending'}
-              onClick={admin.pause}
-            >
-              {admin.pauseState === 'pending' ? 'Đang xử lý…' : 'Xác nhận'}
-            </button>
-            <button type="button" onClick={admin.closePause}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
       {admin.pauseError ? (
         <p className="wo-admin__error" role="alert">
           {admin.pauseError.code}: {admin.pauseError.message}
         </p>
-      ) : null}
-
-      {admin.confirmResume ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận resume">
-          <p>
-            Xác nhận resume <strong>{detail.code}</strong>? PAUSED → IN_PROGRESS.
-          </p>
-          <div className="wo-admin__actions">
-            <button type="button" disabled={admin.resumeState === 'pending'} onClick={admin.resume}>
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmResume(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
       ) : null}
       {admin.resumeError ? (
         <p className="wo-admin__error" role="alert">
           {admin.resumeError.code}: {admin.resumeError.message}
         </p>
       ) : null}
-
-      {admin.confirmClose ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận close">
-          <p>
-            Xác nhận close <strong>{detail.code}</strong>? COMPLETED → CLOSED. Không thể hoàn tác.
-          </p>
-          <div className="wo-admin__actions">
-            <button type="button" disabled={admin.closeState === 'pending'} onClick={admin.close}>
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmClose(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
       {admin.closeError ? (
         <p className="wo-admin__error" role="alert">
           {admin.closeError.code}: {admin.closeError.message}
         </p>
-      ) : null}
-
-      {admin.showCancel ? (
-        <div className="wo-admin__confirm" role="dialog" aria-label="Xác nhận cancel">
-          <p>
-            Cancel <strong>{detail.code}</strong>? Hành động phá huỷ, không thể hoàn tác.
-          </p>
-          <label className="wo-admin__field">
-            <span>Lý do (bắt buộc)</span>
-            <input
-              value={admin.cancelForm.reason}
-              onChange={(e) => admin.setCancelForm({ reason: e.target.value })}
-            />
-          </label>
-          <div className="wo-admin__actions">
-            <button
-              type="button"
-              className="wo-admin__btn--danger"
-              disabled={admin.cancelErrors.length > 0 || admin.cancelState === 'pending'}
-              onClick={admin.cancel}
-            >
-              {admin.cancelState === 'pending' ? 'Đang xử lý…' : 'Xác nhận'}
-            </button>
-            <button type="button" onClick={admin.closeCancel}>
-              Hủy
-            </button>
-          </div>
-        </div>
       ) : null}
       {admin.cancelError ? (
         <p className="wo-admin__error" role="alert">
           {admin.cancelError.code}: {admin.cancelError.message}
         </p>
       ) : null}
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={isConfirmEditOpen}
+        onClose={() => setIsConfirmEditOpen(false)}
+        title="Xác nhận lưu thay đổi WO"
+        description={`Bạn đang cập nhật kế hoạch cho lệnh sản xuất ${detail.code}.`}
+        summary={{
+          'Sản phẩm': admin.items.find((i) => i.id === itemId)?.code ?? itemId,
+          'Revision': admin.detailRevisions.find((r) => r.id === itemRevisionId)?.code ?? 'Giữ nguyên',
+          'Số lượng': plannedQty,
+          'Bắt đầu dự kiến': plannedStart.replace('T', ' '),
+        }}
+        onConfirm={() => {
+          setIsConfirmEditOpen(false)
+          admin.saveEdit({
+            item_id: itemId,
+            item_revision_id: itemRevisionId,
+            planned_qty: plannedQty,
+            planned_start: plannedStart,
+          })
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmPlanOpen}
+        onClose={() => setIsConfirmPlanOpen(false)}
+        title="Xác nhận Lập kế hoạch (Plan)"
+        description={`Bạn muốn chuyển trạng thái Lệnh ${detail.code} từ DRAFT sang PLANNED?`}
+        confirmText="Xác nhận Plan"
+        isPending={admin.planState === 'pending'}
+        onConfirm={() => {
+          setIsConfirmPlanOpen(false)
+          admin.plan()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmReleaseOpen}
+        onClose={() => setIsConfirmReleaseOpen(false)}
+        title="Xác nhận Phát hành lệnh (Release)"
+        description={`Bạn muốn phát hành lệnh ${detail.code}? Lệnh sẽ chuyển sang trạng thái MATERIAL_PREPARING. Yêu cầu cung cấp vật tư sẽ tự động được tạo.`}
+        confirmText="Phát hành lệnh"
+        isPending={admin.releaseState === 'pending'}
+        onConfirm={() => {
+          setIsConfirmReleaseOpen(false)
+          admin.release()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmPauseOpen}
+        onClose={() => setIsConfirmPauseOpen(false)}
+        title="Xác nhận Tạm dừng (Pause)"
+        description={`Bạn muốn tạm dừng Lệnh ${detail.code}? Lệnh sẽ chuyển sang trạng thái PAUSED.`}
+        type="reason-required"
+        confirmText="Tạm dừng"
+        isPending={admin.pauseState === 'pending'}
+        onConfirm={(reason) => {
+          setIsConfirmPauseOpen(false)
+          admin.setPauseForm({ reason: reason || '' })
+          admin.pause()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmResumeOpen}
+        onClose={() => setIsConfirmResumeOpen(false)}
+        title="Xác nhận Tiếp tục (Resume)"
+        description={`Tiếp tục thực hiện lệnh sản xuất ${detail.code}? Trạng thái sẽ đổi từ PAUSED sang IN_PROGRESS.`}
+        confirmText="Tiếp tục"
+        isPending={admin.resumeState === 'pending'}
+        onConfirm={() => {
+          setIsConfirmResumeOpen(false)
+          admin.resume()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmCloseOpen}
+        onClose={() => setIsConfirmCloseOpen(false)}
+        title="Xác nhận Đóng Lệnh (Close)"
+        description={`Bạn muốn đóng lệnh ${detail.code}? Hành động đổi trạng thái từ COMPLETED sang CLOSED và không thể hoàn tác.`}
+        confirmText="Đóng Lệnh"
+        isPending={admin.closeState === 'pending'}
+        onConfirm={() => {
+          setIsConfirmCloseOpen(false)
+          admin.close()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmCancelOpen}
+        onClose={() => setIsConfirmCancelOpen(false)}
+        title="Xác nhận Hủy Lệnh (Cancel)"
+        description={`Hủy lệnh sản xuất ${detail.code}? Đây là thao tác hủy vĩnh viễn và không thể khôi phục.`}
+        type="reason-required"
+        confirmText="Hủy lệnh"
+        isPending={admin.cancelState === 'pending'}
+        onConfirm={(reason) => {
+          setIsConfirmCancelOpen(false)
+          admin.setCancelForm({ reason: reason || '' })
+          admin.cancel()
+        }}
+      />
     </aside>
   )
 }
@@ -412,45 +411,42 @@ export function WorkOrderPage() {
   const admin = useWorkOrder()
   const banner = listStateMessage(admin.listState)
 
+  const pagination = usePagination(admin.rows, 10)
+
+  // Local creation confirm
+  const [isConfirmCreateOpen, setIsConfirmCreateOpen] = useState(false)
+
   return (
-    <section className="wo-admin" aria-labelledby="wo-admin-title">
-      <header className="wo-admin__header">
-        <div>
-          <p className="wo-admin__eyebrow">WEB-MES-04-WORK-ORDER · `/web/mes/work-orders`</p>
-          <h2 id="wo-admin-title">Lệnh Sản xuất (Work Order)</h2>
-          <p className="wo-admin__lead">
-            Lập, theo dõi và điều khiển vòng đời Work Order theo state machine (MES04-001..013).
-            Mutation gated bởi server <code>allowed_actions</code>; không sửa status bằng PATCH.
-          </p>
-        </div>
-        <div className="wo-admin__actions">
-          <Link to="/web/mes/boms">BOM</Link>
-          <Link to="/web/mes/routings">Routing</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="wo-admin flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Production Orders' },
+        ]}
+        title="Production Orders"
+        subtitle="Lập và điều phối vòng đời của các lệnh sản xuất."
+        actions={<Button onClick={admin.openCreate}>Tạo Work Order</Button>}
+      />
 
       <form
-        className="wo-admin__filters"
+        className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
       >
-        <label className="wo-admin__field">
-          <span>Tìm Work Order (code)</span>
+        <div className="flex-1">
           <input
+            className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
             value={admin.searchInput}
             onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="WO-…"
+            placeholder="Tìm Work Order (code)..."
           />
-        </label>
-        <button type="submit" className="wo-admin__btn">
-          Lọc
-        </button>
-        <button type="button" className="wo-admin__btn" onClick={admin.openCreate}>
-          Tạo Work Order
-        </button>
+        </div>
+        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
+          <Search size={16} />
+        </Button>
       </form>
 
       {admin.showCreate ? (
@@ -531,7 +527,7 @@ export function WorkOrderPage() {
               type="button"
               className="wo-admin__btn"
               disabled={admin.createErrors.length > 0 || admin.createPending}
-              onClick={() => admin.create()}
+              onClick={() => setIsConfirmCreateOpen(true)}
             >
               {admin.createPending ? 'Đang tạo…' : 'Tạo'}
             </button>
@@ -569,7 +565,7 @@ export function WorkOrderPage() {
                 </tr>
               </thead>
               <tbody>
-                {admin.rows.map((row) => (
+                {pagination.paginatedItems.map((row) => (
                   <tr
                     key={row.id}
                     className={row.id === admin.selectedId ? 'wo-admin__row--active' : ''}
@@ -594,11 +590,27 @@ export function WorkOrderPage() {
                 ))}
               </tbody>
             </table>
-            {admin.hasMore ? (
-              <button type="button" className="wo-admin__more" onClick={admin.loadMore}>
-                Tải thêm
-              </button>
-            ) : null}
+            
+            <div className="wo-admin__paging-row">
+              {admin.hasMore ? (
+                <button type="button" className="wo-admin__more" onClick={admin.loadMore}>
+                  Nạp thêm từ Server
+                </button>
+              ) : (
+                <span className="wo-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
+              )}
+              
+              <DataTablePagination
+                currentPage={pagination.currentPage}
+                pageSize={pagination.pageSize}
+                totalItems={pagination.totalItems}
+                totalPages={pagination.totalPages}
+                startIndex={pagination.startIndex}
+                endIndex={pagination.endIndex}
+                setPage={pagination.setPage}
+                setPageSize={pagination.setPageSize}
+              />
+            </div>
           </div>
 
           {admin.detailLoading ? (
@@ -610,6 +622,24 @@ export function WorkOrderPage() {
           )}
         </div>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={isConfirmCreateOpen}
+        onClose={() => setIsConfirmCreateOpen(false)}
+        title="Xác nhận lập Lệnh sản xuất"
+        description="Vui lòng xác nhận thông tin chi tiết lệnh sản xuất dưới đây."
+        summary={{
+          'Mã lệnh (Code)': admin.createForm.code,
+          'Sản phẩm': admin.items.find((i) => i.id === admin.createForm.item_id)?.code ?? admin.createForm.item_id,
+          'Revision': admin.createRevisions.find((r) => r.id === admin.createForm.item_revision_id)?.code ?? 'Mặc định',
+          'Số lượng lập': admin.createForm.planned_qty,
+          'Dự kiến bắt đầu': admin.createForm.planned_start.replace('T', ' '),
+        }}
+        onConfirm={() => {
+          setIsConfirmCreateOpen(false)
+          admin.create()
+        }}
+      />
     </section>
   )
 }

@@ -12,7 +12,8 @@
 .inventory .inventory__danger { border-color: var(--color-danger); background: var(--color-danger); color: var(--color-text-on-primary); }
 .inventory__tabs { display: flex; gap: 0.35rem; border-bottom: 1px solid var(--color-border-default); }
 .inventory__tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; }
-.inventory__tabs button[aria-current='page'] { border-bottom-color: var(--color-action-primary); color: var(--color-action-primary); }
+.inventory__tabs button[aria-current='page'],
+.inventory__tabs button[aria-selected='true'] { border-bottom-color: var(--color-action-primary); color: var(--color-action-primary); }
 .inventory__toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.7rem; padding: 0.8rem; border: 1px solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); }
 .inventory label { display: grid; gap: 0.35rem; min-width: 11rem; font-size: 0.85rem; color: var(--color-text-secondary); }
 .inventory input, .inventory select, .inventory textarea { width: 100%; min-height: 2.4rem; padding: 0.5rem 0.65rem; border: 1px solid var(--color-border-default); border-radius: 0.5rem; background: var(--color-surface-card); color: var(--color-text-primary); font: inherit; }
@@ -29,6 +30,11 @@
 .inventory__table small { display: block; margin-top: 0.2rem; color: var(--color-text-muted); }
 .inventory__link-button { min-height: auto !important; padding: 0 !important; border: 0 !important; color: var(--color-action-primary) !important; font-weight: 650 !important; }
 .inventory__status { display: inline-flex; padding: 0.2rem 0.45rem; border-radius: 999px; background: var(--color-info-bg); font-size: 0.75rem; font-weight: 650; }
+.inventory__status-tag { display: inline-flex; padding: 0.2rem 0.45rem; border-radius: 999px; background: var(--color-info-bg); font-size: 0.75rem; font-weight: 650; color: var(--color-text-primary); }
+.inventory__paging-row { display: flex; flex-direction: column; border-top: 1px solid var(--color-border-default); background: var(--color-surface-card); }
+.inventory__all-loaded { padding: 0.75rem 1rem; font-size: 0.875rem; color: var(--color-text-muted); text-align: center; background: var(--color-page-surface); }
+.inventory__more { margin: 0.75rem; background: var(--color-surface-card) !important; color: var(--color-text-primary) !important; border: 1px solid var(--color-border-default) !important; }
+.inventory__more:hover { background: var(--color-page-surface) !important; }
 .inventory__panel { padding: 1rem; }
 .inventory__panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .inventory__panel dl { display: grid; gap: 0.5rem; }

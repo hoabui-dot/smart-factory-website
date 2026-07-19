@@ -4,6 +4,12 @@ import { Link } from 'react-router'
 import { useNcr } from '../hooks/useNcr'
 import type { CapaRecord, NcrRecord } from '../types/ncr'
 import { NCR_DISPOSITIONS, NCR_SEVERITIES, NCR_SOURCES } from '../types/ncr'
+import { usePagination } from '@/shared/lib/usePagination'
+import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Search } from 'lucide-react'
 
 import './NcrPage.css'
 
@@ -12,15 +18,15 @@ type Api = ReturnType<typeof useNcr>
 function listStateMessage(state: string, entity: string): string {
   switch (state) {
     case 'loading':
-      return `Đang tải ${entity}…`
+      return `Đang tải danh sách ${entity}…`
     case 'empty':
-      return `Chưa có ${entity}.`
+      return `Chưa có ${entity} nào trong hệ thống.`
     case 'no-result':
-      return 'Không có kết quả khớp bộ lọc.'
+      return 'Không tìm thấy kết quả khớp bộ lọc.'
     case 'permission-denied':
-      return `Bạn không có quyền xem ${entity}.`
+      return `Bạn không có quyền xem thông tin ${entity}.`
     case 'error':
-      return `Không tải được ${entity}. Thử lại sau.`
+      return `Không tải được danh sách ${entity}. Thử lại sau.`
     default:
       return ''
   }
@@ -30,6 +36,14 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
   const row = admin.detailRow
   const [qty, setQty] = useState(detail.qty_affected)
   const [severity, setSeverity] = useState(detail.severity)
+
+  // Local confirmations
+  const [isConfirmEditOpen, setIsConfirmEditOpen] = useState(false)
+  const [isConfirmStartInvOpen, setIsConfirmStartInvOpen] = useState(false)
+  const [isConfirmStartCapaOpen, setIsConfirmStartCapaOpen] = useState(false)
+  const [isConfirmContainOpen, setIsConfirmContainOpen] = useState(false)
+  const [isConfirmCloseOpen, setIsConfirmCloseOpen] = useState(false)
+  const [isConfirmVoidOpen, setIsConfirmVoidOpen] = useState(false)
 
   return (
     <aside className="ncr-admin__detail" aria-label="Chi tiết NCR">
@@ -67,7 +81,7 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
           className="ncr-admin__form"
           onSubmit={(e) => {
             e.preventDefault()
-            admin.submitUpdate({ qty_affected: qty, severity })
+            setIsConfirmEditOpen(true)
           }}
         >
           <label className="ncr-admin__field">
@@ -97,7 +111,7 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
 
       <div className="ncr-admin__actions">
         {row?.canStartInvestigation ? (
-          <button type="button" onClick={() => admin.setConfirmStartInv(true)}>
+          <button type="button" onClick={() => setIsConfirmStartInvOpen(true)}>
             Start investigation
           </button>
         ) : null}
@@ -107,7 +121,7 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
           </button>
         ) : null}
         {row?.canStartCapa ? (
-          <button type="button" onClick={() => admin.setConfirmStartCapa(true)}>
+          <button type="button" onClick={() => setIsConfirmStartCapaOpen(true)}>
             Start CAPA
           </button>
         ) : null}
@@ -117,34 +131,21 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
           </button>
         ) : null}
         {row?.canVoid ? (
-          <button type="button" className="ncr-admin__btn--danger" onClick={() => admin.setShowVoid(true)}>
+          <button type="button" className="ncr-admin__btn--danger" onClick={() => setIsConfirmVoidOpen(true)}>
             Void
           </button>
         ) : null}
         <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.openCapaCreateFromNcr()}>
           Tạo CAPA
         </button>
-        <Link to={`/web/shared/entities/non_conformance_report/${detail.id}/content`}>
-          Comments / Attachments
+        <Link className="ncr-admin__link-collaboration" to={`/web/shared/entities/non_conformance_report/${detail.id}/content`}>
+          Ý kiến &amp; Đính kèm ↗
         </Link>
       </div>
 
-      {admin.confirmStartInv ? (
-        <div className="ncr-admin__dialog" role="dialog" aria-label="Xác nhận start investigation">
-          <p>Chuyển NCR sang INVESTIGATING?</p>
-          <div className="ncr-admin__actions">
-            <button type="button" onClick={() => admin.submitStartInv()} disabled={admin.startInvUi === 'pending'}>
-              Xác nhận
-            </button>
-            <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setConfirmStartInv(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {admin.showContain ? (
-        <div className="ncr-admin__dialog" role="dialog" aria-label="Contain NCR">
+        <div className="ncr-admin__contain-form">
+          <h4>Thông tin Containment</h4>
           <label className="ncr-admin__field">
             <span>Disposition</span>
             <select
@@ -232,7 +233,7 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
             </p>
           ) : null}
           <div className="ncr-admin__actions">
-            <button type="button" onClick={() => admin.submitContain()} disabled={admin.containUi === 'pending'}>
+            <button type="button" className="ncr-admin__btn" onClick={() => setIsConfirmContainOpen(true)} disabled={admin.containErrors.length > 0}>
               Xác nhận contain
             </button>
             <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setShowContain(false)}>
@@ -242,24 +243,11 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
         </div>
       ) : null}
 
-      {admin.confirmStartCapa ? (
-        <div className="ncr-admin__dialog" role="dialog" aria-label="Xác nhận start CAPA">
-          <p>Chuyển NCR sang CAPA_IN_PROGRESS?</p>
-          <div className="ncr-admin__actions">
-            <button type="button" onClick={() => admin.submitStartCapa()} disabled={admin.startCapaUi === 'pending'}>
-              Xác nhận
-            </button>
-            <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setConfirmStartCapa(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {admin.showClose ? (
-        <div className="ncr-admin__dialog" role="dialog" aria-label="Close NCR">
+        <div className="ncr-admin__contain-form">
+          <h4>Đóng NCR</h4>
           <label className="ncr-admin__field">
-            <span>Evidence file ids (NB-04, comma-separated)</span>
+            <span>Evidence file ids (phân cách bằng dấu phẩy)</span>
             <input
               value={admin.evidenceRaw}
               onChange={(e) => admin.setEvidenceRaw(e.target.value)}
@@ -275,44 +263,10 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
             </p>
           ) : null}
           <div className="ncr-admin__actions">
-            <button type="button" onClick={() => admin.submitClose()} disabled={admin.closeUi === 'pending'}>
+            <button type="button" className="ncr-admin__btn" onClick={() => setIsConfirmCloseOpen(true)} disabled={admin.closeErrors.length > 0}>
               Xác nhận close
             </button>
             <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setShowClose(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {admin.showVoid ? (
-        <div className="ncr-admin__dialog" role="dialog" aria-label="Void NCR">
-          <p>Void không thể hoàn tác. Nhập lý do (bắt buộc).</p>
-          <label className="ncr-admin__field">
-            <span>Reason</span>
-            <textarea
-              value={admin.voidForm.reason}
-              onChange={(e) => admin.setVoidForm({ reason: e.target.value })}
-            />
-          </label>
-          {admin.voidErrors.length ? (
-            <p className="ncr-admin__error">Thiếu: {admin.voidErrors.join(', ')}</p>
-          ) : null}
-          {admin.voidError ? (
-            <p className="ncr-admin__error" role="alert">
-              {admin.voidError.code}: {admin.voidError.message}
-            </p>
-          ) : null}
-          <div className="ncr-admin__actions">
-            <button
-              type="button"
-              className="ncr-admin__btn--danger"
-              onClick={() => admin.submitVoid()}
-              disabled={admin.voidUi === 'pending'}
-            >
-              Xác nhận void
-            </button>
-            <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setShowVoid(false)}>
               Hủy
             </button>
           </div>
@@ -324,6 +278,97 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
           {admin.updateError.code}: {admin.updateError.message}
         </p>
       ) : null}
+
+      {/* Confirm Dialogs */}
+      <ConfirmDialog
+        isOpen={isConfirmEditOpen}
+        onClose={() => setIsConfirmEditOpen(false)}
+        title="Xác nhận lưu thay đổi NCR"
+        description={`Cập nhật thông tin báo cáo không phù hợp ${detail.code}?`}
+        summary={{
+          'Số lượng ảnh hưởng': qty,
+          'Mức độ nghiêm trọng': severity,
+        }}
+        onConfirm={() => {
+          setIsConfirmEditOpen(false)
+          admin.submitUpdate({ qty_affected: qty, severity })
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmStartInvOpen}
+        onClose={() => setIsConfirmStartInvOpen(false)}
+        title="Xác nhận Start Investigation"
+        description={`Bạn muốn chuyển trạng thái NCR ${detail.code} sang INVESTIGATING?`}
+        confirmText="Bắt đầu Điều tra"
+        isPending={admin.startInvUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmStartInvOpen(false)
+          admin.submitStartInv()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmStartCapaOpen}
+        onClose={() => setIsConfirmStartCapaOpen(false)}
+        title="Xác nhận Start CAPA"
+        description={`Bạn muốn chuyển NCR ${detail.code} sang trạng thái CAPA_IN_PROGRESS?`}
+        confirmText="Bắt đầu CAPA"
+        isPending={admin.startCapaUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmStartCapaOpen(false)
+          admin.submitStartCapa()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmContainOpen}
+        onClose={() => setIsConfirmContainOpen(false)}
+        title="Xác nhận Containment Action"
+        description="Vui lòng kiểm tra lại thông tin Containment & xử lý lô hàng."
+        summary={{
+          'Disposition': admin.containForm.disposition,
+          'Mã lô (Lot)': admin.containForm.disposition_scope.lot_code,
+          'Số lượng xử lý': admin.containForm.disposition_scope.qty,
+          'Vị trí nguồn': admin.containForm.disposition_scope.from_location_code || 'Không có',
+          'Vị trí cách ly': admin.containForm.disposition_scope.to_location_code || 'Không có',
+        }}
+        isPending={admin.containUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmContainOpen(false)
+          admin.submitContain()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmCloseOpen}
+        onClose={() => setIsConfirmCloseOpen(false)}
+        title="Xác nhận Đóng NCR"
+        description={`Bạn muốn đóng báo cáo chất lượng NCR ${detail.code}?`}
+        summary={{
+          'Evidence file IDs': admin.evidenceRaw || 'Không có',
+        }}
+        isPending={admin.closeUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmCloseOpen(false)
+          admin.submitClose()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmVoidOpen}
+        onClose={() => setIsConfirmVoidOpen(false)}
+        title={`Xác nhận hủy (Void) NCR ${detail.code}`}
+        description="Hành động hủy báo cáo chất lượng NCR. Thao tác này không thể hoàn tác."
+        type="reason-required"
+        confirmText="Void NCR"
+        isPending={admin.voidUi === 'pending'}
+        onConfirm={(reason) => {
+          setIsConfirmVoidOpen(false)
+          admin.setVoidForm({ reason: reason || '' })
+          admin.submitVoid()
+        }}
+      />
     </aside>
   )
 }
@@ -336,6 +381,9 @@ function CapaEditor({ detail, admin }: { detail: CapaRecord; admin: Api }) {
   const [effectiveness, setEffectiveness] = useState(detail.effectiveness)
   const [dueDate, setDueDate] = useState(detail.due_date.slice(0, 10))
 
+  // Local confirmations
+  const [isConfirmEditCapaOpen, setIsConfirmEditCapaOpen] = useState(false)
+
   return (
     <aside className="ncr-admin__detail" aria-label="Chi tiết CAPA">
       <h3>{detail.code}</h3>
@@ -347,13 +395,7 @@ function CapaEditor({ detail, admin }: { detail: CapaRecord; admin: Api }) {
           className="ncr-admin__form"
           onSubmit={(e) => {
             e.preventDefault()
-            admin.submitCapaUpdate({
-              root_cause: rootCause,
-              corrective_action: corrective,
-              preventive_action: preventive,
-              effectiveness,
-              due_date: dueDate,
-            })
+            setIsConfirmEditCapaOpen(true)
           }}
         >
           <label className="ncr-admin__field">
@@ -380,7 +422,7 @@ function CapaEditor({ detail, admin }: { detail: CapaRecord; admin: Api }) {
               <option value="NOT_EFFECTIVE">NOT_EFFECTIVE</option>
             </select>
           </label>
-          <button type="submit" disabled={admin.capaUpdateUi === 'pending'}>
+          <button type="submit" className="ncr-admin__btn" disabled={admin.capaUpdateUi === 'pending'}>
             Lưu CAPA
           </button>
         </form>
@@ -390,6 +432,30 @@ function CapaEditor({ detail, admin }: { detail: CapaRecord; admin: Api }) {
           {admin.capaUpdateError.code}: {admin.capaUpdateError.message}
         </p>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={isConfirmEditCapaOpen}
+        onClose={() => setIsConfirmEditCapaOpen(false)}
+        title="Xác nhận cập nhật CAPA"
+        description={`Cập nhật nội dung hành động khắc phục phòng ngừa cho ${detail.code}?`}
+        summary={{
+          'Nguyên nhân cốt lõi': rootCause.trim() || 'Chưa nhập',
+          'Hành động khắc phục': corrective.trim() || 'Chưa nhập',
+          'Hành động phòng ngừa': preventive.trim() || 'Chưa nhập',
+          'Thời hạn hoàn thành': dueDate,
+          'Đánh giá hiệu quả': effectiveness,
+        }}
+        onConfirm={() => {
+          setIsConfirmEditCapaOpen(false)
+          admin.submitCapaUpdate({
+            root_cause: rootCause,
+            corrective_action: corrective,
+            preventive_action: preventive,
+            effectiveness,
+            due_date: dueDate,
+          })
+        }}
+      />
     </aside>
   )
 }
@@ -399,30 +465,41 @@ export function NcrPage() {
   const banner = listStateMessage(admin.listState, 'NCR')
   const capaBanner = listStateMessage(admin.capaListState, 'CAPA')
 
+  // Pagination for NCRs & CAPAs
+  const ncrPagination = usePagination(admin.rows, 10)
+  const capaPagination = usePagination(admin.capaRows, 10)
+
+  // Local creation confirm
+  const [isConfirmCreateNcrOpen, setIsConfirmCreateNcrOpen] = useState(false)
+  const [isConfirmCreateCapaOpen, setIsConfirmCreateCapaOpen] = useState(false)
+
   return (
-    <section className="ncr-admin" aria-labelledby="ncr-admin-title">
-      <header className="ncr-admin__header">
-        <div>
-          <p className="ncr-admin__eyebrow">WEB-QMS-03-NCR · `/web/qms/ncrs`</p>
-          <h2 id="ncr-admin-title">NCR &amp; Quality Reports</h2>
-          <p className="ncr-admin__lead">
-            NCR disposition + CAPA + Pareto/export (QMS-03b); lifecycle gated bởi server{' '}
-            <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="ncr-admin__actions">
-          <button
-            type="button"
-            className="ncr-admin__btn"
-            disabled={admin.ncrExportPending}
-            onClick={admin.exportNcrs}
-          >
-            Export NCR
-          </button>
-          <Link to="/web/import-export">Import / Export Center</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="ncr-admin flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'QMS' },
+          { label: 'Quality Reports' },
+        ]}
+        title="Quality Reports"
+        subtitle="Theo dõi báo cáo không phù hợp (NCR) và hành động khắc phục (CAPA)."
+        actions={
+          admin.tab === 'ncrs' ? (
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                disabled={admin.ncrExportPending}
+                onClick={admin.exportNcrs}
+              >
+                Export NCR
+              </Button>
+              <Button onClick={() => admin.setShowCreate(true)}>Tạo NCR</Button>
+            </div>
+          ) : admin.tab === 'capas' ? (
+            <Button onClick={() => admin.setShowCapaCreate(true)}>Tạo CAPA</Button>
+          ) : null
+        }
+      />
       {admin.ncrExportError ? (
         <p className="ncr-admin__error" role="alert">
           {admin.ncrExportError.code}: {admin.ncrExportError.message}
@@ -454,22 +531,23 @@ export function NcrPage() {
       {admin.tab === 'ncrs' ? (
         <>
           <form
-            className="ncr-admin__filters"
+            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySearch()
             }}
           >
-            <label className="ncr-admin__field">
-              <span>Tìm (code)</span>
-              <input value={admin.searchInput} onChange={(e) => admin.setSearchInput(e.target.value)} />
-            </label>
-            <button type="submit" className="ncr-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="ncr-admin__btn" onClick={() => admin.setShowCreate(true)}>
-              Tạo NCR
-            </button>
+            <div className="flex-1">
+              <input
+                className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
+                value={admin.searchInput}
+                onChange={(e) => admin.setSearchInput(e.target.value)}
+                placeholder="Tìm theo code..."
+              />
+            </div>
+            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
+              <Search size={16} />
+            </Button>
           </form>
 
           {admin.showCreate ? (
@@ -477,9 +555,10 @@ export function NcrPage() {
               className="ncr-admin__form"
               onSubmit={(e) => {
                 e.preventDefault()
-                admin.submitCreate()
+                setIsConfirmCreateNcrOpen(true)
               }}
             >
+              <h3>Tạo NCR mới</h3>
               <label className="ncr-admin__field">
                 <span>Source</span>
                 <select
@@ -571,7 +650,7 @@ export function NcrPage() {
                 </p>
               ) : null}
               <div className="ncr-admin__actions">
-                <button type="submit" disabled={admin.createUi === 'pending'}>
+                <button type="submit" className="ncr-admin__btn" disabled={admin.createUi === 'pending'}>
                   Lưu NCR
                 </button>
                 <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setShowCreate(false)}>
@@ -604,7 +683,7 @@ export function NcrPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {admin.rows.map((row) => (
+                    {ncrPagination.paginatedItems.map((row) => (
                       <tr
                         key={row.code}
                         className={admin.selectedCode === row.code ? 'ncr-admin__row--active' : undefined}
@@ -624,11 +703,27 @@ export function NcrPage() {
                     ))}
                   </tbody>
                 </table>
-                {admin.page?.has_more ? (
-                  <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.loadMore()}>
-                    Tải thêm
-                  </button>
-                ) : null}
+                
+                <div className="ncr-admin__paging-row">
+                  {admin.page?.has_more ? (
+                    <button type="button" className="ncr-admin__more" onClick={() => admin.loadMore()}>
+                      Nạp thêm từ Server
+                    </button>
+                  ) : (
+                    <span className="ncr-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
+                  )}
+                  
+                  <DataTablePagination
+                    currentPage={ncrPagination.currentPage}
+                    pageSize={ncrPagination.pageSize}
+                    totalItems={ncrPagination.totalItems}
+                    totalPages={ncrPagination.totalPages}
+                    startIndex={ncrPagination.startIndex}
+                    endIndex={ncrPagination.endIndex}
+                    setPage={ncrPagination.setPage}
+                    setPageSize={ncrPagination.setPageSize}
+                  />
+                </div>
               </div>
               {admin.detail && admin.selectedCode === admin.detail.code ? (
                 <NcrEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
@@ -645,23 +740,23 @@ export function NcrPage() {
       {admin.tab === 'capas' ? (
         <>
           <form
-            className="ncr-admin__filters"
+            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyCapaSearch()
             }}
           >
-            <label className="ncr-admin__field">
-              <span>Tìm CAPA</span>
+            <div className="flex-1">
               <input
+                className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
                 value={admin.capaSearchInput}
                 onChange={(e) => admin.setCapaSearchInput(e.target.value)}
+                placeholder="Tìm CAPA..."
               />
-            </label>
-            <button type="submit">Lọc</button>
-            <button type="button" onClick={() => admin.setShowCapaCreate(true)}>
-              Tạo CAPA
-            </button>
+            </div>
+            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
+              <Search size={16} />
+            </Button>
           </form>
 
           {admin.showCapaCreate ? (
@@ -669,11 +764,12 @@ export function NcrPage() {
               className="ncr-admin__form"
               onSubmit={(e) => {
                 e.preventDefault()
-                admin.submitCapaCreate()
+                setIsConfirmCreateCapaOpen(true)
               }}
             >
+              <h3>Tạo CAPA mới</h3>
               <label className="ncr-admin__field">
-                <span>NCR id (từ detail NCR — không hiển thị như business code)</span>
+                <span>NCR ID (lựa chọn từ NCR detail)</span>
                 <input
                   type="number"
                   min={1}
@@ -720,7 +816,7 @@ export function NcrPage() {
                 />
               </label>
               <label className="ncr-admin__field">
-                <span>Owner user id</span>
+                <span>Owner User ID</span>
                 <input
                   type="number"
                   min={1}
@@ -752,7 +848,7 @@ export function NcrPage() {
                 </p>
               ) : null}
               <div className="ncr-admin__actions">
-                <button type="submit" disabled={admin.capaCreateUi === 'pending'}>
+                <button type="submit" className="ncr-admin__btn" disabled={admin.capaCreateUi === 'pending'}>
                   Lưu CAPA
                 </button>
                 <button
@@ -787,7 +883,7 @@ export function NcrPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {admin.capaRows.map((row) => (
+                    {capaPagination.paginatedItems.map((row) => (
                       <tr
                         key={row.code}
                         className={
@@ -811,11 +907,27 @@ export function NcrPage() {
                     ))}
                   </tbody>
                 </table>
-                {admin.capaPage?.has_more ? (
-                  <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.loadMoreCapas()}>
-                    Tải thêm
-                  </button>
-                ) : null}
+                
+                <div className="ncr-admin__paging-row">
+                  {admin.capaPage?.has_more ? (
+                    <button type="button" className="ncr-admin__more" onClick={() => admin.loadMoreCapas()}>
+                      Nạp thêm từ Server
+                    </button>
+                  ) : (
+                    <span className="ncr-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
+                  )}
+                  
+                  <DataTablePagination
+                    currentPage={capaPagination.currentPage}
+                    pageSize={capaPagination.pageSize}
+                    totalItems={capaPagination.totalItems}
+                    totalPages={capaPagination.totalPages}
+                    startIndex={capaPagination.startIndex}
+                    endIndex={capaPagination.endIndex}
+                    setPage={capaPagination.setPage}
+                    setPageSize={capaPagination.setPageSize}
+                  />
+                </div>
               </div>
               {admin.capaDetail && admin.selectedCapaCode === admin.capaDetail.code ? (
                 <CapaEditor key={admin.capaDetail.code} detail={admin.capaDetail} admin={admin} />
@@ -870,7 +982,7 @@ export function NcrPage() {
             </button>
             <button
               type="button"
-              className="ncr-admin__btn"
+              className="ncr-admin__btn ncr-admin__btn--secondary"
               disabled={admin.paretoExportPending}
               onClick={admin.exportPareto}
             >
@@ -932,6 +1044,48 @@ export function NcrPage() {
           )}
         </>
       ) : null}
+
+      {/* Confirm creation dialogs */}
+      <ConfirmDialog
+        isOpen={isConfirmCreateNcrOpen}
+        onClose={() => setIsConfirmCreateNcrOpen(false)}
+        title="Xác nhận tạo mới NCR"
+        description="Vui lòng xác nhận thông tin chi tiết báo cáo chất lượng không phù hợp."
+        summary={{
+          'Source (Nguồn phát hiện)': admin.createForm.source,
+          'Mã sản phẩm (Item)': admin.createForm.item_code || 'Chưa chọn',
+          'Lỗi (Defect)': admin.createForm.defect_code || 'Chưa chọn',
+          'Mã lô (Lot)': admin.createForm.lot_code || 'Không có',
+          'Lệnh sản xuất (WO)': admin.createForm.work_order_code || 'Không có',
+          'Số lượng lỗi': admin.createForm.qty_affected,
+          'Mức độ nghiêm trọng': admin.createForm.severity || 'Mặc định defect',
+        }}
+        isPending={admin.createUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmCreateNcrOpen(false)
+          admin.submitCreate()
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={isConfirmCreateCapaOpen}
+        onClose={() => setIsConfirmCreateCapaOpen(false)}
+        title="Xác nhận tạo mới CAPA"
+        description="Vui lòng xác nhận thông tin hành động khắc phục phòng ngừa."
+        summary={{
+          'Mã NCR liên kết': admin.capaCreateForm.ncr_id,
+          'Nguyên nhân cốt lõi': admin.capaCreateForm.root_cause,
+          'Hành động khắc phục': admin.capaCreateForm.corrective_action,
+          'Hành động phòng ngừa': admin.capaCreateForm.preventive_action,
+          'Người chịu trách nhiệm ID': admin.capaCreateForm.owner_id,
+          'Thời hạn hoàn thành': admin.capaCreateForm.due_date,
+        }}
+        isPending={admin.capaCreateUi === 'pending'}
+        onConfirm={() => {
+          setIsConfirmCreateCapaOpen(false)
+          admin.submitCapaCreate()
+        }}
+      />
     </section>
   )
 }

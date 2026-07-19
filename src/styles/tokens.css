@@ -20,7 +20,23 @@
   --color-warn-bg: #fff7ed;
   --color-row-active: #eff6ff;
   --radius-card: 12px;
+  --radius-button: 6px;
   --size-sidebar: 256px;
   --shadow-card: 0 1px 2px rgb(15 23 42 / 6%), 0 8px 24px rgb(15 23 42 / 4%);
   --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
+
+[data-theme="dark"] {
+  --color-page-surface: #0b0f19;
+  --color-surface-card: #151d30;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
+  --color-border-default: #1e293b;
+  --color-row-active: #1e293b;
+  --color-danger-bg: #2d1313;
+  --color-info-bg: #0c1c38;
+  --color-warn-bg: #301f0c;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 8px 24px rgb(0 0 0 / 30%);
+}
+

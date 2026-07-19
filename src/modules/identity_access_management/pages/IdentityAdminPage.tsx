@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
 
 import { isSystemAdminSession } from '@/shared/api'
 import { CANONICAL_ROLE_CODES } from '@/shared/constants/roles'
@@ -8,6 +7,25 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { useIdentityAdmin } from '../hooks/useIdentityAdmin'
 import { DEVICE_TYPE_VALUES } from '../types/userAdmin'
 import type { StationDevice, UserDetail } from '../types/userAdmin'
+
+import { usePagination } from '@/shared/lib/usePagination'
+import { DataTablePagination } from '@/shared/components/DataTablePagination'
+
+// Import Tailwind Shadcn UI & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/components/ui/Table'
+import { Search } from 'lucide-react'
 
 import './IdentityAdminPage.css'
 
@@ -30,121 +48,132 @@ function stationDeviceListStateMessage(state: string): string {
   }
 }
 
-function StationDeviceEditor({ detail, admin }: { detail: StationDevice; admin: AdminApi }) {
+function StationDeviceEditor({ detail, admin, onClose }: { detail: StationDevice; admin: AdminApi; onClose: () => void }) {
   const [deviceType, setDeviceType] = useState(detail.device_type)
   const [locationCode, setLocationCode] = useState(detail.location_code ?? '')
   const [hardwareId, setHardwareId] = useState(detail.hardware_id)
   const row = admin.stationDeviceDetailRow
 
   return (
-    <aside className="identity-admin__detail" aria-label="Chi tiết station device">
-      <h3>{detail.code}</h3>
-      <p className="identity-admin__muted">
-        {detail.is_active ? 'Active' : 'Disabled'} · {detail.device_type} · đăng ký{' '}
-        {detail.registered_at}
-      </p>
+    <div className="flex flex-col gap-5 font-sans text-sm">
+      <div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">{detail.code}</h3>
+        <p className="text-xs text-slate-400 mt-0.5">
+          {detail.is_active ? 'Active' : 'Disabled'} · {detail.device_type} · đăng ký{' '}
+          {detail.registered_at}
+        </p>
+      </div>
 
-      <label className="identity-admin__field">
-        <span>Device type</span>
-        <select value={deviceType} onChange={(e) => setDeviceType(e.target.value)}>
-          {DEVICE_TYPE_VALUES.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="identity-admin__field">
-        <span>Location code (bỏ trống nếu WORKSTATION)</span>
-        <input value={locationCode} onChange={(e) => setLocationCode(e.target.value)} />
-      </label>
-      <label className="identity-admin__field">
-        <span>Hardware ID</span>
-        <input value={hardwareId} onChange={(e) => setHardwareId(e.target.value)} />
-      </label>
-
-      <button
-        type="button"
-        className="identity-admin__btn"
-        disabled={!row?.canUpdate || admin.updateStationDevicePending}
-        title={row?.updateDisabledReason ?? undefined}
-        onClick={() =>
-          admin.saveStationDeviceEdit({
-            device_type: deviceType,
-            location_code: locationCode.trim() ? locationCode.trim() : null,
-            hardware_id: hardwareId.trim(),
-          })
-        }
-      >
-        {admin.updateStationDevicePending ? 'Đang lưu…' : 'Lưu thay đổi'}
-      </button>
-      {!row?.canUpdate ? (
-        <p className="identity-admin__muted">
-          Update không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
-        </p>
-      ) : null}
-      {admin.updateStationDeviceError ? (
-        <p className="identity-admin__error" role="alert">
-          {admin.updateStationDeviceError.code}: {admin.updateStationDeviceError.message}
-        </p>
-      ) : null}
-      {admin.updateStationDeviceSuccess ? (
-        <p className="identity-admin__banner" role="status">
-          Đã lưu thay đổi.
-        </p>
-      ) : null}
-
-      <h4>Deactivate</h4>
-      <button
-        type="button"
-        className="identity-admin__btn identity-admin__btn--danger"
-        disabled={!row?.canDeactivate}
-        title={row?.deactivateDisabledReason ?? undefined}
-        onClick={() => admin.setConfirmStationDeviceDeactivate(true)}
-      >
-        Deactivate device
-      </button>
-      {!row?.canDeactivate ? (
-        <p className="identity-admin__muted">
-          Deactivate không khả dụng
-          {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
-        </p>
-      ) : null}
-      {admin.confirmStationDeviceDeactivate ? (
-        <div className="identity-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>? Hành động này không thể hoàn tác.
-          </p>
-          <div className="identity-admin__row-actions">
-            <button
-              type="button"
-              className="identity-admin__btn identity-admin__btn--danger"
-              disabled={admin.deactivateStationDeviceState === 'pending'}
-              onClick={admin.deactivateStationDevice}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmStationDeviceDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
+      <div className="flex flex-col gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Device type</span>
+          <Select value={deviceType} onChange={(e) => setDeviceType(e.target.value)}>
+            {DEVICE_TYPE_VALUES.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </Select>
         </div>
-      ) : null}
-      {admin.deactivateStationDeviceError ? (
-        <p className="identity-admin__error" role="alert">
-          {admin.deactivateStationDeviceError.code}: {admin.deactivateStationDeviceError.message}
-        </p>
-      ) : null}
-      {admin.deactivateStationDeviceState === 'success' ? (
-        <p className="identity-admin__banner" role="status">
-          Đã deactivate device.
-        </p>
-      ) : null}
-    </aside>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Location code (bỏ trống nếu WORKSTATION)</span>
+          <Input value={locationCode} onChange={(e) => setLocationCode(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Hardware ID</span>
+          <Input value={hardwareId} onChange={(e) => setHardwareId(e.target.value)} />
+        </div>
+
+        <Button
+          type="button"
+          disabled={!row?.canUpdate || admin.updateStationDevicePending}
+          title={row?.updateDisabledReason ?? undefined}
+          onClick={() =>
+            admin.saveStationDeviceEdit({
+              device_type: deviceType,
+              location_code: locationCode.trim() ? locationCode.trim() : null,
+              hardware_id: hardwareId.trim(),
+            })
+          }
+        >
+          {admin.updateStationDevicePending ? 'Đang lưu…' : 'Lưu thay đổi'}
+        </Button>
+
+        {!row?.canUpdate && (
+          <p className="text-xs text-slate-400 text-center">
+            Update không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
+          </p>
+        )}
+
+        {admin.updateStationDeviceError && (
+          <p className="p-2.5 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-600 border border-red-200 dark:border-red-900" role="alert">
+            {admin.updateStationDeviceError.code}: {admin.updateStationDeviceError.message}
+          </p>
+        )}
+        {admin.updateStationDeviceSuccess && (
+          <p className="p-2.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-650 border border-emerald-200" role="status">
+            Đã lưu thay đổi.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200">Deactivate</h4>
+        <Button
+          type="button"
+          variant="danger"
+          disabled={!row?.canDeactivate}
+          title={row?.deactivateDisabledReason ?? undefined}
+          onClick={() => admin.setConfirmStationDeviceDeactivate(true)}
+        >
+          Deactivate device
+        </Button>
+        
+        {!row?.canDeactivate && (
+          <p className="text-xs text-slate-400">
+            Deactivate không khả dụng
+            {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
+          </p>
+        )}
+
+        {admin.confirmStationDeviceDeactivate && (
+          <div className="p-3 border border-red-150 dark:border-red-950 bg-red-50/10 rounded-lg flex flex-col gap-2">
+            <p className="text-xs text-slate-600 dark:text-slate-350">
+              Xác nhận deactivate <strong>{detail.code}</strong>? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                disabled={admin.deactivateStationDeviceState === 'pending'}
+                onClick={admin.deactivateStationDevice}
+              >
+                Xác nhận
+              </Button>
+              <Button variant="secondary" size="sm" type="button" onClick={() => admin.setConfirmStationDeviceDeactivate(false)}>
+                Hủy
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {admin.deactivateStationDeviceError && (
+          <p className="p-2.5 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200" role="alert">
+            {admin.deactivateStationDeviceError.code}: {admin.deactivateStationDeviceError.message}
+          </p>
+        )}
+        {admin.deactivateStationDeviceState === 'success' && (
+          <p className="p-2.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-650 border border-emerald-200" role="status">
+            Đã deactivate device.
+          </p>
+        )}
+      </div>
+    </div>
   )
 }
 
-function UserDetailEditor({ detail, admin }: { detail: UserDetail; admin: AdminApi }) {
+function UserDetailEditor({ detail, admin, onClose }: { detail: UserDetail; admin: AdminApi; onClose: () => void }) {
   const [fullName, setFullName] = useState(detail.full_name)
   const [email, setEmail] = useState(detail.email ?? '')
   const [phone, setPhone] = useState(detail.phone_number ?? '')
@@ -152,154 +181,166 @@ function UserDetailEditor({ detail, admin }: { detail: UserDetail; admin: AdminA
   const [locations, setLocations] = useState(detail.locations.join(', '))
 
   return (
-    <aside className="identity-admin__detail" aria-label="Chi tiết user">
-      <h3>{detail.code}</h3>
-      <p className="identity-admin__muted">
-        {detail.is_active ? 'Active' : 'Disabled'} · {detail.updated_at}
-      </p>
-
-      <label className="identity-admin__field">
-        <span>Họ tên</span>
-        <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-      </label>
-      <label className="identity-admin__field">
-        <span>Email</span>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-      <label className="identity-admin__field">
-        <span>Phone</span>
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} />
-      </label>
-      <button
-        type="button"
-        className="identity-admin__btn"
-        disabled={admin.updatePending}
-        onClick={() =>
-          admin.saveEdit({
-            full_name: fullName.trim(),
-            email: email.trim() ? email.trim() : null,
-            phone_number: phone.trim() ? phone.trim() : null,
-          })
-        }
-      >
-        Lưu thông tin
-      </button>
-      {admin.updateError ? (
-        <p className="identity-admin__error" role="alert">
-          {admin.updateError.code}
+    <div className="flex flex-col gap-5 font-sans text-sm max-h-[75vh] overflow-y-auto pr-1">
+      <div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">{detail.code}</h3>
+        <p className="text-xs text-slate-400 mt-0.5">
+          {detail.is_active ? 'Active' : 'Disabled'} · {detail.updated_at}
         </p>
-      ) : null}
+      </div>
 
-      <h4>Roles</h4>
-      <div className="identity-admin__chips">
-        {CANONICAL_ROLE_CODES.map((code) => (
-          <label key={code} className="identity-admin__chip">
-            <input
-              type="checkbox"
-              checked={roles.includes(code)}
-              onChange={() =>
-                setRoles((prev) =>
-                  prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
-                )
+      <div className="flex flex-col gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200">Thông tin cơ bản</h4>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Họ tên</span>
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Email</span>
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Phone</span>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <Button
+          type="button"
+          disabled={admin.updatePending}
+          onClick={() =>
+            admin.saveEdit({
+              full_name: fullName.trim(),
+              email: email.trim() ? email.trim() : null,
+              phone_number: phone.trim() ? phone.trim() : null,
+            })
+          }
+        >
+          {admin.updatePending ? 'Đang lưu...' : 'Lưu thông tin'}
+        </Button>
+        {admin.updateError && (
+          <p className="p-2 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-600 border border-red-200" role="alert">
+            Lưu lỗi: {admin.updateError.code}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200">Vai trò (Roles)</h4>
+        <div className="grid grid-cols-2 gap-2 p-2 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900">
+          {CANONICAL_ROLE_CODES.map((code) => (
+            <label key={code} className="flex items-center gap-2 text-xs font-medium cursor-pointer p-1 rounded hover:bg-slate-50 dark:hover:bg-slate-850">
+              <input
+                type="checkbox"
+                className="rounded border-slate-300 dark:border-slate-800"
+                checked={roles.includes(code)}
+                onChange={() =>
+                  setRoles((prev) =>
+                    prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+                  )
+                }
+              />
+              {code}
+            </label>
+          ))}
+        </div>
+        <Button
+          type="button"
+          disabled={admin.rolesPending || roles.length === 0}
+          onClick={() => {
+            if (window.confirm(`Thay thế roles của ${detail.code}?`)) {
+              admin.saveRoles(roles)
+            }
+          }}
+        >
+          Lưu roles
+        </Button>
+        {admin.rolesError && (
+          <p className="p-2 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200" role="alert">
+            Lỗi vai trò: {admin.rolesError.code}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200">Vị trí (Locations)</h4>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">location_codes (CSV)</span>
+          <Input value={locations} onChange={(e) => setLocations(e.target.value)} />
+        </div>
+        <Button
+          type="button"
+          disabled={admin.locationsPending}
+          onClick={() => {
+            if (window.confirm(`Thay thế locations của ${detail.code}?`)) {
+              const codes = locations
+                .split(/[\s,]+/)
+                .map((c) => c.trim())
+                .filter(Boolean)
+              admin.saveLocations(codes)
+            }
+          }}
+        >
+          Lưu locations
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200">Tác vụ khẩn cấp</h4>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold text-slate-500">Lý do vô hiệu hóa</span>
+          <Input
+            value={admin.disableReason}
+            onChange={(e) => admin.setDisableReason(e.target.value)}
+            placeholder="Nhập lý do trước khi block..."
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="danger"
+            disabled={!admin.disableReason.trim() || admin.disablePending}
+            onClick={() => {
+              if (window.confirm(`Vô hiệu hóa ${detail.code}?`)) {
+                admin.disable()
               }
-            />
-            {code}
-          </label>
-        ))}
-      </div>
-      <button
-        type="button"
-        className="identity-admin__btn"
-        disabled={admin.rolesPending || roles.length === 0}
-        onClick={() => {
-          if (window.confirm(`Thay thế roles của ${detail.code}?`)) {
-            admin.saveRoles(roles)
-          }
-        }}
-      >
-        Lưu roles
-      </button>
-      {admin.rolesError ? (
-        <p className="identity-admin__error" role="alert">
-          {admin.rolesError.code}
-        </p>
-      ) : null}
+            }}
+          >
+            Disable user
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={admin.resetUi === 'pending'}
+            onClick={() => {
+              if (window.confirm(`Reset password cho ${detail.code}?`)) {
+                admin.resetPassword()
+              }
+            }}
+          >
+            Reset password
+          </Button>
+        </div>
 
-      <h4>Locations</h4>
-      <label className="identity-admin__field">
-        <span>location_codes (CSV)</span>
-        <input value={locations} onChange={(e) => setLocations(e.target.value)} />
-      </label>
-      <button
-        type="button"
-        className="identity-admin__btn"
-        disabled={admin.locationsPending}
-        onClick={() => {
-          if (window.confirm(`Thay thế locations của ${detail.code}?`)) {
-            const codes = locations
-              .split(/[\s,]+/)
-              .map((c) => c.trim())
-              .filter(Boolean)
-            admin.saveLocations(codes)
-          }
-        }}
-      >
-        Lưu locations
-      </button>
-
-      <h4>Actions</h4>
-      <label className="identity-admin__field">
-        <span>Disable reason</span>
-        <input
-          value={admin.disableReason}
-          onChange={(e) => admin.setDisableReason(e.target.value)}
-        />
-      </label>
-      <div className="identity-admin__row-actions">
-        <button
-          type="button"
-          className="identity-admin__btn identity-admin__btn--danger"
-          disabled={!admin.disableReason.trim() || admin.disablePending}
-          onClick={() => {
-            if (window.confirm(`Vô hiệu hóa ${detail.code}?`)) {
-              admin.disable()
-            }
-          }}
-        >
-          Disable user
-        </button>
-        <button
-          type="button"
-          className="identity-admin__btn identity-admin__btn--secondary"
-          disabled={admin.resetUi === 'pending'}
-          onClick={() => {
-            if (window.confirm(`Reset password cho ${detail.code}?`)) {
-              admin.resetPassword()
-            }
-          }}
-        >
-          Reset password
-        </button>
+        {admin.resetUi === 'queued' && (
+          <p className="p-2.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-650 border border-emerald-200" role="status">
+            Reset queued: {admin.resetResult?.job_code}
+          </p>
+        )}
+        {admin.resetUi === 'temporary-pin' && (
+          <p className="p-2.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-650 border border-emerald-250" role="status">
+            Temporary PIN (one-time): <strong className="text-emerald-700 dark:text-emerald-400 font-mono text-base">{admin.resetResult?.temporary_pin}</strong>
+          </p>
+        )}
+        {(admin.resetUi === 'retryable-partial' || admin.resetError) && (
+          <p className="p-2.5 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200" role="alert">
+            {admin.resetError?.code ?? 'CREDENTIAL_RESET_PARTIAL_FAILURE'}
+          </p>
+        )}
+        <p className="text-[11px] text-slate-400 text-center mt-1">
+          Station-device admin (NB01-014..018) deferred to NB-01d-STATION-ACCESS.
+        </p>
       </div>
-      {admin.resetUi === 'queued' ? (
-        <p className="identity-admin__banner" role="status">
-          Reset queued: {admin.resetResult?.job_code}
-        </p>
-      ) : null}
-      {admin.resetUi === 'temporary-pin' ? (
-        <p className="identity-admin__banner" role="status">
-          Temporary PIN (one-time): <strong>{admin.resetResult?.temporary_pin}</strong>
-        </p>
-      ) : null}
-      {admin.resetUi === 'retryable-partial' || admin.resetError ? (
-        <p className="identity-admin__error" role="alert">
-          {admin.resetError?.code ?? 'CREDENTIAL_RESET_PARTIAL_FAILURE'}
-        </p>
-      ) : null}
-      <p className="identity-admin__muted">
-        Station-device admin (NB01-014..018) deferred to NB-01d-STATION-ACCESS.
-      </p>
-    </aside>
+    </div>
   )
 }
 
@@ -307,44 +348,60 @@ export function IdentityAdminPage() {
   const session = useAuthStore((s) => s.session)
   const admin = useIdentityAdmin()
 
+  // Detail Modal Overlays Visibility
+  const [isUserDetailOpen, setIsUserDetailOpen] = useState(false)
+  const [isDeviceDetailOpen, setIsDeviceDetailOpen] = useState(false)
+  const usersPagination = usePagination(admin.rows, 10)
+  const devicesPagination = usePagination(admin.stationDeviceRows, 10)
+
   if (!isSystemAdminSession(session)) {
     return (
-      <section className="identity-admin" aria-labelledby="identity-title">
-        <header className="identity-admin__header">
-          <div>
-            <p className="identity-admin__eyebrow">WEB-NB-01-IDENTITY</p>
-            <h2 id="identity-title">Identity &amp; User Admin</h2>
-          </div>
-          <Link to="/admin">Về quản trị</Link>
-        </header>
-        <div className="identity-admin__state" role="alert">
+      <section className="flex flex-col gap-6 font-sans">
+        <PageHeader
+          breadcrumbs={[
+            { label: 'Trang chủ', href: '/home' },
+            { label: 'Quản trị', href: '/admin' },
+            { label: 'Users' },
+          ]}
+          title="Identity & User Admin"
+        />
+        <p className="p-4 rounded bg-red-50 dark:bg-red-950/20 text-sm text-red-650 border border-red-200 dark:border-red-900" role="alert">
           Bạn không có quyền quản trị identity (system_admin_only).
-        </div>
+        </p>
       </section>
     )
   }
 
   return (
-    <section className="identity-admin" aria-labelledby="identity-title">
-      <header className="identity-admin__header">
-        <div>
-          <p className="identity-admin__eyebrow">WEB-NB-01-IDENTITY · `/web/admin/users` · NB-01c/NB-01d</p>
-          <h2 id="identity-title">Identity &amp; User Admin</h2>
-          <p className="identity-admin__lead">
-            Quản lý user / role / location (NB01-006..013) và station device (NB01-014..018).
-            Mutation gated bởi server <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="identity-admin__actions">
-          <Link to="/admin">Về quản trị</Link>
-        </div>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Quản trị', href: '/admin' },
+          { label: 'Users' },
+        ]}
+        title="Identity & User Admin"
+        subtitle="Quản lý danh sách người dùng, phân quyền vai trò và các thiết bị trạm (Station Device)."
+        actions={
+          admin.tab === 'users' ? (
+            <Button onClick={admin.openCreate}>Tạo user</Button>
+          ) : (
+            <Button onClick={admin.openStationDeviceCreate}>Tạo station device</Button>
+          )
+        }
+      />
 
-      <div className="identity-admin__tabs" role="tablist" aria-label="Identity admin sections">
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
         <button
           type="button"
           role="tab"
           aria-selected={admin.tab === 'users'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            admin.tab === 'users'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-350'
+          }`}
           onClick={() => admin.setTab('users')}
         >
           Users
@@ -353,6 +410,11 @@ export function IdentityAdminPage() {
           type="button"
           role="tab"
           aria-selected={admin.tab === 'station_devices'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            admin.tab === 'station_devices'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-355'
+          }`}
           onClick={() => admin.setTab('station_devices')}
         >
           Station Devices
@@ -361,169 +423,194 @@ export function IdentityAdminPage() {
 
       {admin.tab === 'users' ? (
         <>
+          {/* Filters */}
           <form
-            className="identity-admin__filters"
+            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySearch()
             }}
           >
-            <label className="identity-admin__field">
-              <span>Tìm user (q)</span>
-              <input
+            <div className="flex-1">
+              <Input
                 value={admin.searchInput}
                 onChange={(e) => admin.setSearchInput(e.target.value)}
-                placeholder="EMP-… / tên"
+                placeholder="Tìm user (mã EMP-… / họ tên)..."
+                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
               />
-            </label>
-            <button type="submit" className="identity-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="identity-admin__btn" onClick={admin.openCreate}>
-              Tạo user
-            </button>
+            </div>
+            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
+              <Search size={16} />
+            </Button>
           </form>
 
-          {admin.showCreate ? (
-            <div className="identity-admin__create">
-              <h3>Tạo user mới</h3>
-              <label className="identity-admin__field">
-                <span>Code</span>
-                <input
+          {/* User Create Dialog Modal */}
+          <Dialog
+            isOpen={admin.showCreate}
+            onClose={admin.closeCreate}
+            title="Tạo user mới"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Code</span>
+                <Input
                   value={admin.createForm.code}
                   onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
+                  placeholder="EMP-..."
                 />
-              </label>
-              <label className="identity-admin__field">
-                <span>Họ tên</span>
-                <input
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Họ tên</span>
+                <Input
                   value={admin.createForm.full_name}
                   onChange={(e) =>
                     admin.setCreateForm({ ...admin.createForm, full_name: e.target.value })
                   }
+                  placeholder="Nhập họ tên đầy đủ..."
                 />
-              </label>
-              <label className="identity-admin__field">
-                <span>Email (optional)</span>
-                <input
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Email (tùy chọn)</span>
+                <Input
                   value={admin.createForm.email ?? ''}
                   onChange={(e) => admin.setCreateForm({ ...admin.createForm, email: e.target.value })}
+                  placeholder="example@factory.com"
                 />
-              </label>
-              <button
+              </div>
+              <Button
                 type="button"
-                className="identity-admin__btn"
+                className="w-full mt-2"
                 disabled={admin.createPending}
                 onClick={() => admin.create()}
               >
                 {admin.createPending ? 'Đang tạo…' : 'Tạo'}
-              </button>
-              {admin.createError ? (
-                <p className="identity-admin__error" role="alert">
+              </Button>
+              {admin.createError && (
+                <p className="p-2.5 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200" role="alert">
                   {admin.createError.code}: {admin.createError.message}
                 </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          {admin.listState === 'loading' ? (
-            <div className="identity-admin__state" role="status">
-              Đang tải users…
-            </div>
-          ) : null}
-          {admin.listState === 'empty' || admin.listState === 'no-result' ? (
-            <div className="identity-admin__state" role="status">
-              {admin.listState === 'no-result' ? 'Không có kết quả.' : 'Chưa có user.'}
-            </div>
-          ) : null}
-          {admin.listState === 'permission-denied' || admin.listState === 'error' ? (
-            <div className="identity-admin__state" role="alert">
-              {admin.listError?.code ?? admin.listState}
-            </div>
-          ) : null}
-
-          {admin.listState === 'ready' ? (
-            <div className="identity-admin__layout">
-              <div className="identity-admin__table-wrap">
-                <table className="identity-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.rows.map((row) => (
-                      <tr key={row.code}>
-                        <td>
-                          <button
-                            type="button"
-                            className="identity-admin__linkish"
-                            onClick={() => admin.selectUser(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.fullName}</td>
-                        <td>{row.emailLabel}</td>
-                        <td>{row.activeLabel}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {admin.detailLoading ? (
-                <div className="identity-admin__state">Đang tải chi tiết…</div>
-              ) : admin.detail ? (
-                <UserDetailEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
-              ) : (
-                <div className="identity-admin__state">Chọn user để xem chi tiết.</div>
               )}
             </div>
-          ) : null}
+          </Dialog>
+
+          {admin.listState === 'loading' && (
+            <div className="text-sm text-slate-400">Đang tải users…</div>
+          )}
+          {(admin.listState === 'empty' || admin.listState === 'no-result') && (
+            <div className="p-4 rounded bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-sm text-slate-500">
+              {admin.listState === 'no-result' ? 'Không có kết quả khớp tìm kiếm.' : 'Chưa có user nào.'}
+            </div>
+          )}
+          {(admin.listState === 'permission-denied' || admin.listState === 'error') && (
+            <div className="p-4 rounded bg-red-50 dark:bg-red-950/20 text-sm text-red-650 border border-red-200" role="alert">
+              {admin.listError?.code ?? admin.listState}
+            </div>
+          )}
+
+          {admin.listState === 'ready' && (
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usersPagination.paginatedItems.map((row) => (
+                    <TableRow
+                      key={row.code}
+                      className={row.code === admin.detail?.code ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+                      onClick={() => {
+                        admin.selectUser(row.code)
+                        setIsUserDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 py-0 h-auto font-semibold hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            admin.selectUser(row.code)
+                            setIsUserDetailOpen(true)
+                          }}
+                        >
+                          {row.code}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-855 dark:text-slate-100">{row.fullName}</TableCell>
+                      <TableCell>{row.emailLabel}</TableCell>
+                      <TableCell>
+                        <Badge variant={row.activeLabel === 'Active' ? 'active' : 'inactive'}>
+                          {row.activeLabel}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <DataTablePagination {...usersPagination} />
+            </div>
+          )}
+
+          {/* User Details Modal */}
+          <Dialog
+            isOpen={isUserDetailOpen && !!admin.detail && !admin.detailLoading}
+            onClose={() => setIsUserDetailOpen(false)}
+            title="Chi tiết người dùng"
+          >
+            {admin.detail && (
+              <UserDetailEditor
+                key={admin.detail.code}
+                detail={admin.detail}
+                admin={admin}
+                onClose={() => setIsUserDetailOpen(false)}
+              />
+            )}
+          </Dialog>
         </>
       ) : null}
 
       {admin.tab === 'station_devices' ? (
         <>
+          {/* Station device filters */}
           <form
-            className="identity-admin__filters"
+            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyStationDeviceSearch()
             }}
           >
-            <label className="identity-admin__field">
-              <span>Tìm station device (code)</span>
-              <input
+            <div className="flex-1">
+              <Input
                 value={admin.sdSearchInput}
                 onChange={(e) => admin.setSdSearchInput(e.target.value)}
-                placeholder="STN-…"
+                placeholder="Tìm station device (code STN-…)..."
+                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
               />
-            </label>
-            <button type="submit" className="identity-admin__btn">
-              Lọc
-            </button>
-            <button
-              type="button"
-              className="identity-admin__btn"
-              onClick={admin.openStationDeviceCreate}
-            >
-              Tạo station device
-            </button>
+            </div>
+            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
+              <Search size={16} />
+            </Button>
           </form>
 
-          {admin.showStationDeviceCreate ? (
-            <div className="identity-admin__create">
-              <h3>Tạo station device mới</h3>
-              <p className="identity-admin__muted">
+          {/* Station Device Create Dialog */}
+          <Dialog
+            isOpen={admin.showStationDeviceCreate}
+            onClose={admin.closeStationDeviceCreate}
+            title="Tạo station device mới"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm">
+              <p className="text-xs text-slate-400">
                 Form luôn hiển thị — server enforce quyền tạo (NB01-016).
               </p>
-              <label className="identity-admin__field">
-                <span>Code</span>
-                <input
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Code</span>
+                <Input
                   value={admin.stationDeviceCreateForm.code}
                   onChange={(e) =>
                     admin.setStationDeviceCreateForm({
@@ -531,11 +618,12 @@ export function IdentityAdminPage() {
                       code: e.target.value,
                     })
                   }
+                  placeholder="STN-..."
                 />
-              </label>
-              <label className="identity-admin__field">
-                <span>Device type</span>
-                <select
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Device type</span>
+                <Select
                   value={admin.stationDeviceCreateForm.device_type}
                   onChange={(e) =>
                     admin.setStationDeviceCreateForm({
@@ -549,11 +637,11 @@ export function IdentityAdminPage() {
                       {v}
                     </option>
                   ))}
-                </select>
-              </label>
-              <label className="identity-admin__field">
-                <span>Location code (bỏ trống nếu WORKSTATION)</span>
-                <input
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Location code (bỏ trống nếu WORKSTATION)</span>
+                <Input
                   value={admin.stationDeviceCreateForm.location_code ?? ''}
                   onChange={(e) =>
                     admin.setStationDeviceCreateForm({
@@ -561,11 +649,12 @@ export function IdentityAdminPage() {
                       location_code: e.target.value,
                     })
                   }
+                  placeholder="WH-..."
                 />
-              </label>
-              <label className="identity-admin__field">
-                <span>Hardware ID</span>
-                <input
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Hardware ID</span>
+                <Input
                   value={admin.stationDeviceCreateForm.hardware_id}
                   onChange={(e) =>
                     admin.setStationDeviceCreateForm({
@@ -573,107 +662,133 @@ export function IdentityAdminPage() {
                       hardware_id: e.target.value,
                     })
                   }
+                  placeholder="Ví dụ: MAC-address..."
                 />
-              </label>
-              <div className="identity-admin__row-actions">
-                <button
+              </div>
+              
+              <div className="flex gap-2 justify-end mt-2">
+                <Button
                   type="button"
-                  className="identity-admin__btn"
                   disabled={
                     admin.stationDeviceCreateErrors.length > 0 || admin.createStationDevicePending
                   }
                   onClick={() => admin.createStationDevice()}
                 >
                   {admin.createStationDevicePending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeStationDeviceCreate}>
+                </Button>
+                <Button variant="secondary" type="button" onClick={admin.closeStationDeviceCreate}>
                   Hủy
-                </button>
+                </Button>
               </div>
-              {admin.createStationDeviceError ? (
-                <p className="identity-admin__error" role="alert">
+
+              {admin.createStationDeviceError && (
+                <p className="p-2.5 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200" role="alert">
                   {admin.createStationDeviceError.code}: {admin.createStationDeviceError.message}
                 </p>
-              ) : null}
+              )}
             </div>
-          ) : null}
+          </Dialog>
 
           {(() => {
-            const banner = stationDeviceListStateMessage(admin.stationDeviceListState)
-            return banner ? (
+            const bannerText = stationDeviceListStateMessage(admin.stationDeviceListState)
+            return bannerText ? (
               <p
-                className="identity-admin__state"
+                className="p-4 rounded bg-blue-50 dark:bg-slate-900 text-sm text-slate-500 dark:text-slate-350 border border-blue-100 dark:border-slate-800"
                 role={admin.stationDeviceListState === 'error' ? 'alert' : 'status'}
               >
-                {banner}
+                {bannerText}
                 {admin.stationDeviceListError ? ` (${admin.stationDeviceListError.code})` : ''}
               </p>
             ) : null
           })()}
 
-          {admin.stationDeviceListState === 'ready' ? (
-            <div className="identity-admin__layout">
-              <div className="identity-admin__table-wrap">
-                <table className="identity-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Device type</th>
-                      <th>Location</th>
-                      <th>Hardware ID</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.stationDeviceRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === admin.selectedStationDeviceCode
-                            ? 'identity-admin__row--active'
-                            : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="identity-admin__linkish"
-                            onClick={() => admin.selectStationDevice(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.deviceType}</td>
-                        <td>{row.locationLabel}</td>
-                        <td>{row.hardwareId}</td>
-                        <td>{row.isActive ? 'Active' : 'Disabled'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.stationDeviceHasMore ? (
-                  <button
-                    type="button"
-                    className="identity-admin__more"
-                    onClick={admin.stationDeviceLoadMore}
-                  >
-                    Tải thêm
-                  </button>
-                ) : null}
+          {admin.stationDeviceListState === 'ready' && (
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Code</TableHead>
+                    <TableHead>Device type</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Hardware ID</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {devicesPagination.paginatedItems.map((row) => (
+                    <TableRow
+                      key={row.code}
+                      className={
+                        row.code === admin.selectedStationDeviceCode
+                          ? 'bg-blue-50/50 dark:bg-slate-800/80'
+                          : ''
+                      }
+                      onClick={() => {
+                        admin.selectStationDevice(row.code)
+                        setIsDeviceDetailOpen(true)
+                      }}
+                    >
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-0 py-0 h-auto font-semibold hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            admin.selectStationDevice(row.code)
+                            setIsDeviceDetailOpen(true)
+                          }}
+                        >
+                          {row.code}
+                        </Button>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-850 dark:text-slate-100">{row.deviceType}</TableCell>
+                      <TableCell>{row.locationLabel}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.hardwareId}</TableCell>
+                      <TableCell>
+                        <Badge variant={row.isActive ? 'active' : 'inactive'}>
+                          {row.isActive ? 'Active' : 'Disabled'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
+                <div className="flex-1">
+                  <DataTablePagination {...devicesPagination} />
+                </div>
+                {admin.stationDeviceHasMore && (
+                  <div className="pr-5 pb-3 sm:pb-0">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={admin.stationDeviceLoadMore}
+                    >
+                      Tải thêm từ Server
+                    </Button>
+                  </div>
+                )}
               </div>
-              {admin.stationDeviceDetailLoading ? (
-                <div className="identity-admin__state">Đang tải chi tiết…</div>
-              ) : admin.stationDeviceDetail ? (
-                <StationDeviceEditor
-                  key={admin.stationDeviceDetail.code}
-                  detail={admin.stationDeviceDetail}
-                  admin={admin}
-                />
-              ) : (
-                <div className="identity-admin__state">Chọn station device để xem chi tiết.</div>
-              )}
             </div>
-          ) : null}
+          )}
+
+          {/* Station Device Details Modal */}
+          <Dialog
+            isOpen={isDeviceDetailOpen && !!admin.stationDeviceDetail && !admin.stationDeviceDetailLoading}
+            onClose={() => setIsDeviceDetailOpen(false)}
+            title="Chi tiết Station Device"
+          >
+            {admin.stationDeviceDetail && (
+              <StationDeviceEditor
+                key={admin.stationDeviceDetail.code}
+                detail={admin.stationDeviceDetail}
+                admin={admin}
+                onClose={() => setIsDeviceDetailOpen(false)}
+              />
+            )}
+          </Dialog>
         </>
       ) : null}
     </section>

@@ -283,6 +283,7 @@ export function useIdentityAdmin() {
       setSelectedCode(null)
       setShowCreate(true)
     },
+    closeCreate: () => setShowCreate(false),
     createForm,
     setCreateForm,
     create: () => createMutation.mutate(),

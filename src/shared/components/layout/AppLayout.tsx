@@ -1,5 +1,8 @@
-import type { ReactNode } from 'react'
-import { NavLink } from 'react-router'
+import { useState, type ReactNode } from 'react'
+import { NavLink, Link } from 'react-router'
+import { Sun, Moon, Menu } from 'lucide-react'
+
+import { useTheme } from '@/shared/lib/useTheme'
 
 import './AppLayout.css'
 
@@ -34,16 +37,33 @@ const NAV_ITEMS = [
 ]
 
 export function AppLayout({ title, userLabel, onSignOut, children }: AppLayoutProps) {
+  const { toggleTheme, isDark } = useTheme()
+  
+  // Persist sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    return localStorage.getItem('sf-sidebar-open') !== 'false'
+  })
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen((prev) => {
+      const next = !prev
+      localStorage.setItem('sf-sidebar-open', String(next))
+      return next
+    })
+  }
+
   return (
-    <div className="shell">
+    <div className={`shell ${isSidebarOpen ? '' : 'shell--sidebar-off'}`}>
       <aside className="shell__sidebar" aria-label="Điều hướng chính">
-        <div className="shell__brand">
-          <span className="shell__brand-mark" aria-hidden />
-          <div>
-            <strong>SmartFactory</strong>
-            <p>MES · WMS · QMS</p>
+        <Link to="/home" className="shell__brand-link">
+          <div className="shell__brand">
+            <span className="shell__brand-mark" aria-hidden />
+            <div>
+              <strong>SmartFactory</strong>
+              <p>MES · WMS · QMS</p>
+            </div>
           </div>
-        </div>
+        </Link>
         <nav className="shell__nav">
           {NAV_ITEMS.map((item) => (
             <NavLink
@@ -60,8 +80,26 @@ export function AppLayout({ title, userLabel, onSignOut, children }: AppLayoutPr
       </aside>
       <div className="shell__main">
         <header className="shell__header">
-          <h1>{title}</h1>
+          <div className="shell__header-left">
+            <button
+              type="button"
+              className="shell__sidebar-toggle"
+              onClick={toggleSidebar}
+              aria-label="Toggle sidebar"
+            >
+              <Menu size={20} />
+            </button>
+            <h1>{title}</h1>
+          </div>
           <div className="shell__header-actions">
+            <button
+              type="button"
+              className="shell__theme-toggle"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             {userLabel ? <span className="shell__user">{userLabel}</span> : null}
             {onSignOut ? (
               <button type="button" className="shell__signout" onClick={onSignOut}>

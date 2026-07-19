@@ -1,6 +1,7 @@
 .wo-admin {
   display: grid;
   gap: 1rem;
+  color: var(--color-text-primary);
 }
 
 .wo-admin__header {
@@ -12,7 +13,7 @@
 
 .wo-admin__eyebrow {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -20,7 +21,7 @@
 
 .wo-admin__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-secondary);
 }
 
 .wo-admin__actions {
@@ -30,25 +31,33 @@
   align-items: center;
 }
 
-.wo-admin button,
 .wo-admin .wo-admin__btn {
   min-height: 2.5rem;
   padding: 0.5rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--color-action, #155eef);
-  color: #fff;
+  background: var(--color-action-primary);
+  color: var(--color-text-on-primary);
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.wo-admin button:disabled {
+.wo-admin .wo-admin__btn:hover:not(:disabled) {
+  background: var(--color-action-primary-hover);
+}
+
+.wo-admin .wo-admin__btn:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
 .wo-admin__btn--danger {
-  background: var(--color-danger, #dc2626);
+  background: var(--color-danger) !important;
+}
+
+.wo-admin__btn--danger:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 .wo-admin__filters {
@@ -65,50 +74,68 @@
   min-width: 12rem;
 }
 
+.wo-admin__field span {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
 .wo-admin input,
 .wo-admin select {
   min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-card);
+  color: var(--color-text-primary);
   border-radius: 0.5rem;
   font: inherit;
+  outline: none;
+}
+
+.wo-admin input:focus,
+.wo-admin select:focus {
+  border-color: var(--color-focus-ring);
 }
 
 .wo-admin__create {
   display: grid;
   gap: 0.75rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 1.25rem;
+  border: 1px solid var(--color-border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--color-surface-card);
 }
 
 .wo-admin__state {
   margin: 0;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  background: var(--color-banner-bg, #eef2ff);
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
 }
 
 .wo-admin__banner {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-success-bg, #dcfce7);
-  color: var(--color-success-text, #166534);
+  background: var(--color-info-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-default);
 }
 
 .wo-admin__error {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-error-bg, #fee2e2);
-  color: var(--color-error-text, #991b1b);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .wo-admin__muted {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   font-size: 0.85rem;
 }
 
@@ -121,9 +148,9 @@
 .wo-admin__table-wrap,
 .wo-admin__detail {
   overflow: auto;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--color-border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--color-surface-card);
 }
 
 .wo-admin__table {
@@ -131,13 +158,27 @@
   border-collapse: collapse;
 }
 
-.wo-admin__table th,
-.wo-admin__table td {
-  padding: 0.7rem;
-  border-bottom: 1px solid var(--color-border, #cbd5e1);
+.wo-admin__table th {
+  padding: 0.75rem;
+  border-bottom: 2px solid var(--color-border-default);
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-page-surface);
   white-space: nowrap;
+}
+
+.wo-admin__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-border-default);
+  text-align: left;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.wo-admin__table tr:hover {
+  background: var(--color-page-surface);
 }
 
 .wo-admin__table--compact th,
@@ -148,19 +189,34 @@
 }
 
 .wo-admin__row--active {
-  background: var(--color-row-active, #e8eefc);
+  background: var(--color-row-active) !important;
 }
 
 .wo-admin__linkish {
-  min-height: auto;
-  padding: 0;
-  background: transparent;
-  color: var(--color-action, #155eef);
+  min-height: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
   font-weight: 600;
 }
 
+.wo-admin__linkish:hover {
+  text-decoration: underline;
+}
+
+.wo-admin__link-wo360 {
+  display: inline-block;
+  font-weight: 600;
+  color: var(--color-action-primary);
+  margin-bottom: 0.25rem;
+}
+
+.wo-admin__link-wo360:hover {
+  text-decoration: underline;
+}
+
 .wo-admin__detail {
-  padding: 1rem;
+  padding: 1.25rem;
   display: grid;
   gap: 0.75rem;
   align-content: start;
@@ -170,28 +226,48 @@
   display: grid;
   gap: 0.5rem;
   margin: 0;
+  background: var(--color-page-surface);
+  padding: 0.75rem;
+  border-radius: 6px;
 }
 
 .wo-admin__meta dt {
-  color: var(--color-text-muted, #64748b);
+  color: var(--color-text-muted);
   font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .wo-admin__meta dd {
-  margin: 0.2rem 0 0;
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
   word-break: break-word;
 }
 
-.wo-admin__confirm {
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 0.5rem;
+.wo-admin__paging-row {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border-default);
+  background: var(--color-surface-card);
+}
+
+.wo-admin__all-loaded {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  background: var(--color-page-surface);
 }
 
 .wo-admin__more {
   margin: 0.75rem;
+  background: var(--color-surface-card) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border-default) !important;
+}
+
+.wo-admin__more:hover {
+  background: var(--color-page-surface) !important;
 }
 
 @media (max-width: 960px) {

@@ -19,16 +19,44 @@ import {
   resolveRefDataState,
 } from '../lib/refDataProjection'
 
+// Import Tailwind Shadcn UI & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/shared/components/ui/Table'
+import {
+  Database,
+  Search,
+  RefreshCw,
+  PlusCircle,
+  Edit2,
+  Trash2,
+  AlertCircle,
+  FileText,
+  HelpCircle,
+  Save,
+  ChevronRight,
+} from 'lucide-react'
+
 import './SharedAggregatePages.css'
 
 function stateMessage(state: string): string {
   return (
     {
-      loading: 'Đang tải…',
+      loading: 'Đang tải dòng reference data…',
       empty: 'Không có dòng reference data.',
-      'no-result': 'Không có kết quả khớp.',
+      'no-result': 'Không có kết quả khớp bộ lọc.',
       'permission-denied': 'Bạn không có quyền xem REFDATA Hub.',
-      error: 'Không tải được dữ liệu.',
+      error: 'Không tải được dữ liệu reference data.',
     }[state] ?? ''
   )
 }
@@ -151,266 +179,406 @@ export function RefDataHubPage() {
   })
 
   return (
-    <section className="shared-agg" aria-labelledby="refdata-title">
-      <header className="shared-agg__header">
-        <div>
-          <p className="shared-agg__eyebrow">WEB-SHARED-01E-REFDATA-HUB · `/web/admin/ref-data`</p>
-          <h2 id="refdata-title">Reference Data Hub</h2>
-          <p className="shared-agg__lead">
-            Registry allowlist + soft-retire facade. Mutations gated by server{' '}
-            <code>capabilities</code>; mọi write cần <code>updated_reason</code>.
-          </p>
-        </div>
-        <Link to="/admin">Về Admin</Link>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Quản trị', href: '/admin' },
+          { label: 'Reference Data Hub' },
+        ]}
+        title="Reference Data Hub"
+        subtitle="Hệ thống quản lý registry dữ liệu dùng chung (Reference Data allowlist) và hỗ trợ soft-retire."
+      />
 
-      {registryQuery.isLoading ? (
-        <p className="shared-agg__state" role="status">
-          Đang tải registry…
-        </p>
-      ) : registryQuery.isError ? (
-        <p className="shared-agg__state" role="alert">
-          Không tải được registry
-          {registryQuery.error instanceof ApiError
-            ? ` (${registryQuery.error.code})`
-            : ''}
-        </p>
-      ) : tables.length === 0 ? (
-        <p className="shared-agg__state" role="status">
-          Không có bảng reference nào trong scope quyền của bạn.
-        </p>
-      ) : (
-        <>
+      {registryQuery.isLoading && <div className="text-sm text-slate-400">Đang tải registry dữ liệu…</div>}
+      {registryQuery.isError && (
+        <div className="p-3.5 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-sm" role="alert">
+          Không tải được registry dữ liệu
+          {registryQuery.error instanceof ApiError ? ` (${registryQuery.error.code})` : ''}
+        </div>
+      )}
+
+      {tables.length === 0 && !registryQuery.isLoading && !registryQuery.isError && (
+        <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-lg text-sm text-slate-450 text-center">
+          Không tìm thấy bảng reference data nào thuộc phạm vi quyền của bạn.
+        </div>
+      )}
+
+      {tables.length > 0 && (
+        <div className="flex flex-col gap-6">
+          
+          {/* Toolbar Filters Panel */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-400">Bảng dữ liệu (Table)</span>
+                <Select
+                  value={resolvedTableKey}
+                  onChange={(e) => {
+                    setTableKey(e.target.value)
+                    setCursor(undefined)
+                    setSelected(null)
+                    setUsageText(null)
+                  }}
+                  className="h-9"
+                >
+                  {tables.map((t) => (
+                    <option key={t.tableKey} value={t.tableKey}>
+                      {t.tableKey} ({t.sourceModule})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <form
+                className="flex flex-col gap-1 md:col-span-2"
+                onSubmit={(ev) => {
+                  ev.preventDefault()
+                  setCursor(undefined)
+                  setQ(qInput.trim())
+                }}
+              >
+                <span className="text-xs font-semibold text-slate-400">Tìm kiếm theo mã/nhãn (q)</span>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      value={qInput}
+                      onChange={(e) => setQInput(e.target.value)}
+                      placeholder="Nhập từ khóa tìm kiếm..."
+                      className="pl-8 h-9"
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="h-9 px-4">
+                    Tìm
+                  </Button>
+                </div>
+              </form>
+            </div>
+
+            <div className="flex items-center gap-4 h-9 pb-1.5 md:pb-0">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-655 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-350 dark:border-slate-800 cursor-pointer"
+                  checked={includeInactive}
+                  onChange={(e) => {
+                    setIncludeInactive(e.target.checked)
+                    setCursor(undefined)
+                  }}
+                />
+                <span>Bao gồm bản ghi inactive</span>
+              </label>
+
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-9 gap-1"
+                onClick={() => rowsQuery.refetch()}
+                disabled={rowsQuery.isFetching}
+              >
+                <RefreshCw size={14} className={rowsQuery.isFetching ? 'animate-spin' : ''} />
+                Làm mới
+              </Button>
+            </div>
+          </div>
+
+          {activeTable && (
+            <div className="px-1 text-xs text-slate-450 flex flex-wrap gap-x-4 gap-y-1">
+              <span>Trường có thể sửa: <strong className="font-semibold text-slate-700 dark:text-slate-300">{activeTable.editableFields.join(', ') || '—'}</strong></span>
+              <span>Quyền tác vụ: <strong className="font-semibold text-slate-700 dark:text-slate-300">create={String(activeTable.canCreate)} · update={String(activeTable.canUpdate)} · retire={String(activeTable.canRetire)}</strong></span>
+            </div>
+          )}
+
+          {actionError && (
+            <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 text-xs flex items-center gap-2" role="alert">
+              <AlertCircle size={14} />
+              <span>{actionError}</span>
+            </div>
+          )}
+
+          {rowsState !== 'ready' ? (
+            <div
+              className={`p-6 text-center text-sm border rounded-lg ${
+                rowsState === 'error' || rowsState === 'permission-denied'
+                  ? 'bg-red-50 dark:bg-red-950/20 text-red-655 border-red-200'
+                  : 'bg-slate-50 dark:bg-slate-900/30 text-slate-400 border-slate-200 dark:border-slate-800'
+              }`}
+              role={rowsState === 'error' || rowsState === 'permission-denied' ? 'alert' : 'status'}
+            >
+              <p>{stateMessage(rowsState)}</p>
+              {rowsErr && (
+                <p className="mt-2 text-xs font-mono text-red-600 bg-red-100 dark:bg-red-900/30 py-0.5 px-1.5 rounded inline-block">
+                  {rowsErr.code}
+                </p>
+              )}
+            </div>
+          ) : (
+            /* Reference Data Rows Table */
+            <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <Table containerClassName="relative w-full overflow-auto">
+                <TableHeader>
+                  <TableRow className="pointer-events-none hover:bg-transparent">
+                    <TableHead>Mã (Code)</TableHead>
+                    <TableHead>Tên nhãn (Label)</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Thuộc tính (Fields Summary)</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rowViews.map((row) => {
+                    const raw = rowsQuery.data?.items.find((i) => i.code === row.code)
+                    return (
+                      <TableRow key={row.code} className="hover:bg-slate-50/50">
+                        <TableCell className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">{row.code}</TableCell>
+                        <TableCell className="font-medium text-slate-800 dark:text-slate-200">{row.label}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.isActive ? 'active' : 'inactive'}>
+                            {row.isActive ? 'ACTIVE' : 'INACTIVE'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-slate-500 max-w-[400px] truncate" title={row.fieldSummary}>
+                          {row.fieldSummary}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-blue-650 hover:bg-blue-50/50"
+                              disabled={!activeTable?.canUpdate || !raw}
+                              onClick={() => {
+                                if (!raw) return
+                                setSelected(raw)
+                                setEditFieldJson(JSON.stringify(raw.fields ?? {}, null, 2))
+                                setReason('')
+                                setUsageText(null)
+                                setActionError(null)
+                              }}
+                            >
+                              <Edit2 size={13} />
+                              Sửa
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1.5 text-red-650 hover:bg-red-50/50"
+                              disabled={!activeTable?.canRetire || !raw || !row.isActive}
+                              onClick={async () => {
+                                if (!raw || !activeTable) return
+                                setSelected(raw)
+                                setReason('')
+                                setActionError(null)
+                                try {
+                                  const usage = await getRefDataUsage(activeTable.tableKey, raw.code)
+                                  setUsageText(
+                                    `FK refs total=${usage.total_count}; groups=${usage.usage_groups
+                                      .map((g) => `${g.group_label}:${g.reference_count}`)
+                                      .join(', ') || 'none'}`,
+                                  )
+                                } catch (err) {
+                                  const apiErr = err instanceof ApiError ? err : null
+                                  setUsageText(null)
+                                  setActionError(
+                                    apiErr ? `${apiErr.code}: ${apiErr.message}` : 'Usage lookup failed',
+                                  )
+                                }
+                              }}
+                            >
+                              <Trash2 size={13} />
+                              Retire
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+
+              {rowsQuery.data?.page.has_more && (
+                <div className="flex justify-center p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5 px-6"
+                    onClick={() => {
+                      const next = rowsQuery.data?.page.next_cursor
+                      if (next) setCursor(next)
+                    }}
+                  >
+                    Xem trang kế tiếp
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Create Row Card Panel */}
+          {activeTable?.canCreate && (
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4 mt-2">
+              <h3 className="text-sm font-bold text-slate-850 dark:text-slate-250 flex items-center gap-2">
+                <PlusCircle size={16} className="text-blue-600" />
+                Tạo dòng Reference mới (Create Row)
+              </h3>
+              <form
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                onSubmit={(ev) => {
+                  ev.preventDefault()
+                  createMut.mutate()
+                }}
+              >
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-400">Mã code (Unique)</span>
+                    <Input
+                      value={createCode}
+                      onChange={(e) => setCreateCode(e.target.value)}
+                      required
+                      placeholder="Nhập mã code dùng chung..."
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-slate-400">Lý do cập nhật (updated_reason)</span>
+                    <Input
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      required
+                      placeholder="Bắt buộc ghi nhận lý do..."
+                      className="h-9"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={!reason.trim() || !createCode.trim() || createMut.isPending}
+                    className="h-9 mt-1.5"
+                  >
+                    {createMut.isPending ? 'Đang tạo…' : 'Thêm dòng mới'}
+                  </Button>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-slate-400">Cấu hình trường JSON (Fields JSON)</span>
+                  <textarea
+                    value={createFieldJson}
+                    onChange={(e) => setCreateFieldJson(e.target.value)}
+                    required
+                    rows={4}
+                    className="w-full text-xs font-mono p-2.5 border border-slate-350 dark:border-slate-800 rounded bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </form>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* EDIT ROW DIALOG OVERLAY */}
+      <Dialog
+        isOpen={!!selected && !usageText && activeTable?.canUpdate}
+        onClose={() => setSelected(null)}
+        title={selected ? `Cập nhật: ${selected.code}` : 'Sửa dòng Reference'}
+      >
+        {selected && (
           <form
-            className="shared-agg__toolbar"
+            className="flex flex-col gap-4 font-sans text-sm"
             onSubmit={(ev) => {
               ev.preventDefault()
-              setCursor(undefined)
-              setQ(qInput.trim())
+              updateMut.mutate()
             }}
           >
-            <label>
-              <span>Table</span>
-              <select
-                value={resolvedTableKey}
-                onChange={(e) => {
-                  setTableKey(e.target.value)
-                  setCursor(undefined)
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-400 block">Cấu hình trường JSON (Fields JSON)</span>
+              <textarea
+                value={editFieldJson}
+                onChange={(e) => setEditFieldJson(e.target.value)}
+                rows={6}
+                className="w-full text-xs font-mono p-2.5 border border-slate-350 dark:border-slate-800 rounded bg-slate-50 dark:bg-slate-900 text-slate-100 font-semibold"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-400 block">Lý do thay đổi (updated_reason)</span>
+              <Input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                required
+                placeholder="Bắt buộc ghi lý do..."
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <Button variant="secondary" type="button" onClick={() => setSelected(null)}>
+                Hủy
+              </Button>
+              <Button type="submit" disabled={!reason.trim() || updateMut.isPending} className="gap-1.5">
+                <Save size={14} />
+                {updateMut.isPending ? 'Đang lưu…' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Dialog>
+
+      {/* SOFT-RETIRE ROW DIALOG OVERLAY */}
+      <Dialog
+        isOpen={!!selected && !!usageText}
+        onClose={() => {
+          setSelected(null)
+          setUsageText(null)
+        }}
+        title={selected ? `Soft-retire: ${selected.code}` : 'Retire dòng Reference'}
+      >
+        {selected && usageText && (
+          <div className="flex flex-col gap-4 font-sans text-sm">
+            <div className="p-3.5 rounded-lg border border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-800 dark:text-slate-200 text-xs leading-relaxed flex items-start gap-2">
+              <HelpCircle size={16} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold mb-1">Cảnh báo quan hệ khóa ngoại (Foreign Keys):</p>
+                <p className="font-mono text-[11px] leading-normal">{usageText}</p>
+              </div>
+            </div>
+
+            <p className="text-slate-655 dark:text-slate-350">
+              Soft-retire sẽ chuyển đổi trạng thái của bản ghi dữ liệu dùng chung này sang <strong>INACTIVE</strong>. Hãy nhập lý do thực hiện.
+            </p>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-400">Lý do retire (updated_reason)</span>
+              <Input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                required
+                placeholder="Nhập lý do soft-retire..."
+                className="h-9"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => {
                   setSelected(null)
                   setUsageText(null)
                 }}
               >
-                {tables.map((t) => (
-                  <option key={t.tableKey} value={t.tableKey}>
-                    {t.tableKey} ({t.sourceModule})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Tìm code/label</span>
-              <input value={qInput} onChange={(e) => setQInput(e.target.value)} />
-            </label>
-            <label>
-              <span>Include inactive</span>
-              <input
-                type="checkbox"
-                checked={includeInactive}
-                onChange={(e) => {
-                  setIncludeInactive(e.target.checked)
-                  setCursor(undefined)
-                }}
-              />
-            </label>
-            <button type="submit">Tìm</button>
-            <button type="button" onClick={() => rowsQuery.refetch()} disabled={rowsQuery.isFetching}>
-              Làm mới
-            </button>
-          </form>
-
-          {activeTable ? (
-            <p className="shared-agg__muted">
-              Editable: {activeTable.editableFields.join(', ') || '—'} · Caps: create=
-              {String(activeTable.canCreate)} update={String(activeTable.canUpdate)} retire=
-              {String(activeTable.canRetire)}
-            </p>
-          ) : null}
-
-          {rowsState !== 'ready' ? (
-            <p
-              className="shared-agg__state"
-              role={rowsState === 'error' || rowsState === 'permission-denied' ? 'alert' : 'status'}
-            >
-              {stateMessage(rowsState)}
-              {rowsErr ? ` (${rowsErr.code})` : ''}
-            </p>
-          ) : (
-            <div className="shared-agg__list">
-              {rowViews.map((row) => {
-                const raw = rowsQuery.data?.items.find((i) => i.code === row.code)
-                return (
-                  <article className="shared-agg__item" key={row.code}>
-                    <h4>
-                      {row.code} — {row.label}
-                    </h4>
-                    <p className="shared-agg__muted">
-                      {row.isActive ? 'ACTIVE' : 'INACTIVE'} · {row.fieldSummary}
-                    </p>
-                    <div className="shared-agg__actions">
-                      <button
-                        type="button"
-                        disabled={!activeTable?.canUpdate || !raw}
-                        onClick={() => {
-                          if (!raw) return
-                          setSelected(raw)
-                          setEditFieldJson(JSON.stringify(raw.fields ?? {}, null, 2))
-                          setReason('')
-                          setUsageText(null)
-                          setActionError(null)
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!activeTable?.canRetire || !raw || !row.isActive}
-                        onClick={async () => {
-                          if (!raw || !activeTable) return
-                          setSelected(raw)
-                          setReason('')
-                          setActionError(null)
-                          try {
-                            const usage = await getRefDataUsage(activeTable.tableKey, raw.code)
-                            setUsageText(
-                              `FK refs total=${usage.total_count}; groups=${usage.usage_groups
-                                .map((g) => `${g.group_label}:${g.reference_count}`)
-                                .join(', ') || 'none'}`,
-                            )
-                          } catch (err) {
-                            const apiErr = err instanceof ApiError ? err : null
-                            setUsageText(null)
-                            setActionError(
-                              apiErr ? `${apiErr.code}: ${apiErr.message}` : 'Usage lookup failed',
-                            )
-                          }
-                        }}
-                      >
-                        Soft-retire…
-                      </button>
-                    </div>
-                  </article>
-                )
-              })}
+                Hủy
+              </Button>
+              <Button
+                variant="danger"
+                disabled={!reason.trim() || retireMut.isPending}
+                onClick={() => retireMut.mutate()}
+              >
+                {retireMut.isPending ? 'Đang retire…' : 'Xác nhận soft-retire'}
+              </Button>
             </div>
-          )}
-
-          {rowsQuery.data?.page.has_more ? (
-            <button
-              type="button"
-              onClick={() => {
-                const next = rowsQuery.data?.page.next_cursor
-                if (next) setCursor(next)
-              }}
-            >
-              Trang tiếp theo
-            </button>
-          ) : null}
-
-          {activeTable?.canCreate ? (
-            <form
-              className="shared-agg__dialog"
-              onSubmit={(ev) => {
-                ev.preventDefault()
-                createMut.mutate()
-              }}
-            >
-              <h3>Create row</h3>
-              <label>
-                <span>Code</span>
-                <input value={createCode} onChange={(e) => setCreateCode(e.target.value)} required />
-              </label>
-              <label>
-                <span>Fields JSON</span>
-                <textarea
-                  value={createFieldJson}
-                  onChange={(e) => setCreateFieldJson(e.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                <span>updated_reason</span>
-                <input value={reason} onChange={(e) => setReason(e.target.value)} required />
-              </label>
-              <button type="submit" disabled={!reason.trim() || !createCode.trim() || createMut.isPending}>
-                {createMut.isPending ? 'Đang tạo…' : 'Create'}
-              </button>
-            </form>
-          ) : null}
-
-          {selected && usageText ? (
-            <div className="shared-agg__dialog" role="dialog" aria-labelledby="retire-title">
-              <h3 id="retire-title">Soft-retire {selected.code}</h3>
-              <p className="shared-agg__muted">{usageText}</p>
-              <label>
-                <span>updated_reason</span>
-                <input value={reason} onChange={(e) => setReason(e.target.value)} required />
-              </label>
-              <div className="shared-agg__actions">
-                <button
-                  type="button"
-                  disabled={!reason.trim() || retireMut.isPending}
-                  onClick={() => retireMut.mutate()}
-                >
-                  {retireMut.isPending ? 'Đang retire…' : 'Confirm soft-retire'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelected(null)
-                    setUsageText(null)
-                  }}
-                >
-                  Hủy
-                </button>
-              </div>
-            </div>
-          ) : null}
-
-          {selected && !usageText && activeTable?.canUpdate ? (
-            <form
-              className="shared-agg__dialog"
-              onSubmit={(ev) => {
-                ev.preventDefault()
-                updateMut.mutate()
-              }}
-            >
-              <h3>Update {selected.code}</h3>
-              <label>
-                <span>Fields JSON</span>
-                <textarea value={editFieldJson} onChange={(e) => setEditFieldJson(e.target.value)} />
-              </label>
-              <label>
-                <span>updated_reason</span>
-                <input value={reason} onChange={(e) => setReason(e.target.value)} required />
-              </label>
-              <div className="shared-agg__actions">
-                <button type="submit" disabled={!reason.trim() || updateMut.isPending}>
-                  {updateMut.isPending ? 'Đang lưu…' : 'Save'}
-                </button>
-                <button type="button" onClick={() => setSelected(null)}>
-                  Hủy
-                </button>
-              </div>
-            </form>
-          ) : null}
-
-          {actionError ? (
-            <p className="shared-agg__state" role="alert">
-              {actionError}
-            </p>
-          ) : null}
-        </>
-      )}
+          </div>
+        )}
+      </Dialog>
     </section>
   )
 }

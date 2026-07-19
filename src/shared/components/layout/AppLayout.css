@@ -2,6 +2,19 @@
   display: grid;
   grid-template-columns: var(--size-sidebar) 1fr;
   min-height: 100vh;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.shell--sidebar-off {
+  grid-template-columns: 0px 1fr;
+}
+
+.shell--sidebar-off .shell__sidebar {
+  transform: translateX(-100%);
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
 }
 
 .shell__sidebar {
@@ -11,6 +24,19 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  transition: all 0.2s ease;
+  
+  /* Make sidebar fixed viewport height without scrolling internally at root */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.shell__brand-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .shell__brand {
@@ -18,6 +44,13 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease;
+}
+
+.shell__brand-link:hover .shell__brand {
+  background: rgb(255 255 255 / 5%);
 }
 
 .shell__brand-mark {
@@ -42,12 +75,37 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  
+  /* Scrollbar only on nav items list */
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Beautiful custom scrollbar for left menu nav items list */
+.shell__nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.shell__nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shell__nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.shell__nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .shell__nav-link {
   padding: 0.7rem 0.85rem;
   border-radius: 0.65rem;
   color: var(--color-nav-content);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
 }
 
 .shell__nav-link:hover {
@@ -57,6 +115,7 @@
 .shell__nav-link--active {
   background: color-mix(in srgb, var(--color-nav-active) 28%, transparent);
   color: var(--color-text-on-primary);
+  font-weight: 600;
 }
 
 .shell__main {
@@ -73,6 +132,31 @@
   padding: 1rem 1.5rem;
   background: var(--color-surface-card);
   border-bottom: 1px solid var(--color-border-default);
+  height: 64px;
+}
+
+.shell__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shell__sidebar-toggle {
+  background: transparent;
+  border: 1px solid var(--color-border-default);
+  color: var(--color-text-primary);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.shell__sidebar-toggle:hover {
+  background: var(--color-page-surface);
 }
 
 .shell__header h1 {
@@ -98,10 +182,31 @@
   border-radius: 0.55rem;
   padding: 0.45rem 0.8rem;
   cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+.shell__theme-toggle {
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-card);
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+}
+
+.shell__signout:hover,
+.shell__theme-toggle:hover {
+  background: var(--color-page-surface);
 }
 
 .shell__content {
   padding: 1.5rem;
+  background: var(--color-page-surface);
+  color: var(--color-text-primary);
+  min-height: calc(100vh - 64px);
 }
 
 @media (max-width: 900px) {
@@ -109,14 +214,27 @@
     grid-template-columns: 1fr;
   }
 
+  .shell--sidebar-off {
+    grid-template-columns: 1fr;
+  }
+
   .shell__sidebar {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    height: auto;
+    overflow: visible;
+    position: relative;
+    padding: 1rem;
   }
 
   .shell__nav {
     flex-direction: row;
     flex-wrap: wrap;
+    overflow-y: visible;
+  }
+  
+  .shell__sidebar-toggle {
+    display: none;
   }
 }

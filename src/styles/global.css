@@ -1,3 +1,5 @@
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @import './tokens.css';
 
 *,
@@ -25,8 +27,11 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+  border-radius: var(--radius-button, 6px);
 }
 
 :focus-visible {
