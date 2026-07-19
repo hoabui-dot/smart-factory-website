@@ -41,15 +41,15 @@ function batchStateMessage(state: string): string {
     case 'idle':
       return 'Chọn template và tải batch theo mã, hoặc tạo batch mới từ file nguồn.'
     case 'loading':
-      return 'Đang tải thông tin import batch...'
+      return 'Đang tải thông tin lô nạp dữ liệu (import batch)...'
     case 'empty':
-      return 'Không có batch nào đang mở.'
+      return 'Không có lô nạp dữ liệu nào đang mở.'
     case 'permission-denied':
-      return 'Bạn không có quyền trên owning module của template này.'
+      return 'Bạn không có quyền trên phân hệ sở hữu (owning module) của template này.'
     case 'not-found':
-      return 'Không tìm thấy import batch tương ứng.'
+      return 'Không tìm thấy lô nạp dữ liệu (import batch) tương ứng.'
     case 'error':
-      return 'Không tải được thông tin import batch.'
+      return 'Không tải được thông tin lô nạp dữ liệu (import batch).'
     default:
       return ''
   }
@@ -68,9 +68,9 @@ export function ImportExportCenterPage() {
       <PageHeader
         breadcrumbs={[
           { label: 'Trang chủ', href: '/home' },
-          { label: 'Import / Export' },
+          { label: 'Nhập / Xuất dữ liệu (Import/Export)' },
         ]}
-        title="Import / Export Center"
+        title="Trung tâm Nhập / Xuất dữ liệu"
         subtitle="Hub quản lý và thực thi nạp/xuất dữ liệu Excel tích hợp cho các phân hệ MES, WMS và QMS."
       />
 
@@ -84,7 +84,7 @@ export function ImportExportCenterPage() {
           }`}
           onClick={() => setTab('import')}
         >
-          Import Center
+          Trung tâm Nhập dữ liệu (Import)
         </button>
         <button
           className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
@@ -94,7 +94,7 @@ export function ImportExportCenterPage() {
           }`}
           onClick={() => setTab('export')}
         >
-          Export Center
+          Trung tâm Xuất dữ liệu (Export)
         </button>
       </div>
 
@@ -106,7 +106,7 @@ export function ImportExportCenterPage() {
             <div className="flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <Search size={16} className="text-blue-600 dark:text-blue-500" />
-                Tải / Tra cứu Batch
+                Tải / Tra cứu Lô (Batch)
               </h3>
               <form
                 className="flex flex-col gap-3"
@@ -116,7 +116,7 @@ export function ImportExportCenterPage() {
                 }}
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Template Ownership</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mẫu Phân hệ (Template Ownership)</span>
                   <Select
                     value={center.templateCode}
                     onChange={(event) => center.setTemplateCode(event.target.value)}
@@ -130,17 +130,17 @@ export function ImportExportCenterPage() {
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mã Batch</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mã lô nạp dữ liệu (Batch Code)</span>
                   <Input
                     value={center.batchCodeInput}
                     onChange={(event) => center.setBatchCodeInput(event.target.value)}
-                    placeholder="IMP-000001"
+                    placeholder="Ví dụ: IMP-000001"
                     className="h-9"
                   />
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Button type="submit" size="sm" className="h-9 flex-1">
-                    Tải batch
+                    Tải lô dữ liệu
                   </Button>
                   <Button
                     type="button"
@@ -187,17 +187,17 @@ export function ImportExportCenterPage() {
                 }}
               >
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Source File ID (NB-04)</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">ID File nguồn (Source File ID)</span>
                   <Input
                     value={center.sourceFileId}
                     onChange={(event) => center.setSourceFileId(event.target.value)}
-                    placeholder="Nhập ID file nguồn (ví dụ: 123)"
+                    placeholder="Nhập ID file dữ liệu nguồn (ví dụ: 123)..."
                     className="h-9"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Commit Mode</span>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Phương thức Ghi nhận (Commit Mode)</span>
                     <Select
                       value={center.mode}
                       onChange={(event) => center.setMode(event.target.value)}
@@ -205,13 +205,17 @@ export function ImportExportCenterPage() {
                     >
                       {(center.template?.commitModes ?? ['ALL_OR_NOTHING', 'PARTIAL']).map((value) => (
                         <option key={value} value={value}>
-                          {value}
+                          {value === 'ALL_OR_NOTHING'
+                            ? 'Tất cả hoặc không (ALL_OR_NOTHING)'
+                            : value === 'PARTIAL'
+                              ? 'Cho phép một phần (PARTIAL)'
+                              : value}
                         </option>
                       ))}
                     </Select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Import Mode</span>
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Phương thức Nạp (Import Mode)</span>
                     <Select
                       value={center.importMode}
                       onChange={(event) => center.setImportMode(event.target.value)}
@@ -219,7 +223,13 @@ export function ImportExportCenterPage() {
                     >
                       {(center.template?.importModes ?? ['UPSERT']).map((value) => (
                         <option key={value} value={value}>
-                          {value}
+                          {value === 'UPSERT'
+                            ? 'Thêm mới hoặc Cập nhật (UPSERT)'
+                            : value === 'INSERT'
+                              ? 'Chỉ thêm mới (INSERT)'
+                              : value === 'UPDATE'
+                                ? 'Chỉ cập nhật (UPDATE)'
+                                : value}
                         </option>
                       ))}
                     </Select>
@@ -256,7 +266,7 @@ export function ImportExportCenterPage() {
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-1">
               <FileSpreadsheet size={16} className="text-slate-400" />
-              Session Batches
+              Danh sách Batch trong phiên
             </h3>
             
             <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
@@ -264,7 +274,7 @@ export function ImportExportCenterPage() {
                 <TableHeader>
                   <TableRow className="pointer-events-none hover:bg-transparent">
                     <TableHead>Mã Batch</TableHead>
-                    <TableHead>Template Code</TableHead>
+                    <TableHead>Mã Template</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -298,7 +308,7 @@ export function ImportExportCenterPage() {
               </Table>
               {center.sessionBatches.length === 0 && (
                 <div className="p-8 text-center text-sm text-slate-400 bg-slate-50/50 dark:bg-slate-900/30">
-                  Chưa có batch nào trong phiên làm việc.
+                  Chưa có lô nạp dữ liệu nào được khởi tạo trong phiên này.
                 </div>
               )}
               <DataTablePagination {...sessionPagination} />
@@ -311,7 +321,7 @@ export function ImportExportCenterPage() {
           <div className="lg:col-span-1 flex flex-col gap-4 bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Download size={16} className="text-blue-600 dark:text-blue-500" />
-              Tạo Export Job mới
+              Tạo Tác vụ Xuất dữ liệu (Export Job)
             </h3>
             <form
               className="flex flex-col gap-4"
@@ -321,7 +331,7 @@ export function ImportExportCenterPage() {
               }}
             >
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Export Template</span>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mẫu xuất dữ liệu (Export Template)</span>
                 <Select
                   value={center.exportTemplateCode}
                   onChange={(event) => center.setExportTemplateCode(event.target.value)}
@@ -335,7 +345,7 @@ export function ImportExportCenterPage() {
                 </Select>
               </div>
               <Button type="submit" disabled={center.exportPending} className="h-9">
-                Tạo export job
+                Khởi tạo tác vụ xuất dữ liệu
               </Button>
             </form>
           </div>
@@ -346,7 +356,7 @@ export function ImportExportCenterPage() {
               Kết quả xuất dữ liệu
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Owning prefix module sẽ xử lý tác vụ bất đồng bộ và trả về kết quả trạng thái chi tiết của Export Job.
+              Phân hệ sở hữu (owning module) sẽ xử lý tác vụ bất đồng bộ và trả về kết quả trạng thái chi tiết của Export Job.
             </p>
             {center.exportError && (
               <div className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-red-650 border border-red-200 flex items-center gap-2 text-xs" role="alert">
@@ -357,7 +367,7 @@ export function ImportExportCenterPage() {
             {center.exportResult ? (
               <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-sm mt-2">
                 <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                  <dt className="text-xs font-semibold text-slate-400 uppercase">Mã Job (Job Code)</dt>
+                  <dt className="text-xs font-semibold text-slate-400 uppercase">Mã tác vụ xuất (Job Code)</dt>
                   <dd className="font-mono text-base font-semibold text-slate-800 dark:text-slate-100 mt-1">
                     {center.exportResult.code}
                   </dd>
@@ -371,7 +381,7 @@ export function ImportExportCenterPage() {
                   </dd>
                 </div>
                 <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-                  <dt className="text-xs font-semibold text-slate-400 uppercase">Loại báo cáo</dt>
+                  <dt className="text-xs font-semibold text-slate-400 uppercase">Phân loại báo cáo</dt>
                   <dd className="font-semibold text-slate-800 dark:text-slate-200 mt-1">
                     {center.exportResult.report_type}
                   </dd>
@@ -379,7 +389,7 @@ export function ImportExportCenterPage() {
               </dl>
             ) : (
               <div className="text-sm text-slate-400 p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-center bg-white dark:bg-slate-900/10">
-                Chưa khởi chạy export job nào.
+                Chưa có tác vụ xuất dữ liệu nào được thực thi.
               </div>
             )}
           </div>
@@ -393,7 +403,7 @@ export function ImportExportCenterPage() {
           setIsDetailOpen(false)
           center.setConfirmAction(null)
         }}
-        title={center.detailRow ? `Import Batch: ${center.detailRow.code}` : 'Chi tiết Batch'}
+        title={center.detailRow ? `Chi tiết lô nạp dữ liệu: ${center.detailRow.code}` : 'Chi tiết Batch'}
       >
         {center.detailRow && (
           <div className="flex flex-col gap-5 font-sans text-sm">
@@ -408,7 +418,7 @@ export function ImportExportCenterPage() {
                 </div>
               </div>
               <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Target Entity</span>
+                <span className="text-[11px] font-semibold text-slate-400 uppercase">Đối tượng nạp (Target Entity)</span>
                 <div className="mt-1 font-semibold text-sm text-slate-700 dark:text-slate-300 font-mono truncate" title={center.detailRow.targetEntity}>
                   {center.detailRow.targetEntity}
                 </div>
@@ -416,25 +426,35 @@ export function ImportExportCenterPage() {
               <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase">Commit Mode</span>
                 <div className="mt-1 font-semibold text-sm text-slate-800 dark:text-slate-200">
-                  {center.detailRow.mode}
+                  {center.detailRow.mode === 'ALL_OR_NOTHING'
+                    ? 'Tất cả hoặc không (ALL_OR_NOTHING)'
+                    : center.detailRow.mode === 'PARTIAL'
+                      ? 'Nạp một phần (PARTIAL)'
+                      : center.detailRow.mode}
                 </div>
               </div>
               <div className="p-3 rounded-lg border border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase">Import Mode</span>
                 <div className="mt-1 font-semibold text-sm text-slate-800 dark:text-slate-200">
-                  {center.detailRow.importMode}
+                  {center.detailRow.importMode === 'UPSERT'
+                    ? 'Thêm mới hoặc Cập nhật (UPSERT)'
+                    : center.detailRow.importMode === 'INSERT'
+                      ? 'Chỉ thêm mới (INSERT)'
+                      : center.detailRow.importMode === 'UPDATE'
+                        ? 'Chỉ cập nhật (UPDATE)'
+                        : center.detailRow.importMode}
                 </div>
               </div>
             </div>
 
             {/* Row Counts */}
             <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
-              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Dòng dữ liệu</span>
+              <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase">Thống kê dòng dữ liệu</span>
               <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5">
-                <span>Tổng số: <strong className="font-semibold text-slate-800 dark:text-slate-100">{center.detailRow.totalRows}</strong></span>
-                <span>Thành công: <strong className="font-semibold text-green-600">{center.detailRow.successRows}</strong></span>
-                <span>Lỗi: <strong className="font-semibold text-red-650">{center.detailRow.failedRows}</strong></span>
-                <span>Bỏ qua: <strong className="font-semibold text-slate-450">{center.detailRow.skippedRows}</strong></span>
+                <span>Tổng số bản ghi: <strong className="font-semibold text-slate-800 dark:text-slate-100">{center.detailRow.totalRows}</strong></span>
+                <span>Nạp thành công: <strong className="font-semibold text-green-600">{center.detailRow.successRows}</strong></span>
+                <span>Số dòng lỗi: <strong className="font-semibold text-red-650">{center.detailRow.failedRows}</strong></span>
+                <span>Số dòng bỏ qua: <strong className="font-semibold text-slate-450">{center.detailRow.skippedRows}</strong></span>
               </div>
             </div>
 
@@ -444,7 +464,7 @@ export function ImportExportCenterPage() {
                 <Clock size={13} className="text-slate-400" />
                 <span>Bắt đầu: {center.detailRow.startedAt || '-'}</span>
                 <User size={13} className="ml-3 text-slate-400" />
-                <span>Bởi user #{center.detailRow.startedBy}</span>
+                <span>Bởi tài khoản #{center.detailRow.startedBy}</span>
               </div>
               {center.detailRow.completedAt && (
                 <div className="flex items-center gap-1.5">
@@ -464,7 +484,7 @@ export function ImportExportCenterPage() {
                 onClick={center.runValidate}
               >
                 <Play size={13} />
-                Validate
+                Kiểm tra (Validate)
               </Button>
               <Button
                 variant="primary"
@@ -474,7 +494,7 @@ export function ImportExportCenterPage() {
                 onClick={() => center.setConfirmAction('commit')}
               >
                 <CheckCircle2 size={13} />
-                Commit
+                Ghi nhận (Commit)
               </Button>
               <Button
                 variant="danger"
@@ -484,7 +504,7 @@ export function ImportExportCenterPage() {
                 onClick={() => center.setConfirmAction('cancel')}
               >
                 <XCircle size={13} />
-                Cancel
+                Hủy bỏ (Cancel)
               </Button>
             </div>
 
@@ -492,8 +512,8 @@ export function ImportExportCenterPage() {
             {center.confirmAction && (
               <div className="p-3.5 rounded-lg border border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/10 text-slate-800 dark:text-slate-200 mt-2 flex flex-col gap-3">
                 <p className="text-xs leading-relaxed">
-                  Xác nhận thực hiện hành động <strong className="uppercase font-bold text-blue-650 dark:text-blue-400">{center.confirmAction}</strong>? 
-                  Hành động này được cấp quyền bất đồng bộ từ metadata <code>allowed_actions</code> của máy chủ.
+                  Xác nhận thực hiện hành động <strong className="uppercase font-bold text-blue-650 dark:text-blue-400">{center.confirmAction === 'commit' ? 'Ghi nhận (Commit)' : center.confirmAction === 'cancel' ? 'Hủy bỏ (Cancel)' : center.confirmAction}</strong>? 
+                  Hành động này được cấp quyền bất đồng bộ từ hành động kiểm soát <code>allowed_actions</code> của máy chủ.
                 </p>
                 <div className="flex justify-end gap-2">
                   <Button
@@ -526,7 +546,7 @@ export function ImportExportCenterPage() {
             {/* Error rows nested section */}
             <div className="flex flex-col gap-2.5 border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                Dòng dữ liệu lỗi
+                Chi tiết các dòng dữ liệu bị lỗi
               </h4>
               {center.errorsLoading && <p className="text-xs text-slate-400">Đang tải chi tiết lỗi...</p>}
               {center.errorsError && (
@@ -539,9 +559,9 @@ export function ImportExportCenterPage() {
                 <Table containerClassName="relative w-full overflow-auto max-h-48">
                   <TableHeader>
                     <TableRow className="pointer-events-none hover:bg-transparent">
-                      <TableHead>Mã</TableHead>
-                      <TableHead>Cột dữ liệu</TableHead>
-                      <TableHead>Chi tiết lỗi</TableHead>
+                      <TableHead>Mã dòng (Code)</TableHead>
+                      <TableHead>Cột bị lỗi (Column)</TableHead>
+                      <TableHead>Nội dung lỗi chi tiết</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -566,7 +586,7 @@ export function ImportExportCenterPage() {
 
             <div className="flex justify-end mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
               <Button variant="secondary" onClick={() => setIsDetailOpen(false)}>
-                Đóng chi tiết
+                Đóng cửa sổ
               </Button>
             </div>
           </div>
