@@ -1,9 +1,18 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select, Textarea } from '@/shared/components/ui/Input'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { useCustomerOrder } from '../hooks/useCustomerOrder'
 import { useShipment } from '../hooks/useShipment'
-import type { CustomerOrderRecord } from '../types/customerOrder'
+import type { CustomerOrderRecord, CustomerOrderRow, ShipmentRow } from '../types/customerOrder'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
 
 import './customerOrderShared.css'
 
@@ -53,26 +62,26 @@ function OrderEditor({
       </dl>
 
       {detail.lines?.length ? (
-        <table className="co-admin__table">
-          <thead>
-            <tr>
-              <th>Line</th>
-              <th>Customer item</th>
-              <th>Item</th>
-              <th>Qty</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden my-4">
+          <TableHeader>
+            <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+              <TableHead>Hạng mục</TableHead>
+              <TableHead>Mã linh kiện (Khách hàng)</TableHead>
+              <TableHead>Mã vật tư (Nội bộ)</TableHead>
+              <TableHead>Số lượng</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {detail.lines.map((ln) => (
-              <tr key={ln.code}>
-                <td>{ln.code}</td>
-                <td>{ln.customer_item_code ?? '-'}</td>
-                <td>{ln.item_code ?? '-'}</td>
-                <td>{ln.ordered_qty}</td>
-              </tr>
+              <TableRow key={ln.code} className="hover:bg-[var(--surface-2)]">
+                <TableCell>{ln.code}</TableCell>
+                <TableCell>{ln.customer_item_code ?? '-'}</TableCell>
+                <TableCell>{ln.item_code ?? '-'}</TableCell>
+                <TableCell>{ln.ordered_qty}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       ) : null}
 
       {detail.work_orders?.length ? (
@@ -84,95 +93,98 @@ function OrderEditor({
 
       {row?.canUpdate ? (
         <form
-          className="co-admin__form"
+          className="flex flex-col gap-4 mt-4"
           onSubmit={(e) => {
             e.preventDefault()
+            if (!window.confirm('Xác nhận lưu thay đổi thông tin đơn hàng này?')) return
             admin.submitUpdate({ customer_po_no: po, incoterm })
           }}
         >
-          <label>
-            <span>Customer PO</span>
-            <input value={po} onChange={(e) => setPo(e.target.value)} />
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Customer PO</span>
+            <Input value={po} onChange={(e) => setPo(e.target.value)} required />
           </label>
-          <label>
-            <span>Incoterm</span>
-            <input value={incoterm} onChange={(e) => setIncoterm(e.target.value)} />
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Incoterm</span>
+            <Input value={incoterm} onChange={(e) => setIncoterm(e.target.value)} required />
           </label>
-          <button type="submit">Lưu</button>
+          <Button type="submit" className="w-full justify-center">Lưu thay đổi</Button>
         </form>
       ) : null}
 
-      <div className="co-admin__actions">
+      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[var(--border-default)]">
         {row?.canConfirm ? (
-          <button type="button" onClick={() => admin.setConfirmConfirm(true)}>
+          <Button type="button" onClick={() => admin.setConfirmConfirm(true)}>
             Confirm
-          </button>
+          </Button>
         ) : null}
         {row?.canCancel ? (
-          <button type="button" className="co-admin__btn--danger" onClick={() => admin.setShowCancel(true)}>
+          <Button type="button" variant="danger" onClick={() => admin.setShowCancel(true)}>
             Cancel
-          </button>
+          </Button>
         ) : null}
         {row?.canClose ? (
-          <button type="button" onClick={() => admin.setConfirmClose(true)}>
+          <Button type="button" onClick={() => admin.setConfirmClose(true)}>
             Close
-          </button>
+          </Button>
         ) : null}
       </div>
 
-      {admin.confirmConfirm ? (
-        <div className="co-admin__dialog" role="dialog">
-          <p>Confirm CO {detail.code}? (sinh WO DRAFT)</p>
-          <div className="co-admin__actions">
-            <button type="button" onClick={() => admin.submitConfirm()}>
-              Xác nhận
-            </button>
-            <button type="button" className="co-admin__btn--ghost" onClick={() => admin.setConfirmConfirm(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmConfirm}
+        onClose={() => admin.setConfirmConfirm(false)}
+        onConfirm={admin.submitConfirm}
+        title="Xác nhận Confirm"
+        description={`Confirm CO ${detail.code}? (sinh WO DRAFT)`}
+        isPending={false}
+      />
 
-      {admin.showCancel ? (
-        <div className="co-admin__dialog" role="dialog">
-          <p>Cancel không hoàn tác. Nhập reason.</p>
-          <label>
-            <span>Reason</span>
-            <textarea value={admin.cancelReason} onChange={(e) => admin.setCancelReason(e.target.value)} />
+      <Dialog
+        isOpen={admin.showCancel}
+        onClose={() => admin.setShowCancel(false)}
+        title="Hủy đơn hàng (Cancel CO)"
+        maxWidth="max-w-[50%]"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!window.confirm('Xác nhận cancel đơn hàng này? Thao tác không thể hoàn tác.')) return
+            admin.submitCancel()
+          }}
+        >
+          <p className="text-sm text-[var(--text-secondary)]">
+            Cancel không hoàn tác. Nhập lý do (reason).
+          </p>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Reason</span>
+            <Textarea value={admin.cancelReason} onChange={(e) => admin.setCancelReason(e.target.value)} required />
           </label>
           {admin.cancelErrors.length ? (
-            <p className="co-admin__error">Thiếu: {admin.cancelErrors.join(', ')}</p>
+            <p className="text-sm text-[var(--color-danger-text)]">Thiếu: {admin.cancelErrors.join(', ')}</p>
           ) : null}
           {admin.cancelError ? (
-            <p className="co-admin__error" role="alert">
+            <p className="text-sm text-[var(--color-danger-text)]" role="alert">
               {admin.cancelError.code}: {admin.cancelError.message}
             </p>
           ) : null}
-          <div className="co-admin__actions">
-            <button type="button" className="co-admin__btn--danger" onClick={() => admin.submitCancel()}>
-              Xác nhận cancel
-            </button>
-            <button type="button" className="co-admin__btn--ghost" onClick={() => admin.setShowCancel(false)}>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button type="button" variant="secondary" onClick={() => admin.setShowCancel(false)}>
               Hủy
-            </button>
+            </Button>
+            <Button type="submit" variant="danger">Xác nhận cancel</Button>
           </div>
-        </div>
-      ) : null}
+        </form>
+      </Dialog>
 
-      {admin.confirmClose ? (
-        <div className="co-admin__dialog" role="dialog">
-          <p>Close CO {detail.code}?</p>
-          <div className="co-admin__actions">
-            <button type="button" onClick={() => admin.submitClose()}>
-              Xác nhận
-            </button>
-            <button type="button" className="co-admin__btn--ghost" onClick={() => admin.setConfirmClose(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmClose}
+        onClose={() => admin.setConfirmClose(false)}
+        onConfirm={admin.submitClose}
+        title="Xác nhận Close"
+        description={`Close CO ${detail.code}?`}
+        isPending={false}
+      />
     </aside>
   )
 }
@@ -181,25 +193,89 @@ export function CustomerOrderPage() {
   const [tab, setTab] = useState<'orders' | 'shipments'>('orders')
   const admin = useCustomerOrder()
   const ship = useShipment()
+  
+  const orderPagination = usePagination(admin.rows, 10)
+  const shipmentPagination = usePagination(ship.rows, 10)
+
+  const orderColumns: ColumnDef<CustomerOrderRow>[] = [
+    {
+      header: 'Mã đơn hàng (CO)',
+      cell: (row) => (
+        <button
+          type="button"
+          className="co-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectOrder(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Khách hàng',
+      cell: (row) => row.customerLabel,
+    },
+    {
+      header: 'Mã đơn mua (PO Khách hàng)',
+      cell: (row) => row.customerPoNo,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+  ]
+
+  const shipmentColumns: ColumnDef<ShipmentRow>[] = [
+    {
+      header: 'Mã lô giao hàng',
+      cell: (row) => (
+        <button
+          type="button"
+          className="co-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            ship.selectShipment(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Khách hàng',
+      cell: (row) => row.customerLabel,
+    },
+    {
+      header: 'Đơn vị vận chuyển',
+      cell: (row) => row.carrier,
+    },
+  ]
+
   const banner = stateMsg(admin.listState)
   const shipBanner = stateMsg(ship.listState).replace('customer orders', 'shipments')
 
   return (
     <section className="co-admin" aria-labelledby="co-title">
-      <header className="co-admin__header">
-        <div>
-          <p className="co-admin__eyebrow">WEB-MES-10-CUSTOMER-ORDER · `/web/mes/customer-orders`</p>
-          <h2 id="co-title">Customer Order &amp; Shipment</h2>
-          <p className="co-admin__lead">
-            CO lifecycle + shipment/CoC (MES-10b). Confirm-pick là PDA-only. Customer master tại{' '}
-            <Link to="/web/mes/customers">/web/mes/customers</Link>.
-          </p>
-        </div>
-        <div className="co-admin__actions">
-          <Link to="/web/mes/customers">Customer Master</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Customer Orders' },
+        ]}
+        title="Đơn hàng khách hàng (Customer Order)"
+        subtitle="Quản lý vòng đời đơn hàng bán hàng (Customer Order), theo dõi tiến độ chuẩn bị hàng và xác nhận lệnh xuất xưởng (Shipment)."
+        actions={
+          <Link to="/web/mes/customers">
+            <Button variant="secondary">Danh mục khách hàng</Button>
+          </Link>
+        }
+      />
 
       <div className="co-admin__actions" role="tablist" aria-label="MES-10 sections">
         <button type="button" role="tab" aria-selected={tab === 'orders'} onClick={() => setTab('orders')}>
@@ -217,22 +293,38 @@ export function CustomerOrderPage() {
 
       {tab === 'shipments' ? (
         <>
-          <form
-            className="co-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm shipment',
+                placeholder: 'Tìm kiếm shipment...',
+              },
+            ]}
+            values={{
+              search: ship.searchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                ship.setSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               ship.applySearch()
             }}
-          >
-            <label>
-              <span>Tìm shipment</span>
-              <input value={ship.searchInput} onChange={(e) => ship.setSearchInput(e.target.value)} />
-            </label>
-            <button type="submit">Lọc</button>
-            <button type="button" onClick={() => ship.setShowCreate(true)}>
-              Tạo shipment
-            </button>
-          </form>
+            onReset={() => {
+              ship.setSearchInput('')
+              ship.applySearch()
+            }}
+            isResetActive={Boolean(ship.searchInput)}
+            expands={
+              <Button type="button" className="co-admin__btn shrink-0" onClick={() => ship.setShowCreate(true)}>
+                Tạo shipment
+              </Button>
+            }
+          />
 
           {shipBanner ? (
             <p role={ship.listState === 'error' ? 'alert' : 'status'}>
@@ -241,28 +333,35 @@ export function CustomerOrderPage() {
             </p>
           ) : null}
 
-          {ship.showCreate ? (
+          <Dialog
+            isOpen={ship.showCreate}
+            onClose={() => ship.setShowCreate(false)}
+            title="Tạo Shipment mới"
+            maxWidth="max-w-[50%]"
+          >
             <form
-              className="co-admin__form"
+              className="flex flex-col gap-4"
               onSubmit={(e) => {
                 e.preventDefault()
+                if (!window.confirm('Xác nhận tạo shipment mới này?')) return
                 ship.submitCreate()
               }}
             >
-              <label>
-                <span>Code (optional)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code (optional)</span>
+                <Input
                   value={ship.createForm.code ?? ''}
                   onChange={(e) => ship.setCreateForm({ ...ship.createForm, code: e.target.value })}
                 />
               </label>
-              <label>
-                <span>Customer</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Customer</span>
+                <Select
                   value={ship.createForm.customer_id || ''}
                   onChange={(e) =>
                     ship.setCreateForm({ ...ship.createForm, customer_id: Number(e.target.value) })
                   }
+                  required
                 >
                   <option value="">—</option>
                   {ship.customers.map((c) => (
@@ -270,18 +369,19 @@ export function CustomerOrderPage() {
                       {c.code}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label>
-                <span>Carrier</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Carrier</span>
+                <Input
                   value={ship.createForm.carrier}
                   onChange={(e) => ship.setCreateForm({ ...ship.createForm, carrier: e.target.value })}
+                  required
                 />
               </label>
-              <label>
-                <span>Shipped at</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Shipped at</span>
+                <Input
                   type="datetime-local"
                   value={ship.createForm.shipped_at.slice(0, 16)}
                   onChange={(e) =>
@@ -290,43 +390,31 @@ export function CustomerOrderPage() {
                       shipped_at: new Date(e.target.value).toISOString(),
                     })
                   }
+                  required
                 />
               </label>
-              <div className="co-admin__actions">
-                <button type="submit">Tạo</button>
-                <button type="button" className="co-admin__btn--ghost" onClick={() => ship.setShowCreate(false)}>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button type="button" variant="secondary" onClick={() => ship.setShowCreate(false)}>
                   Hủy
-                </button>
+                </Button>
+                <Button type="submit">Tạo</Button>
               </div>
             </form>
-          ) : null}
+          </Dialog>
 
           {ship.listState === 'ready' ? (
             <div className="co-admin__layout">
-              <table className="co-admin__table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Status</th>
-                    <th>Customer</th>
-                    <th>Carrier</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ship.rows.map((row) => (
-                    <tr key={row.code} className={row.code === ship.selectedCode ? 'co-admin__row--active' : undefined}>
-                      <td>
-                        <button type="button" className="co-admin__linkish" onClick={() => ship.selectShipment(row.code)}>
-                          {row.code}
-                        </button>
-                      </td>
-                      <td>{row.status}</td>
-                      <td>{row.customerLabel}</td>
-                      <td>{row.carrier}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="flex-1 flex flex-col gap-4 min-w-[300px]">
+                <GenericDataTable
+                  data={shipmentPagination.paginatedItems}
+                  columns={shipmentColumns}
+                  pagination={shipmentPagination}
+                  onRowClick={(row) => ship.selectShipment(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === ship.selectedCode ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]' : ''
+                  }
+                />
+              </div>
 
               {ship.detail && ship.detailRow ? (
                 <aside className="co-admin__detail" aria-label="Chi tiết shipment">
@@ -342,9 +430,10 @@ export function CustomerOrderPage() {
 
                   {ship.detailRow.canUpdate ? (
                     <form
-                      className="co-admin__form"
+                      className="flex flex-col gap-4 mt-4"
                       onSubmit={(e) => {
                         e.preventDefault()
+                        if (!window.confirm('Xác nhận lưu thay đổi shipment này?')) return
                         const fd = new FormData(e.currentTarget)
                         ship.submitUpdate({
                           carrier: String(fd.get('carrier') || ''),
@@ -352,33 +441,37 @@ export function CustomerOrderPage() {
                         })
                       }}
                     >
-                      <label>
-                        <span>Carrier</span>
-                        <input name="carrier" defaultValue={ship.detail.carrier} />
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Carrier</span>
+                        <Input name="carrier" defaultValue={ship.detail.carrier} required />
                       </label>
-                      <label>
-                        <span>Tracking</span>
-                        <input name="tracking" defaultValue={ship.detail.tracking_no ?? ''} />
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Tracking</span>
+                        <Input name="tracking" defaultValue={ship.detail.tracking_no ?? ''} />
                       </label>
-                      <button type="submit">Lưu</button>
+                      <Button type="submit" className="w-full justify-center">Lưu thay đổi</Button>
                     </form>
                   ) : null}
 
-                  <h4>Lines</h4>
-                  <ul>
+                  <h4 className="mt-6">Lines</h4>
+                  <ul className="flex flex-col gap-2">
                     {(ship.detail.lines ?? []).map((ln) => (
-                      <li key={ln.id}>
-                        {ln.finished_lot_code || `Lot#${ln.finished_lot_id}`} · qty {ln.qty} · {ln.item_code || '-'}
+                      <li key={ln.id} className="flex items-center justify-between p-2 rounded bg-[var(--surface-2)] border border-[var(--border-default)]">
+                        <span className="text-sm font-medium">
+                          {ln.finished_lot_code || `Lot#${ln.finished_lot_id}`} · qty {ln.qty} · {ln.item_code || '-'}
+                        </span>
                         {ship.detailRow?.removeLineActions.some((a) => a.href.endsWith(`/lines/${ln.id}`)) ? (
-                          <button
+                          <Button
                             type="button"
-                            className="co-admin__btn--danger"
-                            onClick={() =>
+                            variant="danger"
+                            size="sm"
+                            onClick={() => {
+                              if (!window.confirm('Xác nhận xóa line này khỏi shipment?')) return
                               ship.submitRemoveLine(`/api/mes/shipments/${ship.detail!.code}/lines/${ln.id}`)
-                            }
+                            }}
                           >
                             Remove
-                          </button>
+                          </Button>
                         ) : null}
                       </li>
                     ))}
@@ -386,138 +479,188 @@ export function CustomerOrderPage() {
 
                   {ship.detailRow.canAddLine ? (
                     <form
-                      className="co-admin__form"
+                      className="flex flex-col gap-4 mt-6 p-4 border border-[var(--border-default)] rounded-lg bg-[var(--surface-2)]"
                       onSubmit={(e) => {
                         e.preventDefault()
+                        if (!window.confirm('Xác nhận thêm line này vào shipment?')) return
                         ship.submitAddLine()
                       }}
                     >
-                      <label>
-                        <span>Finished lot code</span>
-                        <input
+                      <h4 className="text-sm font-bold text-[var(--text-primary)]">Add Line</h4>
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Finished lot code</span>
+                        <Input
                           value={ship.lineForm.finished_lot_code}
                           onChange={(e) =>
                             ship.setLineForm({ ...ship.lineForm, finished_lot_code: e.target.value })
                           }
+                          required
                         />
                       </label>
-                      <label>
-                        <span>Qty</span>
-                        <input
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Qty</span>
+                        <Input
                           type="number"
                           min={0.0001}
                           step="any"
                           value={ship.lineForm.qty}
                           onChange={(e) => ship.setLineForm({ ...ship.lineForm, qty: Number(e.target.value) })}
+                          required
                         />
                       </label>
-                      <button type="submit">Add line</button>
+                      <Button type="submit" className="w-full justify-center">Add line</Button>
                     </form>
                   ) : null}
 
-                  <div className="co-admin__actions">
+                  <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-[var(--border-default)]">
                     {ship.detailRow.canCocGenerate ? (
-                      <button type="button" onClick={() => ship.submitCocGenerate()}>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận generate CoC cho shipment này?')) return
+                          ship.submitCocGenerate()
+                        }}
+                      >
                         CoC generate
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canCocSign ? (
-                      <button type="button" onClick={() => ship.setShowSign(true)}>
+                      <Button type="button" onClick={() => ship.setShowSign(true)}>
                         CoC sign
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canCocDownload ? (
-                      <button type="button" onClick={() => ship.submitCocDownload()}>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận tải CoC?')) return
+                          ship.submitCocDownload()
+                        }}
+                      >
                         CoC download
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canShip ? (
-                      <button type="button" onClick={() => ship.submitShip()}>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận xuất kho (ship) cho shipment này?')) return
+                          ship.submitShip()
+                        }}
+                      >
                         Ship
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canDeliver ? (
-                      <button type="button" onClick={() => ship.submitDeliver()}>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận bàn giao (deliver) shipment này?')) return
+                          ship.submitDeliver()
+                        }}
+                      >
                         Deliver
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canAccept ? (
-                      <button type="button" onClick={() => ship.submitAccept()}>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận khách hàng đã nhận (accept) shipment này?')) return
+                          ship.submitAccept()
+                        }}
+                      >
                         Accept
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canFail ? (
-                      <button type="button" className="co-admin__btn--danger" onClick={() => ship.setShowFail(true)}>
+                      <Button type="button" variant="danger" onClick={() => ship.setShowFail(true)}>
                         Fail
-                      </button>
+                      </Button>
                     ) : null}
                     {ship.detailRow.canCancel ? (
-                      <button
+                      <Button
                         type="button"
-                        className="co-admin__btn--danger"
+                        variant="danger"
                         onClick={() => ship.setConfirmCancel(true)}
                       >
                         Cancel
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
 
                   {ship.cocJobCode ? (
-                    <p className="co-admin__muted">CoC job queued: {ship.cocJobCode}</p>
+                    <p className="co-admin__muted mt-2">CoC job queued: {ship.cocJobCode}</p>
                   ) : null}
 
-                  {ship.confirmCancel ? (
-                    <div className="co-admin__dialog" role="dialog">
-                      <p>Cancel shipment {ship.detail.code}?</p>
-                      <div className="co-admin__actions">
-                        <button type="button" className="co-admin__btn--danger" onClick={() => ship.submitCancel()}>
-                          Xác nhận
-                        </button>
-                        <button type="button" className="co-admin__btn--ghost" onClick={() => ship.setConfirmCancel(false)}>
-                          Hủy
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
+                  <ConfirmDialog
+                    isOpen={ship.confirmCancel}
+                    onClose={() => ship.setConfirmCancel(false)}
+                    onConfirm={ship.submitCancel}
+                    title="Xác nhận Cancel"
+                    description={`Cancel shipment ${ship.detail.code}?`}
+                    isPending={false}
+                  />
 
-                  {ship.showSign ? (
-                    <div className="co-admin__dialog" role="dialog">
-                      <label>
-                        <span>Signed PDF file_id (NB-04)</span>
-                        <input
+                  <Dialog
+                    isOpen={ship.showSign}
+                    onClose={() => ship.setShowSign(false)}
+                    title="Ký xác nhận CoC (CoC Sign)"
+                    maxWidth="max-w-[50%]"
+                  >
+                    <form
+                      className="flex flex-col gap-4"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        if (!window.confirm('Xác nhận ký CoC với file ID này?')) return
+                        ship.submitCocSign()
+                      }}
+                    >
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Signed PDF file_id (NB-04)</span>
+                        <Input
                           type="number"
                           min={1}
                           value={ship.signFileId || ''}
                           onChange={(e) => ship.setSignFileId(Number(e.target.value))}
+                          required
                         />
                       </label>
-                      <div className="co-admin__actions">
-                        <button type="button" onClick={() => ship.submitCocSign()}>
-                          Sign
-                        </button>
-                        <button type="button" className="co-admin__btn--ghost" onClick={() => ship.setShowSign(false)}>
+                      <div className="flex justify-end gap-2 mt-4">
+                        <Button type="button" variant="secondary" onClick={() => ship.setShowSign(false)}>
                           Hủy
-                        </button>
+                        </Button>
+                        <Button type="submit">Sign</Button>
                       </div>
-                    </div>
-                  ) : null}
+                    </form>
+                  </Dialog>
 
-                  {ship.showFail ? (
-                    <div className="co-admin__dialog" role="dialog">
-                      <label>
-                        <span>Reason</span>
-                        <textarea value={ship.failReason} onChange={(e) => ship.setFailReason(e.target.value)} />
+                  <Dialog
+                    isOpen={ship.showFail}
+                    onClose={() => ship.setShowFail(false)}
+                    title="Đánh dấu Fail Shipment"
+                    maxWidth="max-w-[50%]"
+                  >
+                    <form
+                      className="flex flex-col gap-4"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        if (!window.confirm('Xác nhận đánh dấu fail cho shipment này? Thao tác không thể hoàn tác.')) return
+                        ship.submitFail()
+                      }}
+                    >
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-semibold text-[var(--text-secondary)]">Reason</span>
+                        <Textarea value={ship.failReason} onChange={(e) => ship.setFailReason(e.target.value)} required />
                       </label>
-                      <div className="co-admin__actions">
-                        <button type="button" className="co-admin__btn--danger" onClick={() => ship.submitFail()}>
-                          Fail
-                        </button>
-                        <button type="button" className="co-admin__btn--ghost" onClick={() => ship.setShowFail(false)}>
+                      <div className="flex justify-end gap-2 mt-4">
+                        <Button type="button" variant="secondary" onClick={() => ship.setShowFail(false)}>
                           Hủy
-                        </button>
+                        </Button>
+                        <Button type="submit" variant="danger">Fail</Button>
                       </div>
-                    </div>
-                  ) : null}
+                    </form>
+                  </Dialog>
                 </aside>
               ) : null}
             </div>
@@ -525,41 +668,64 @@ export function CustomerOrderPage() {
         </>
       ) : (
         <>
-      <form
-        className="co-admin__filters"
+      <FilterBar
+        fields={[
+          {
+            name: 'search',
+            type: 'text',
+            label: 'Tìm',
+            placeholder: 'Tìm kiếm CO...',
+          },
+        ]}
+        values={{
+          search: admin.searchInput,
+        }}
+        onChange={(name, value) => {
+          if (name === 'search') {
+            admin.setSearchInput(value)
+          }
+        }}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
-      >
-        <label>
-          <span>Tìm</span>
-          <input value={admin.searchInput} onChange={(e) => admin.setSearchInput(e.target.value)} />
-        </label>
-        <button type="submit">Lọc</button>
-        <button type="button" onClick={() => admin.setShowCreate(true)}>
-          Tạo CO
-        </button>
-      </form>
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={Boolean(admin.searchInput)}
+        expands={
+          <Button type="button" className="co-admin__btn shrink-0" onClick={() => admin.setShowCreate(true)}>
+            Tạo CO
+          </Button>
+        }
+      />
 
-      {admin.showCreate ? (
+      <Dialog
+        isOpen={admin.showCreate}
+        onClose={() => admin.setShowCreate(false)}
+        title="Tạo Customer Order mới"
+        maxWidth="max-w-[75%]"
+      >
         <form
-          className="co-admin__form"
+          className="grid grid-cols-2 gap-4"
           onSubmit={(e) => {
             e.preventDefault()
+            if (!window.confirm('Xác nhận tạo đơn hàng (CO) mới này?')) return
             admin.submitCreate()
           }}
         >
-          <label>
-            <span>Code</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+            <Input
               value={admin.createForm.code}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
+              required
             />
           </label>
-          <label>
-            <span>Customer</span>
-            <select
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Customer</span>
+            <Select
               value={admin.createForm.customer_id || ''}
               onChange={(e) =>
                 admin.setCreateForm({
@@ -575,30 +741,32 @@ export function CustomerOrderPage() {
                   {c.code}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label>
-            <span>Customer PO</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Customer PO</span>
+            <Input
               value={admin.createForm.customer_po_no}
               onChange={(e) =>
                 admin.setCreateForm({ ...admin.createForm, customer_po_no: e.target.value })
               }
+              required
             />
           </label>
-          <label>
-            <span>Received date</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Received date</span>
+            <Input
               type="date"
               value={admin.createForm.received_date}
               onChange={(e) =>
                 admin.setCreateForm({ ...admin.createForm, received_date: e.target.value })
               }
+              required
             />
           </label>
-          <label>
-            <span>Requested delivery</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Requested delivery</span>
+            <Input
               type="date"
               value={admin.createForm.requested_delivery_date}
               onChange={(e) =>
@@ -607,124 +775,111 @@ export function CustomerOrderPage() {
                   requested_delivery_date: e.target.value,
                 })
               }
+              required
             />
           </label>
-          <label>
-            <span>Incoterm</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Incoterm</span>
+            <Input
               value={admin.createForm.incoterm}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, incoterm: e.target.value })}
+              required
             />
           </label>
-          <label>
-            <span>Line code</span>
-            <input
-              value={admin.createForm.lines[0]?.code ?? ''}
-              onChange={(e) =>
-                admin.setCreateForm({
-                  ...admin.createForm,
-                  lines: [{ ...admin.createForm.lines[0], code: e.target.value }],
-                })
-              }
-            />
-          </label>
-          <label>
-            <span>Customer item</span>
-            <select
-              value={admin.createForm.lines[0]?.customer_item_id || ''}
-              onChange={(e) =>
-                admin.setCreateForm({
-                  ...admin.createForm,
-                  lines: [
-                    {
-                      ...admin.createForm.lines[0],
-                      customer_item_id: Number(e.target.value),
-                    },
-                  ],
-                })
-              }
-            >
-              <option value="">—</option>
-              {admin.customerItems.map((ci) => (
-                <option key={ci.id} value={ci.id}>
-                  {ci.code} ({ci.item_code ?? ci.item_id})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Ordered qty</span>
-            <input
-              type="number"
-              min={0.0001}
-              step="any"
-              value={admin.createForm.lines[0]?.ordered_qty ?? 1}
-              onChange={(e) =>
-                admin.setCreateForm({
-                  ...admin.createForm,
-                  lines: [
-                    {
-                      ...admin.createForm.lines[0],
-                      ordered_qty: Number(e.target.value),
-                    },
-                  ],
-                })
-              }
-            />
-          </label>
+          <div className="col-span-2 border-t border-[var(--border-default)] pt-4 mt-2">
+            <h4 className="text-sm font-bold text-[var(--text-primary)] mb-3">Order Line</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Line code</span>
+                <Input
+                  value={admin.createForm.lines[0]?.code ?? ''}
+                  onChange={(e) =>
+                    admin.setCreateForm({
+                      ...admin.createForm,
+                      lines: [{ ...admin.createForm.lines[0], code: e.target.value }],
+                    })
+                  }
+                  required
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Customer item</span>
+                <Select
+                  value={admin.createForm.lines[0]?.customer_item_id || ''}
+                  onChange={(e) =>
+                    admin.setCreateForm({
+                      ...admin.createForm,
+                      lines: [
+                        {
+                          ...admin.createForm.lines[0],
+                          customer_item_id: Number(e.target.value),
+                        },
+                      ],
+                    })
+                  }
+                >
+                  <option value="">—</option>
+                  {admin.customerItems.map((ci) => (
+                    <option key={ci.id} value={ci.id}>
+                      {ci.code} ({ci.item_code ?? ci.item_id})
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Ordered qty</span>
+                <Input
+                  type="number"
+                  min={0.0001}
+                  step="any"
+                  value={admin.createForm.lines[0]?.ordered_qty ?? 1}
+                  onChange={(e) =>
+                    admin.setCreateForm({
+                      ...admin.createForm,
+                      lines: [
+                        {
+                          ...admin.createForm.lines[0],
+                          ordered_qty: Number(e.target.value),
+                        },
+                      ],
+                    })
+                  }
+                  required
+                />
+              </label>
+            </div>
+          </div>
+          <div className="col-span-2 flex justify-end gap-2 mt-4 pt-4 border-t border-[var(--border-default)]">
+            <Button type="button" variant="secondary" onClick={() => admin.setShowCreate(false)}>
+              Hủy
+            </Button>
+            <Button type="submit">Tạo CO</Button>
+          </div>
           {admin.createErrors.length ? (
-            <p className="co-admin__error">Thiếu: {admin.createErrors.join(', ')}</p>
+            <p className="col-span-2 text-sm text-[var(--color-danger-text)]">Thiếu: {admin.createErrors.join(', ')}</p>
           ) : null}
           {admin.createError ? (
-            <p className="co-admin__error" role="alert">
+            <p className="col-span-2 text-sm text-[var(--color-danger-text)]" role="alert">
               {admin.createError.code}: {admin.createError.message}
             </p>
           ) : null}
-          <div className="co-admin__actions">
-            <button type="submit">Lưu CO</button>
-            <button type="button" className="co-admin__btn--ghost" onClick={() => admin.setShowCreate(false)}>
-              Hủy
-            </button>
-          </div>
         </form>
-      ) : null}
+      </Dialog>
 
       {banner ? <p className="co-admin__state">{banner}</p> : null}
 
       {admin.listState === 'ready' ? (
         <div className="co-admin__layout">
-          <div className="co-admin__table-wrap">
-            <table className="co-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Customer</th>
-                  <th>PO</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {admin.rows.map((row) => (
-                  <tr
-                    key={row.code}
-                    className={admin.selectedCode === row.code ? 'co-admin__row--active' : undefined}
-                  >
-                    <td>
-                      <button
-                        type="button"
-                        className="co-admin__linkish"
-                        onClick={() => admin.selectOrder(row.code)}
-                      >
-                        {row.code}
-                      </button>
-                    </td>
-                    <td>{row.customerLabel}</td>
-                    <td>{row.customerPoNo}</td>
-                    <td>{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="co-admin__table-wrap flex flex-col gap-4">
+            <GenericDataTable
+              data={orderPagination.paginatedItems}
+              columns={orderColumns}
+              pagination={orderPagination}
+              onRowClick={(row) => admin.selectOrder(row.code)}
+              getRowClassName={(row) =>
+                row.code === admin.selectedCode ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]' : ''
+              }
+            />
           </div>
           {admin.detail ? (
             <OrderEditor key={admin.detail.code} detail={admin.detail} admin={admin} />

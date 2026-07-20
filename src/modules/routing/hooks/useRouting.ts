@@ -420,9 +420,15 @@ export function useRouting() {
     // Work centers
     wcSearchInput,
     setWcSearchInput,
+    wcAppliedQuery,
     applyWcSearch: () => {
       setWcCursor(undefined)
       setWcAppliedQuery(wcSearchInput.trim())
+    },
+    clearWcSearch: () => {
+      setWcCursor(undefined)
+      setWcSearchInput('')
+      setWcAppliedQuery('')
     },
     wcListState,
     wcListError: workCentersQuery.error instanceof ApiError ? workCentersQuery.error : null,
@@ -473,9 +479,15 @@ export function useRouting() {
     // Machines
     mSearchInput,
     setMSearchInput,
+    mAppliedQuery,
     applyMachineSearch: () => {
       setMCursor(undefined)
       setMAppliedQuery(mSearchInput.trim())
+    },
+    clearMachineSearch: () => {
+      setMCursor(undefined)
+      setMSearchInput('')
+      setMAppliedQuery('')
     },
     machineListState,
     machineListError: machinesQuery.error instanceof ApiError ? machinesQuery.error : null,
@@ -531,9 +543,15 @@ export function useRouting() {
     // Routings
     rtSearchInput,
     setRtSearchInput,
+    rtAppliedQuery,
     applyRoutingSearch: () => {
       setRtCursor(undefined)
       setRtAppliedQuery(rtSearchInput.trim())
+    },
+    clearRoutingSearch: () => {
+      setRtCursor(undefined)
+      setRtSearchInput('')
+      setRtAppliedQuery('')
     },
     routingListState,
     routingListError: routingsQuery.error instanceof ApiError ? routingsQuery.error : null,

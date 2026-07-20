@@ -1,5 +1,8 @@
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
+import { Dialog } from '@/shared/components/ui/Dialog'
 import { useGoodsIssue } from '../hooks/useGoodsIssue'
 
 import './GoodsIssuePage.css'
@@ -13,9 +16,9 @@ function listStateMessage(state: string): string {
     case 'no-result':
       return 'Không có kết quả khớp bộ lọc.'
     case 'permission-denied':
-      return 'Bạn không có quyền xem.'
+      return 'Không có quyền truy cập.'
     case 'error':
-      return 'Không tải được dữ liệu. Thử lại sau.'
+      return 'Lỗi tải dữ liệu.'
     default:
       return ''
   }
@@ -27,34 +30,25 @@ export function GoodsIssuePage() {
   const giBanner = listStateMessage(admin.giListState)
 
   return (
-    <section className="gi-admin" aria-labelledby="gi-admin-title">
-      <header className="gi-admin__header">
-        <div>
-          <p className="gi-admin__eyebrow">WEB-WMS-04-GOODS-ISSUE · `/web/wms/goods-issues`</p>
-          <h2 id="gi-admin-title">Goods Issue Monitor</h2>
-          <p className="gi-admin__lead">
-            Theo dõi Material Request → PDA FEFO pick/issue → Goods Issue approve/reject. Web không
-            thực hiện start-pick / FEFO / issue post (PDA-only).
-          </p>
-        </div>
-        <div className="gi-admin__actions">
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="gi-admin">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'WMS' },
+          { label: 'Goods Issues' },
+        ]}
+        title="Phiếu xuất kho (Goods Issues)"
+        subtitle="Quản lý các yêu cầu cấp phát vật tư (Material Request) và thực xuất linh kiện cho sản xuất."
+      />
 
-      <p className="gi-admin__note">
-        PDA handoff: start-pick, FEFO suggestion, pick-attempt và issue posting thuộc{' '}
-        <code>WMS04-003..006</code> (PDA). Web chỉ monitor + cancel MR + approve/reject GI.
-      </p>
-
-      <div className="gi-admin__tabs" role="tablist" aria-label="Goods issue sections">
+      <div className="flex border-b border-[var(--border-default)] mb-4 gap-2" role="tablist" aria-label="Goods issue sections">
         <button
           type="button"
           role="tab"
           aria-selected={admin.tab === 'material-requests'}
           onClick={() => admin.setTab('material-requests')}
         >
-          Material Requests
+          Yêu cầu cấp phát (Material Requests)
         </button>
         <button
           type="button"
@@ -66,28 +60,46 @@ export function GoodsIssuePage() {
         </button>
       </div>
 
-      <form
-        className="gi-admin__filters"
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo mã phiếu...',
+          }
+        ]}
+        values={{
+          searchInput: admin.searchInput,
+        }}
+        onChange={(_, val) => admin.setSearchInput(val)}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
-      >
-        <label className="gi-admin__field">
-          <span>Tìm (code)</span>
-          <input
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="gi-admin__btn">
-          Lọc
-        </button>
-      </form>
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={Boolean(admin.searchInput)}
+      />
 
       {admin.tab === 'material-requests' ? (
         <>
-          {mrBanner ? (
+          {admin.mrListState === 'empty' || admin.mrListState === 'no-result' ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-[var(--surface-1)] rounded-xl border border-[var(--border-default)] my-4">
+              <svg className="w-12 h-12 text-[var(--text-muted)] opacity-60 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {admin.mrListState === 'empty' ? 'Chưa có yêu cầu cấp phát' : 'Không tìm thấy yêu cầu cấp phát nào'}
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mt-1">
+                {admin.mrListState === 'empty'
+                  ? 'Hệ thống chưa ghi nhận yêu cầu cấp phát vật tư nào.'
+                  : 'Thử điều chỉnh từ khóa tìm kiếm hoặc xóa bộ lọc để tìm lại.'}
+              </p>
+            </div>
+          ) : mrBanner && admin.mrListState !== 'ready' && admin.mrListState !== 'loading' ? (
             <p
               className="gi-admin__state"
               role={admin.mrListState === 'error' ? 'alert' : 'status'}
@@ -98,154 +110,158 @@ export function GoodsIssuePage() {
           ) : null}
 
           {admin.mrListState === 'ready' ? (
-            <div className="gi-admin__layout">
-              <div className="gi-admin__table-wrap">
-                <table className="gi-admin__table">
-                  <thead>
-                    <tr>
-                      <th>MR code</th>
-                      <th>WO</th>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Location</th>
-                      <th>Status</th>
+            <div className="gi-admin__table-wrap">
+              <table className="gi-admin__table">
+                <thead>
+                  <tr>
+                    <th>Mã yêu cầu cấp phát (MR)</th>
+                    <th>Lệnh sản xuất</th>
+                    <th>Vật tư</th>
+                    <th>Số lượng</th>
+                    <th>Vị trí nhận</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admin.mrRows.map((row) => (
+                    <tr
+                      key={row.code}
+                      className={
+                        row.code === admin.selectedMrCode ? 'gi-admin__row--active' : ''
+                      }
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          className="gi-admin__linkish"
+                          onClick={() => admin.selectMr(row.code)}
+                        >
+                          {row.code}
+                        </button>
+                      </td>
+                      <td>{row.workOrderLabel}</td>
+                      <td>{row.itemLabel}</td>
+                      <td>
+                        {row.requiredQty} {row.uomLabel}
+                      </td>
+                      <td>{row.targetLocationLabel}</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-info-bg)] text-[var(--color-info-text)]">
+                          {row.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {admin.mrRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === admin.selectedMrCode ? 'gi-admin__row--active' : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="gi-admin__linkish"
-                            onClick={() => admin.selectMr(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.workOrderLabel}</td>
-                        <td>{row.itemLabel}</td>
-                        <td>
-                          {row.requiredQty} {row.uomLabel}
-                        </td>
-                        <td>{row.targetLocationLabel}</td>
-                        <td>{row.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.mrHasMore ? (
-                  <button type="button" className="gi-admin__more" onClick={admin.loadMoreMr}>
-                    Tải thêm
-                  </button>
-                ) : null}
-              </div>
+                  ))}
+                </tbody>
+              </table>
+              {admin.mrHasMore ? (
+                <button type="button" className="gi-admin__more" onClick={admin.loadMoreMr}>
+                  Tải thêm
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
-              {admin.mrDetailLoading ? (
-                <div className="gi-admin__state">Đang tải chi tiết…</div>
-              ) : admin.mrDetail && admin.mrDetailRow ? (
-                <aside className="gi-admin__detail" aria-label="Chi tiết material request">
-                  <h3>{admin.mrDetail.code}</h3>
-                  <p className="gi-admin__muted">{admin.mrDetailRow.status}</p>
-                  <dl className="gi-admin__meta">
-                    <div>
-                      <dt>Work order</dt>
-                      <dd>
-                        <Link to="/web/mes/work-orders">{admin.mrDetailRow.workOrderLabel}</Link>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Item</dt>
-                      <dd>{admin.mrDetailRow.itemLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Required qty</dt>
-                      <dd>
-                        {admin.mrDetailRow.requiredQty} {admin.mrDetailRow.uomLabel}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Target location</dt>
-                      <dd>{admin.mrDetailRow.targetLocationLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>PDA progress</dt>
-                      <dd>Read-only — FEFO pick/issue on PDA</dd>
-                    </div>
-                  </dl>
+          <Dialog
+            isOpen={Boolean(admin.selectedMrCode)}
+            onClose={() => admin.selectMr(null)}
+            title={`Yêu cầu cấp phát: ${admin.selectedMrCode || ''}`}
+          >
+            {admin.mrDetailLoading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+            ) : admin.mrDetail && admin.mrDetailRow ? (
+              <div className="flex flex-col gap-4">
+                <div className="bg-[var(--surface-2)] p-4 rounded-xl border border-[var(--border-default)] flex flex-col gap-2">
+                  <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Thông tin yêu cầu</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                    <span className="text-[var(--text-secondary)]">Trạng thái:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.mrDetailRow.status}</span>
+                    <span className="text-[var(--text-secondary)]">Lệnh sản xuất:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">
+                      <Link to="/web/mes/work-orders" className="text-[var(--color-action-primary)] hover:underline">
+                        {admin.mrDetailRow.workOrderLabel}
+                      </Link>
+                    </span>
+                    <span className="text-[var(--text-secondary)]">Vật tư:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.mrDetailRow.itemLabel}</span>
+                    <span className="text-[var(--text-secondary)]">Số lượng yêu cầu:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">
+                      {admin.mrDetailRow.requiredQty} {admin.mrDetailRow.uomLabel}
+                    </span>
+                    <span className="text-[var(--text-secondary)]">Vị trí đích (Target Location):</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.mrDetailRow.targetLocationLabel}</span>
+                    <span className="text-[var(--text-secondary)]">PDA Progress:</span>
+                    <span className="text-[var(--text-muted)]">Read-only — FEFO pick/issue on PDA</span>
+                  </div>
+                </div>
 
-                  <h4>Cancel request</h4>
-                  <button
-                    type="button"
-                    className="gi-admin__btn gi-admin__btn--danger"
-                    disabled={!admin.mrDetailRow.canCancel}
-                    title={admin.mrDetailRow.cancelDisabledReason ?? undefined}
-                    onClick={() => admin.setConfirmCancel(true)}
-                  >
-                    Cancel material request
-                  </button>
-                  {!admin.mrDetailRow.canCancel ? (
-                    <p className="gi-admin__muted">
-                      Cancel không khả dụng
-                      {admin.mrDetailRow.cancelDisabledReason
-                        ? ` (${admin.mrDetailRow.cancelDisabledReason})`
-                        : ''}
-                      .
-                    </p>
-                  ) : null}
+                <div className="bg-[var(--surface-2)] p-4 rounded-xl border border-[var(--border-default)] flex flex-col gap-3">
+                  <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Hủy yêu cầu cấp phát</h4>
+                  <div>
+                    <button
+                      type="button"
+                      className="gi-admin__btn gi-admin__btn--danger h-9 flex items-center justify-center px-4 font-semibold text-white bg-[var(--color-danger-text)] rounded-lg text-sm"
+                      disabled={!admin.mrDetailRow.canCancel}
+                      title={admin.mrDetailRow.cancelDisabledReason ?? undefined}
+                      onClick={() => admin.setConfirmCancel(true)}
+                    >
+                      Hủy yêu cầu cấp phát
+                    </button>
+                    {!admin.mrDetailRow.canCancel && (
+                      <p className="text-xs text-[var(--text-muted)] mt-1.5">
+                        Hủy không khả dụng{admin.mrDetailRow.cancelDisabledReason ? ` (${admin.mrDetailRow.cancelDisabledReason})` : ''}.
+                      </p>
+                    )}
+                  </div>
 
-                  {admin.confirmCancel ? (
-                    <div className="gi-admin__confirm" role="dialog" aria-label="Xác nhận cancel">
-                      <p>
-                        Xác nhận hủy <strong>{admin.mrDetail.code}</strong>? Backend yêu cầu{' '}
-                        <code>reason</code> (validation bắt buộc).
+                  {admin.confirmCancel && (
+                    <div className="mt-2 border-t border-[var(--border-default)] pt-3 flex flex-col gap-3" role="dialog" aria-label="Xác nhận cancel">
+                      <p className="text-sm text-[var(--text-primary)]">
+                        Xác nhận hủy <strong>{admin.mrDetail.code}</strong>? Bạn cần cung cấp lý do hủy.
                       </p>
                       <label className="gi-admin__field">
-                        <span>reason</span>
+                        <span>Lý do hủy</span>
                         <textarea
                           value={admin.cancelReason}
                           onChange={(e) => admin.setCancelReason(e.target.value)}
                           rows={3}
+                          className="w-full p-2.5 border border-[var(--border-default)] rounded-lg bg-[var(--surface-3)] text-[var(--text-primary)] text-sm focus:outline-none"
                         />
                       </label>
-                      <div className="gi-admin__actions">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="gi-admin__btn gi-admin__btn--danger"
-                          disabled={
-                            admin.cancelErrors.length > 0 || admin.cancelState === 'pending'
-                          }
+                          className="gi-admin__btn gi-admin__btn--danger h-9 text-sm font-semibold px-4 rounded-lg text-white bg-[var(--color-danger-text)]"
+                          disabled={admin.cancelErrors.length > 0 || admin.cancelState === 'pending'}
                           onClick={admin.cancel}
                         >
-                          Xác nhận cancel
+                          Xác nhận hủy
                         </button>
-                        <button type="button" onClick={() => admin.setConfirmCancel(false)}>
+                        <button
+                          type="button"
+                          className="h-9 text-sm font-semibold px-4 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-3)]"
+                          onClick={() => admin.setConfirmCancel(false)}
+                        >
                           Đóng
                         </button>
                       </div>
                     </div>
-                  ) : null}
-                  {admin.cancelError ? (
-                    <p className="gi-admin__error" role="alert">
+                  )}
+
+                  {admin.cancelError && (
+                    <p className="text-sm text-[var(--color-danger-text)] mt-2 font-medium" role="alert">
                       {admin.cancelError.code}: {admin.cancelError.message}
                     </p>
-                  ) : null}
-                  {admin.cancelState === 'success' ? (
-                    <p className="gi-admin__banner" role="status">
-                      Đã hủy material request.
+                  )}
+                  {admin.cancelState === 'success' && (
+                    <p className="text-sm text-[var(--color-success-text)] mt-2 font-medium" role="status">
+                      Đã hủy material request thành công.
                     </p>
-                  ) : null}
-                </aside>
-              ) : (
-                <div className="gi-admin__state">Chọn material request để xem chi tiết.</div>
-              )}
-            </div>
-          ) : null}
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </Dialog>
         </>
       ) : (
         <>
@@ -259,93 +275,112 @@ export function GoodsIssuePage() {
             </p>
           ) : null}
 
+          {admin.giListState === 'empty' || admin.giListState === 'no-result' ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-[var(--surface-1)] rounded-xl border border-[var(--border-default)] my-4">
+              <svg className="w-12 h-12 text-[var(--text-muted)] opacity-60 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {admin.giListState === 'empty' ? 'Chưa có phiếu xuất kho' : 'Không tìm thấy phiếu xuất kho nào'}
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mt-1">
+                {admin.giListState === 'empty'
+                  ? 'Hệ thống chưa ghi nhận phiếu xuất kho (Goods Issue) nào.'
+                  : 'Thử điều chỉnh từ khóa tìm kiếm hoặc xóa bộ lọc để tìm lại.'}
+              </p>
+            </div>
+          ) : null}
+
           {admin.giListState === 'ready' ? (
-            <div className="gi-admin__layout">
-              <div className="gi-admin__table-wrap">
-                <table className="gi-admin__table">
-                  <thead>
-                    <tr>
-                      <th>GI code</th>
-                      <th>Type</th>
-                      <th>Reference</th>
-                      <th>Status</th>
-                      <th>Performed at</th>
+            <div className="gi-admin__table-wrap">
+              <table className="gi-admin__table">
+                <thead>
+                  <tr>
+                    <th>Mã phiếu xuất (GI)</th>
+                    <th>Loại xuất</th>
+                    <th>Tham chiếu</th>
+                    <th>Trạng thái</th>
+                    <th>Thời điểm thực hiện</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admin.giRows.map((row) => (
+                    <tr
+                      key={row.code}
+                      className={
+                        row.code === admin.selectedGiCode ? 'gi-admin__row--active' : ''
+                      }
+                    >
+                      <td>
+                        <button
+                          type="button"
+                          className="gi-admin__linkish"
+                          onClick={() => admin.selectGi(row.code)}
+                        >
+                          {row.code}
+                        </button>
+                      </td>
+                      <td>{row.transactionTypeLabel}</td>
+                      <td>{row.referenceLabel}</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-info-bg)] text-[var(--color-info-text)]">
+                          {row.status}
+                        </span>
+                      </td>
+                      <td>{row.performedAt}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {admin.giRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === admin.selectedGiCode ? 'gi-admin__row--active' : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="gi-admin__linkish"
-                            onClick={() => admin.selectGi(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.transactionTypeLabel}</td>
-                        <td>{row.referenceLabel}</td>
-                        <td>{row.status}</td>
-                        <td>{row.performedAt}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.giHasMore ? (
-                  <button type="button" className="gi-admin__more" onClick={admin.loadMoreGi}>
-                    Tải thêm
-                  </button>
-                ) : null}
-              </div>
+                  ))}
+                </tbody>
+              </table>
+              {admin.giHasMore ? (
+                <button type="button" className="gi-admin__more" onClick={admin.loadMoreGi}>
+                  Tải thêm
+                </button>
+              ) : null}
+            </div>
+          ) : null}
 
-              {admin.giDetailLoading ? (
-                <div className="gi-admin__state">Đang tải chi tiết…</div>
-              ) : admin.giDetail && admin.giDetailRow ? (
-                <aside className="gi-admin__detail" aria-label="Chi tiết goods issue">
-                  <h3>{admin.giDetail.code}</h3>
-                  <p className="gi-admin__muted">
-                    {admin.giDetailRow.transactionTypeLabel} · {admin.giDetailRow.status}
-                  </p>
-                  <dl className="gi-admin__meta">
-                    <div>
-                      <dt>Reference</dt>
-                      <dd>{admin.giDetailRow.referenceLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Performed by</dt>
-                      <dd>{admin.giDetailRow.performedByLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Performed at</dt>
-                      <dd>{admin.giDetailRow.performedAt}</dd>
-                    </div>
-                    <div>
-                      <dt>Approved by</dt>
-                      <dd>{admin.giDetailRow.approvedByLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>Device</dt>
-                      <dd>{admin.giDetailRow.deviceSnapshot}</dd>
-                    </div>
-                  </dl>
+          <Dialog
+            isOpen={Boolean(admin.selectedGiCode)}
+            onClose={() => admin.selectGi(null)}
+            title={`Phiếu xuất kho: ${admin.selectedGiCode || ''}`}
+          >
+            {admin.giDetailLoading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+            ) : admin.giDetail && admin.giDetailRow ? (
+              <div className="flex flex-col gap-4">
+                <div className="bg-[var(--surface-2)] p-4 rounded-xl border border-[var(--border-default)] flex flex-col gap-2">
+                  <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Thông tin chung</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm mt-1">
+                    <span className="text-[var(--text-secondary)]">Loại giao dịch:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.transactionTypeLabel}</span>
+                    <span className="text-[var(--text-secondary)]">Trạng thái:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.status}</span>
+                    <span className="text-[var(--text-secondary)]">Tham chiếu (Reference):</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.referenceLabel}</span>
+                    <span className="text-[var(--text-secondary)]">Người thực hiện:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.performedByLabel}</span>
+                    <span className="text-[var(--text-secondary)]">Thời điểm:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.performedAt}</span>
+                    <span className="text-[var(--text-secondary)]">Người phê duyệt:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.approvedByLabel}</span>
+                    <span className="text-[var(--text-secondary)]">Thiết bị ghi nhận:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">{admin.giDetailRow.deviceSnapshot}</span>
+                  </div>
+                </div>
 
-                  {admin.giDetailRow.lineRows.length > 0 ? (
-                    <>
-                      <h4>Lines</h4>
-                      <table className="gi-admin__table">
+                {admin.giDetailRow.lineRows.length > 0 && (
+                  <div className="bg-[var(--surface-2)] p-4 rounded-xl border border-[var(--border-default)] flex flex-col gap-2">
+                    <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">Chi tiết danh mục cấp phát (Lines)</h4>
+                    <div className="overflow-x-auto border border-[var(--border-default)] rounded-lg">
+                      <table className="gi-admin__table w-full">
                         <thead>
                           <tr>
-                            <th>Item</th>
-                            <th>Lot</th>
-                            <th>From</th>
-                            <th>To</th>
-                            <th>Qty</th>
+                            <th>Vật tư</th>
+                            <th>Số lô</th>
+                            <th>Từ vị trí</th>
+                            <th>Đến vị trí</th>
+                            <th>Số lượng</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -362,14 +397,16 @@ export function GoodsIssuePage() {
                           ))}
                         </tbody>
                       </table>
-                    </>
-                  ) : null}
+                    </div>
+                  </div>
+                )}
 
-                  <h4>Approval</h4>
-                  <div className="gi-admin__actions">
+                <div className="bg-[var(--surface-2)] p-4 rounded-xl border border-[var(--border-default)] flex flex-col gap-3">
+                  <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Phê duyệt phiếu xuất</h4>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="gi-admin__btn"
+                      className="gi-admin__btn h-9 px-4 font-semibold text-white bg-[var(--color-action-primary)] hover:bg-[var(--color-action-primary-hover)] transition-colors rounded-lg text-sm"
                       disabled={!admin.giDetailRow.canApprove}
                       title={admin.giDetailRow.approveDisabledReason ?? undefined}
                       onClick={() => {
@@ -377,11 +414,11 @@ export function GoodsIssuePage() {
                         admin.setConfirmApprove(true)
                       }}
                     >
-                      Approve
+                      Phê duyệt (Approve)
                     </button>
                     <button
                       type="button"
-                      className="gi-admin__btn gi-admin__btn--danger"
+                      className="gi-admin__btn gi-admin__btn--danger h-9 px-4 font-semibold text-white bg-[var(--color-danger-text)] rounded-lg text-sm"
                       disabled={!admin.giDetailRow.canReject}
                       title={admin.giDetailRow.rejectDisabledReason ?? undefined}
                       onClick={() => {
@@ -389,89 +426,95 @@ export function GoodsIssuePage() {
                         admin.setConfirmReject(true)
                       }}
                     >
-                      Reject
+                      Từ chối (Reject)
                     </button>
                   </div>
 
-                  {admin.confirmApprove ? (
-                    <div className="gi-admin__confirm" role="dialog" aria-label="Xác nhận approve">
-                      <p>
-                        Xác nhận approve <strong>{admin.giDetail.code}</strong>?
+                  {admin.confirmApprove && (
+                    <div className="mt-2 border-t border-[var(--border-default)] pt-3 flex flex-col gap-2" role="dialog" aria-label="Xác nhận approve">
+                      <p className="text-sm text-[var(--text-primary)]">
+                        Xác nhận phê duyệt phiếu xuất kho <strong>{admin.giDetail.code}</strong>?
                       </p>
-                      <div className="gi-admin__actions">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="gi-admin__btn"
+                          className="h-9 px-4 font-semibold text-white bg-[var(--color-action-primary)] rounded-lg text-sm"
                           disabled={admin.approveState === 'pending'}
                           onClick={admin.approve}
                         >
-                          Xác nhận approve
+                          Xác nhận phê duyệt
                         </button>
-                        <button type="button" onClick={() => admin.setConfirmApprove(false)}>
+                        <button
+                          type="button"
+                          className="h-9 px-4 font-semibold border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-3)] rounded-lg text-sm"
+                          onClick={() => admin.setConfirmApprove(false)}
+                        >
                           Đóng
                         </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
-                  {admin.confirmReject ? (
-                    <div className="gi-admin__confirm" role="dialog" aria-label="Xác nhận reject">
-                      <p>
-                        Xác nhận reject <strong>{admin.giDetail.code}</strong>? Backend yêu cầu{' '}
-                        <code>reason</code>.
+                  {admin.confirmReject && (
+                    <div className="mt-2 border-t border-[var(--border-default)] pt-3 flex flex-col gap-3" role="dialog" aria-label="Xác nhận reject">
+                      <p className="text-sm text-[var(--text-primary)]">
+                        Xác nhận từ chối phiếu xuất kho <strong>{admin.giDetail.code}</strong>? Bạn cần cung cấp lý do từ chối.
                       </p>
                       <label className="gi-admin__field">
-                        <span>reason</span>
+                        <span>Lý do từ chối</span>
                         <textarea
                           value={admin.rejectReason}
                           onChange={(e) => admin.setRejectReason(e.target.value)}
                           rows={3}
+                          className="w-full p-2.5 border border-[var(--border-default)] rounded-lg bg-[var(--surface-3)] text-[var(--text-primary)] text-sm focus:outline-none"
                         />
                       </label>
-                      <div className="gi-admin__actions">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="gi-admin__btn gi-admin__btn--danger"
+                          className="gi-admin__btn gi-admin__btn--danger h-9 px-4 font-semibold text-white bg-[var(--color-danger-text)] rounded-lg text-sm"
                           disabled={
                             admin.rejectErrors.length > 0 || admin.rejectState === 'pending'
                           }
                           onClick={admin.reject}
                         >
-                          Xác nhận reject
+                          Xác nhận từ chối
                         </button>
-                        <button type="button" onClick={() => admin.setConfirmReject(false)}>
+                        <button
+                          type="button"
+                          className="h-9 px-4 font-semibold border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--surface-3)] rounded-lg text-sm"
+                          onClick={() => admin.setConfirmReject(false)}
+                        >
                           Đóng
                         </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
 
-                  {admin.approveError ? (
-                    <p className="gi-admin__error" role="alert">
+                  {admin.approveError && (
+                    <p className="text-sm text-[var(--color-danger-text)] mt-2 font-medium" role="alert">
                       {admin.approveError.code}: {admin.approveError.message}
                     </p>
-                  ) : null}
-                  {admin.rejectError ? (
-                    <p className="gi-admin__error" role="alert">
+                  )}
+                  {admin.rejectError && (
+                    <p className="text-sm text-[var(--color-danger-text)] mt-2 font-medium" role="alert">
                       {admin.rejectError.code}: {admin.rejectError.message}
                     </p>
-                  ) : null}
-                  {admin.approveState === 'success' ? (
-                    <p className="gi-admin__banner" role="status">
-                      Đã approve goods issue.
+                  )}
+                  {admin.approveState === 'success' && (
+                    <p className="text-sm text-[var(--color-success-text)] mt-2 font-medium" role="status">
+                      Đã phê duyệt phiếu xuất kho thành công.
                     </p>
-                  ) : null}
-                  {admin.rejectState === 'success' ? (
-                    <p className="gi-admin__banner" role="status">
-                      Đã reject goods issue.
+                  )}
+                  {admin.rejectState === 'success' && (
+                    <p className="text-sm text-[var(--color-success-text)] mt-2 font-medium" role="status">
+                      Đã từ chối phiếu xuất kho thành công.
                     </p>
-                  ) : null}
-                </aside>
-              ) : (
-                <div className="gi-admin__state">Chọn goods issue để xem chi tiết.</div>
-              )}
-            </div>
-          ) : null}
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </Dialog>
         </>
       )}
     </section>

@@ -12,6 +12,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import {
   Table,
   TableHeader,
@@ -123,29 +124,32 @@ export function FileStorageAdminPage() {
         }
       />
 
-      {/* Filters Toolbar */}
-      <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <form
-          className="flex-1 flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            admin.applySearch()
-          }}
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              value={admin.searchInput}
-              onChange={(event) => admin.setSearchInput(event.target.value)}
-              placeholder="Tìm kiếm theo mã tệp, tên file, định dạng MIME..."
-              className="pl-9 h-9"
-            />
-          </div>
-          <Button type="submit" size="sm" className="h-9">
-            Tìm kiếm
-          </Button>
-        </form>
-      </div>
+      <FilterBar
+        fields={[
+          {
+            name: 'search',
+            type: 'text',
+            placeholder: 'Tìm kiếm theo mã tệp, tên file, định dạng MIME...',
+          },
+        ]}
+        values={{
+          search: admin.searchInput,
+        }}
+        onChange={(name, value) => {
+          if (name === 'search') {
+            admin.setSearchInput(value)
+          }
+        }}
+        onSubmit={(event) => {
+          event.preventDefault()
+          admin.applySearch()
+        }}
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={Boolean(admin.searchInput)}
+      />
 
       {banner && admin.listState !== 'ready' && (
         <div className="p-6 text-center text-sm text-slate-400 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-lg" role="status">

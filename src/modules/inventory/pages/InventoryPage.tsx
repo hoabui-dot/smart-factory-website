@@ -4,10 +4,13 @@ import { Link } from 'react-router'
 
 import { ApiError } from '@/shared/api'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { Input } from '@/shared/components/ui/Input'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { Search } from 'lucide-react'
 
 import {
@@ -107,7 +110,7 @@ export function InventoryPage() {
   const exportError = exportMutation.error instanceof ApiError ? exportMutation.error : null
 
   // Sliced active list pagination
-  const activeList = tab === 'transactions' ? transactionRows : rows
+  const activeList = (tab === 'transactions' ? transactionRows : rows) as any[]
   const pagination = usePagination(activeList, 10)
 
   const changeTab = (next: InventoryTab) => {
@@ -145,42 +148,83 @@ export function InventoryPage() {
         ))}
       </nav>
 
-      <form className="flex items-center gap-2 max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg" onSubmit={(event) => { event.preventDefault(); setQuery(searchInput.trim()) }}>
-        <div className="flex-1">
-          <input
-            className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
-            placeholder="Mã vật tư, lot, location…"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-          />
-        </div>
-        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-          <Search size={16} />
-        </Button>
-        {tab === 'lots' ? <button type="button" className="inventory__button inventory__button--secondary min-h-[32px] px-3 py-1 rounded text-xs font-semibold" onClick={() => exportMutation.mutate()} disabled={exportMutation.isPending}>Xuất by-lot</button> : null}
-      </form>
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Mã vật tư, lot, location…',
+          }
+        ]}
+        values={{
+          searchInput: searchInput,
+        }}
+        onChange={(_, val) => setSearchInput(val)}
+        onSubmit={(event) => {
+          event.preventDefault()
+          setQuery(searchInput.trim())
+        }}
+        onReset={() => {
+          setSearchInput('')
+          setQuery('')
+        }}
+        isResetActive={Boolean(searchInput)}
+      >
+        {tab === 'lots' && (
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-9"
+              onClick={() => exportMutation.mutate()}
+              disabled={exportMutation.isPending}
+            >
+              Xuất by-lot
+            </Button>
+          </div>
+        )}
+      </FilterBar>
       {exportMutation.isSuccess ? <p className="inventory__success" role="status">Đã tạo export job thành công.</p> : null}
       {exportError ? <p className="inventory__error" role="alert">{exportError.code}: {exportError.message}</p> : null}
 
-      {listState !== 'ready' ? <p className="inventory__state" role={listState === 'error' ? 'alert' : 'status'}>{stateMessage(listState)}{listError ? ` (${listError.code})` : ''}</p> : null}
-      {listState === 'ready' ? (
+      {listState !== 'ready' && listState !== 'loading' ? (
+        <p className="inventory__state" role={listState === 'error' ? 'alert' : 'status'}>
+          {stateMessage(listState)}
+          {listError ? ` (${listError.code})` : ''}
+        </p>
+      ) : null}
+
+      {listState === 'ready' || listState === 'loading' ? (
         <div className="inventory__workspace">
           <div className="inventory__table-wrap">
             {tab !== 'transactions' ? (
               <table className="inventory__table">
                 <thead>
                   <tr>
-                    <th>Location</th>
-                    <th>Item</th>
-                    <th>Lot</th>
-                    <th>On hand</th>
-                    <th>Reserved</th>
-                    <th>Available</th>
-                    <th>Last movement</th>
+                    <th>Vị trí</th>
+                    <th>Vật tư</th>
+                    <th>Số lô</th>
+                    <th>Tồn thực tế (On-hand)</th>
+                    <th>Đã giữ hàng (Reserved)</th>
+                    <th>Có sẵn (Available)</th>
+                    <th>Giao dịch cuối</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagination.paginatedItems.map((row) => (
+                  {listState === 'loading' ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <tr key={idx} className="pointer-events-none hover:bg-transparent">
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[65%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[75%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[80%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[40%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[40%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[45%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[60%] my-1" /></td>
+                      </tr>
+                    ))
+                  ) : pagination.paginatedItems.map((row) => (
                     <tr key={row.code}>
                       <td>{row.locationLabel}</td>
                       <td>{row.itemLabel}</td>
@@ -197,15 +241,25 @@ export function InventoryPage() {
               <table className="inventory__table">
                 <thead>
                   <tr>
-                    <th>Transaction</th>
-                    <th>Type</th>
-                    <th>Reference</th>
-                    <th>Status</th>
-                    <th>Performed at</th>
+                    <th>Mã giao dịch</th>
+                    <th>Loại giao dịch</th>
+                    <th>Tham chiếu</th>
+                    <th>Trạng thái</th>
+                    <th>Thời gian thực hiện</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagination.paginatedItems.map((row) => (
+                  {listState === 'loading' ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <tr key={idx} className="pointer-events-none hover:bg-transparent">
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[70%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[60%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[75%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[40%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[60%] my-1" /></td>
+                      </tr>
+                    ))
+                  ) : pagination.paginatedItems.map((row) => (
                     <tr key={row.code}>
                       <td>
                         <button type="button" className="inventory__link-button" onClick={() => setSelectedTransaction(row.code)}>
@@ -222,26 +276,12 @@ export function InventoryPage() {
               </table>
             )}
             
-            <div className="inventory__paging-row">
-              {activeQuery.data?.page.has_more ? (
-                <button type="button" className="inventory__more" onClick={() => activeQuery.refetch()}>
-                  Nạp thêm từ Server
-                </button>
-              ) : (
-                <span className="inventory__all-loaded">Đã tải hết dữ liệu từ Server</span>
-              )}
-              
-              <DataTablePagination
-                currentPage={pagination.currentPage}
-                pageSize={pagination.pageSize}
-                totalItems={pagination.totalItems}
-                totalPages={pagination.totalPages}
-                startIndex={pagination.startIndex}
-                endIndex={pagination.endIndex}
-                setPage={pagination.setPage}
-                setPageSize={pagination.setPageSize}
-              />
-            </div>
+            <TablePagination
+              {...pagination}
+              hasMore={activeQuery.data?.page.has_more}
+              onLoadMore={() => activeQuery.refetch()}
+              sticky
+            />
           </div>
           
           {tab === 'transactions' ? (
@@ -266,9 +306,9 @@ export function InventoryPage() {
                 <table className="inventory__table inventory__table--compact">
                   <thead>
                     <tr>
-                      <th>Item / lot</th>
-                      <th>Route</th>
-                      <th>Qty</th>
+                      <th>Vật tư / Số lô</th>
+                      <th>Luồng di chuyển</th>
+                      <th>Số lượng</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,43 +330,45 @@ export function InventoryPage() {
         </div>
       ) : null}
 
-      {transferOpen ? (
-        <div className="inventory__modal" role="dialog" aria-modal="true" aria-label="Tạo transfer">
-          <form className="inventory__panel inventory__form" onSubmit={handleTransferSubmit}>
-            <div className="inventory__panel-heading">
-              <h3>Tạo transfer</h3>
-              <button type="button" className="inventory__btn-close" onClick={() => setTransferOpen(false)}>Đóng</button>
-            </div>
-            <p className="inventory__muted">Điều chuyển vật tư bằng mã item, lot và location; server xử lý posting/idempotency.</p>
-            <label className="inventory__field">
+      <Dialog
+        isOpen={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        title="Tạo transfer"
+        maxWidth="max-w-[50%]"
+      >
+        <form className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]" onSubmit={handleTransferSubmit}>
+          <p className="text-xs text-[var(--text-secondary)]">Điều chuyển vật tư bằng mã item, lot và location; server xử lý posting/idempotency.</p>
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1">
               <span>Item code</span>
-              <input value={transfer.item_code} onChange={(e) => setTransfer({ ...transfer, item_code: e.target.value })} required />
+              <Input value={transfer.item_code} onChange={(e) => setTransfer({ ...transfer, item_code: e.target.value })} required />
             </label>
-            <label className="inventory__field">
+            <label className="flex flex-col gap-1">
               <span>Lot code (tùy chọn)</span>
-              <input value={transfer.lot_code ?? ''} onChange={(e) => setTransfer({ ...transfer, lot_code: e.target.value })} />
+              <Input value={transfer.lot_code ?? ''} onChange={(e) => setTransfer({ ...transfer, lot_code: e.target.value })} />
             </label>
-            <div className="inventory__form-grid">
-              <label className="inventory__field">
-                <span>From location</span>
-                <input value={transfer.from_location_code} onChange={(e) => setTransfer({ ...transfer, from_location_code: e.target.value })} required />
-              </label>
-              <label className="inventory__field">
-                <span>To location</span>
-                <input value={transfer.to_location_code} onChange={(e) => setTransfer({ ...transfer, to_location_code: e.target.value })} required />
-              </label>
-            </div>
-            <label className="inventory__field">
+            <label className="flex flex-col gap-1">
+              <span>From location</span>
+              <Input value={transfer.from_location_code} onChange={(e) => setTransfer({ ...transfer, from_location_code: e.target.value })} required />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span>To location</span>
+              <Input value={transfer.to_location_code} onChange={(e) => setTransfer({ ...transfer, to_location_code: e.target.value })} required />
+            </label>
+            <label className="flex flex-col gap-1 col-span-2">
               <span>Quantity</span>
-              <input type="number" min="0.000001" step="any" value={transfer.quantity || ''} onChange={(e) => setTransfer({ ...transfer, quantity: Number(e.target.value) })} required />
+              <Input type="number" min="0.000001" step="any" value={transfer.quantity || ''} onChange={(e) => setTransfer({ ...transfer, quantity: Number(e.target.value) })} required />
             </label>
-            {transferError ? <p className="inventory__error" role="alert">{transferError.code}: {transferError.message}</p> : null}
-            <button className="inventory__button" type="submit" disabled={transferErrors.length > 0 || transferMutation.isPending}>
+          </div>
+          {transferError ? <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">{transferError.code}: {transferError.message}</p> : null}
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+            <Button type="button" variant="secondary" onClick={() => setTransferOpen(false)}>Hủy</Button>
+            <Button type="submit" disabled={transferErrors.length > 0 || transferMutation.isPending}>
               Xác nhận transfer
-            </button>
-          </form>
-        </div>
-      ) : null}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       <ConfirmDialog
         isOpen={isConfirmTransferOpen}

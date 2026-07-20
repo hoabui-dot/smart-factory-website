@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { Input, Select } from '@/shared/components/ui/Input'
 
+import { usePagination } from '@/shared/lib/usePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 import { useDocument } from '../hooks/useDocument'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
+import { Button } from '@/shared/components/ui/Button'
 import type { DocumentRecord, PpapSubmissionRecord } from '../types/document'
 import { PPAP_LEVELS, PPAP_SUBMISSION_TYPES } from '../types/document'
 
@@ -478,21 +485,20 @@ export function DocumentPage() {
   const docBanner = listStateMessage(admin.docListState, 'document')
   const ppapBanner = listStateMessage(admin.ppapListState, 'PPAP')
 
+  const docPagination = usePagination(admin.docRows, 10)
+  const ppapPagination = usePagination(admin.ppapRows, 10)
+
   return (
-    <section className="doc-admin" aria-labelledby="doc-admin-title">
-      <header className="doc-admin__header">
-        <div>
-          <p className="doc-admin__eyebrow">WEB-QMS-04-DOCUMENT · `/web/qms/documents`</p>
-          <h2 id="doc-admin-title">Document / PPAP</h2>
-          <p className="doc-admin__lead">
-            Quản lý controlled document + revision lifecycle và PPAP package. Mutation chỉ qua server{' '}
-            <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="doc-admin__actions">
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="doc-admin">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'QMS' },
+          { label: 'Document / PPAP' },
+        ]}
+        title="Document / PPAP"
+        subtitle="Quản lý controlled document + revision lifecycle và PPAP package. Mutation chỉ qua server allowed_actions."
+      />
 
       <p className="doc-admin__note">
         Owner user id: `/api/admin/users` không expose numeric id cho non-admin — form thu thập raw id
@@ -515,24 +521,38 @@ export function DocumentPage() {
 
       {admin.tab === 'documents' ? (
         <>
-          <form
-            className="doc-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm (code/title)',
+                placeholder: 'Tìm kiếm theo mã tệp hoặc tiêu đề...',
+              },
+            ]}
+            values={{
+              search: admin.searchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySearch()
             }}
-          >
-            <label className="doc-admin__field">
-              <span>Tìm (code/title)</span>
-              <input value={admin.searchInput} onChange={(e) => admin.setSearchInput(e.target.value)} />
-            </label>
-            <button type="submit" className="doc-admin__btn">
-              Lọc
-            </button>
-            <button type="button" onClick={() => admin.setShowDocCreate(true)}>
-              Tạo document
-            </button>
-          </form>
+            onReset={() => {
+              admin.setSearchInput('')
+              admin.applySearch()
+            }}
+            isResetActive={Boolean(admin.searchInput)}
+            expands={
+              <Button type="button" className="doc-admin__btn shrink-0" onClick={() => admin.setShowDocCreate(true)}>
+                Tạo document
+              </Button>
+            }
+          />
 
           {docBanner ? (
             <p className="doc-admin__state" role={admin.docListState === 'error' ? 'alert' : 'status'}>
@@ -541,186 +561,215 @@ export function DocumentPage() {
             </p>
           ) : null}
 
-          {admin.showDocCreate ? (
+          <Dialog
+            isOpen={admin.showDocCreate}
+            onClose={() => admin.setShowDocCreate(false)}
+            title="Tạo document mới"
+            maxWidth="max-w-[50%]"
+          >
             <form
-              className="doc-admin__confirm"
+              className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]"
               onSubmit={(e) => {
                 e.preventDefault()
-                admin.submitDocCreate()
+                if (window.confirm('Xác nhận tạo document mới?')) {
+                  admin.submitDocCreate()
+                }
               }}
             >
-              <label className="doc-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.docCreateForm.code}
-                  onChange={(e) => admin.setDocCreateForm({ ...admin.docCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="doc-admin__field">
-                <span>Title</span>
-                <input
-                  value={admin.docCreateForm.doc_title}
-                  onChange={(e) =>
-                    admin.setDocCreateForm({ ...admin.docCreateForm, doc_title: e.target.value })
-                  }
-                />
-              </label>
-              <label className="doc-admin__field">
-                <span>Document type</span>
-                <select
-                  value={admin.docCreateForm.doc_type_id || ''}
-                  onChange={(e) =>
-                    admin.setDocCreateForm({
-                      ...admin.docCreateForm,
-                      doc_type_id: Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value="">—</option>
-                  {admin.docTypes.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.code} — {t.name_vi}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="doc-admin__field">
-                <span>Owner user id</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={admin.docCreateForm.owner_id || ''}
-                  onChange={(e) =>
-                    admin.setDocCreateForm({ ...admin.docCreateForm, owner_id: Number(e.target.value) })
-                  }
-                />
-              </label>
-              <label className="doc-admin__field">
-                <span>Related item (optional)</span>
-                <select
-                  value={admin.docCreateForm.related_item_id ?? ''}
-                  onChange={(e) =>
-                    admin.setDocCreateForm({
-                      ...admin.docCreateForm,
-                      related_item_id: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
-                >
-                  <option value="">—</option>
-                  {admin.items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="doc-admin__field">
-                <span>Related customer (optional)</span>
-                <select
-                  value={admin.docCreateForm.related_customer_id ?? ''}
-                  onChange={(e) =>
-                    admin.setDocCreateForm({
-                      ...admin.docCreateForm,
-                      related_customer_id: e.target.value ? Number(e.target.value) : null,
-                    })
-                  }
-                >
-                  <option value="">—</option>
-                  {admin.customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.docCreateForm.code}
+                    onChange={(e) => admin.setDocCreateForm({ ...admin.docCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Title</span>
+                  <Input
+                    value={admin.docCreateForm.doc_title}
+                    onChange={(e) =>
+                      admin.setDocCreateForm({ ...admin.docCreateForm, doc_title: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Document type</span>
+                  <Select
+                    value={admin.docCreateForm.doc_type_id || ''}
+                    onChange={(e) =>
+                      admin.setDocCreateForm({
+                        ...admin.docCreateForm,
+                        doc_type_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value="">—</option>
+                    {admin.docTypes.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.code} — {t.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Owner user id</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={admin.docCreateForm.owner_id || ''}
+                    onChange={(e) =>
+                      admin.setDocCreateForm({ ...admin.docCreateForm, owner_id: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Related item (optional)</span>
+                  <Select
+                    value={admin.docCreateForm.related_item_id ?? ''}
+                    onChange={(e) =>
+                      admin.setDocCreateForm({
+                        ...admin.docCreateForm,
+                        related_item_id: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  >
+                    <option value="">—</option>
+                    {admin.items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Related customer (optional)</span>
+                  <Select
+                    value={admin.docCreateForm.related_customer_id ?? ''}
+                    onChange={(e) =>
+                      admin.setDocCreateForm({
+                        ...admin.docCreateForm,
+                        related_customer_id: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  >
+                    <option value="">—</option>
+                    {admin.customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
               {admin.docCreateErrors.length ? (
-                <p className="doc-admin__error">Thiếu: {admin.docCreateErrors.join(', ')}</p>
+                <p className="text-xs text-[var(--color-danger-text)] font-semibold">Thiếu: {admin.docCreateErrors.join(', ')}</p>
               ) : null}
-              <div className="doc-admin__actions">
-                <button type="submit" disabled={admin.createDocUi === 'pending'}>
-                  Tạo
-                </button>
-                <button type="button" onClick={() => admin.setShowDocCreate(false)}>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button type="button" variant="secondary" onClick={() => admin.setShowDocCreate(false)}>
                   Hủy
-                </button>
+                </Button>
+                <Button type="submit" disabled={admin.createDocUi === 'pending'}>
+                  Tạo
+                </Button>
               </div>
             </form>
-          ) : null}
+          </Dialog>
 
           {admin.docListState === 'ready' ? (
-            <div className="doc-admin__layout">
-              <div>
-                <div className="doc-admin__table-wrap">
-                  <table className="doc-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>Title</th>
-                        <th>Type</th>
-                        <th>Owner</th>
-                        <th>Revision</th>
+            <>
+              <div className="doc-admin__table-wrap">
+                <table className="doc-admin__table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Title</th>
+                      <th>Type</th>
+                      <th>Owner</th>
+                      <th>Revision</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {docPagination.paginatedItems.map((row) => (
+                      <tr
+                        key={row.code}
+                        className={
+                          row.code === admin.selectedDocCode ? 'doc-admin__row--active' : undefined
+                        }
+                      >
+                        <td>
+                          <button
+                            type="button"
+                            className="doc-admin__linkish"
+                            onClick={() => admin.selectDocument(row.code)}
+                          >
+                            {row.code}
+                          </button>
+                        </td>
+                        <td>{row.title}</td>
+                        <td>{row.docTypeLabel}</td>
+                        <td>{row.ownerLabel}</td>
+                        <td>{row.currentRevisionLabel}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {admin.docRows.map((row) => (
-                        <tr
-                          key={row.code}
-                          className={
-                            row.code === admin.selectedDocCode ? 'doc-admin__row--active' : undefined
-                          }
-                        >
-                          <td>
-                            <button
-                              type="button"
-                              className="doc-admin__linkish"
-                              onClick={() => admin.selectDocument(row.code)}
-                            >
-                              {row.code}
-                            </button>
-                          </td>
-                          <td>{row.title}</td>
-                          <td>{row.docTypeLabel}</td>
-                          <td>{row.ownerLabel}</td>
-                          <td>{row.currentRevisionLabel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {admin.hasMore && admin.nextCursor ? (
-                  <button
-                    type="button"
-                    className="doc-admin__more"
-                    onClick={() => admin.setCursor(admin.nextCursor as string)}
-                  >
-                    Trang tiếp
-                  </button>
-                ) : null}
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {admin.docDetail ? <DocumentDetail detail={admin.docDetail} admin={admin} /> : null}
-            </div>
+              <TablePagination
+                {...docPagination}
+                hasMore={admin.hasMore}
+                onLoadMore={() => {
+                  if (admin.nextCursor) {
+                    admin.setCursor(admin.nextCursor)
+                  }
+                }}
+              />
+
+              <Dialog
+                isOpen={!!admin.selectedDocCode}
+                onClose={() => admin.selectDocument('')}
+                title={`Chi tiết Document ${admin.selectedDocCode || ''}`}
+                maxWidth="max-w-[75%]"
+              >
+                {admin.docDetail ? <DocumentDetail detail={admin.docDetail} admin={admin} /> : null}
+              </Dialog>
+            </>
           ) : null}
         </>
       ) : (
         <>
-          <form
-            className="doc-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm PPAP',
+                placeholder: 'Tìm kiếm theo mã tệp hoặc tiêu đề...',
+              },
+            ]}
+            values={{
+              search: admin.ppapSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setPpapSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyPpapSearch()
             }}
-          >
-            <label className="doc-admin__field">
-              <span>Tìm PPAP</span>
-              <input value={admin.ppapSearchInput} onChange={(e) => admin.setPpapSearchInput(e.target.value)} />
-            </label>
-            <button type="submit" className="doc-admin__btn">
-              Lọc
-            </button>
-            <button type="button" onClick={() => admin.setShowPpapCreate(true)}>
-              Tạo PPAP
-            </button>
-          </form>
+            onReset={() => {
+              admin.setPpapSearchInput('')
+              admin.applyPpapSearch()
+            }}
+            isResetActive={Boolean(admin.ppapSearchInput)}
+            expands={
+              <Button type="button" className="doc-admin__btn shrink-0" onClick={() => admin.setShowPpapCreate(true)}>
+                Tạo PPAP
+              </Button>
+            }
+          />
 
           {ppapBanner ? (
             <p className="doc-admin__state" role={admin.ppapListState === 'error' ? 'alert' : 'status'}>
@@ -729,155 +778,170 @@ export function DocumentPage() {
             </p>
           ) : null}
 
-          {admin.showPpapCreate ? (
+          <Dialog
+            isOpen={admin.showPpapCreate}
+            onClose={() => admin.setShowPpapCreate(false)}
+            title="Tạo PPAP mới"
+            maxWidth="max-w-[50%]"
+          >
             <form
-              className="doc-admin__confirm"
+              className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]"
               onSubmit={(e) => {
                 e.preventDefault()
-                admin.submitPpapCreate()
+                if (window.confirm('Xác nhận tạo PPAP mới?')) {
+                  admin.submitPpapCreate()
+                }
               }}
             >
-              <label className="doc-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.ppapCreateForm.code}
-                  onChange={(e) => admin.setPpapCreateForm({ ...admin.ppapCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="doc-admin__field">
-                <span>Customer</span>
-                <select
-                  value={admin.ppapCreateForm.customer_id || ''}
-                  onChange={(e) =>
-                    admin.setPpapCreateForm({
-                      ...admin.ppapCreateForm,
-                      customer_id: Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value="">—</option>
-                  {admin.customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="doc-admin__field">
-                <span>Item</span>
-                <select
-                  value={admin.ppapCreateForm.item_id || ''}
-                  onChange={(e) =>
-                    admin.setPpapCreateForm({ ...admin.ppapCreateForm, item_id: Number(e.target.value) })
-                  }
-                >
-                  <option value="">—</option>
-                  {admin.items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="doc-admin__field">
-                <span>PPAP level</span>
-                <select
-                  value={admin.ppapCreateForm.ppap_level}
-                  onChange={(e) =>
-                    admin.setPpapCreateForm({ ...admin.ppapCreateForm, ppap_level: e.target.value })
-                  }
-                >
-                  {PPAP_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="doc-admin__field">
-                <span>Submission type</span>
-                <select
-                  value={admin.ppapCreateForm.submission_type}
-                  onChange={(e) =>
-                    admin.setPpapCreateForm({
-                      ...admin.ppapCreateForm,
-                      submission_type: e.target.value,
-                    })
-                  }
-                >
-                  {PPAP_SUBMISSION_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.ppapCreateForm.code}
+                    onChange={(e) => admin.setPpapCreateForm({ ...admin.ppapCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Customer</span>
+                  <Select
+                    value={admin.ppapCreateForm.customer_id || ''}
+                    onChange={(e) =>
+                      admin.setPpapCreateForm({
+                        ...admin.ppapCreateForm,
+                        customer_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value="">—</option>
+                    {admin.customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Item</span>
+                  <Select
+                    value={admin.ppapCreateForm.item_id || ''}
+                    onChange={(e) =>
+                      admin.setPpapCreateForm({ ...admin.ppapCreateForm, item_id: Number(e.target.value) })
+                    }
+                  >
+                    <option value="">—</option>
+                    {admin.items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>PPAP level</span>
+                  <Select
+                    value={admin.ppapCreateForm.ppap_level}
+                    onChange={(e) =>
+                      admin.setPpapCreateForm({ ...admin.ppapCreateForm, ppap_level: e.target.value })
+                    }
+                  >
+                    {PPAP_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Submission type</span>
+                  <Select
+                    value={admin.ppapCreateForm.submission_type}
+                    onChange={(e) =>
+                      admin.setPpapCreateForm({
+                        ...admin.ppapCreateForm,
+                        submission_type: e.target.value,
+                      })
+                    }
+                  >
+                    {PPAP_SUBMISSION_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
               {admin.ppapCreateErrors.length ? (
-                <p className="doc-admin__error">Thiếu: {admin.ppapCreateErrors.join(', ')}</p>
+                <p className="text-xs text-[var(--color-danger-text)] font-semibold">Thiếu: {admin.ppapCreateErrors.join(', ')}</p>
               ) : null}
-              <div className="doc-admin__actions">
-                <button type="submit" disabled={admin.createPpapUi === 'pending'}>
-                  Tạo
-                </button>
-                <button type="button" onClick={() => admin.setShowPpapCreate(false)}>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button type="button" variant="secondary" onClick={() => admin.setShowPpapCreate(false)}>
                   Hủy
-                </button>
+                </Button>
+                <Button type="submit" disabled={admin.createPpapUi === 'pending'}>
+                  Tạo
+                </Button>
               </div>
             </form>
-          ) : null}
+          </Dialog>
 
           {admin.ppapListState === 'ready' ? (
-            <div className="doc-admin__layout">
-              <div>
-                <div className="doc-admin__table-wrap">
-                  <table className="doc-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Code</th>
-                        <th>Status</th>
-                        <th>Customer</th>
-                        <th>Item</th>
-                        <th>Level</th>
+            <>
+              <div className="doc-admin__table-wrap">
+                <table className="doc-admin__table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Status</th>
+                      <th>Customer</th>
+                      <th>Item</th>
+                      <th>Level</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ppapPagination.paginatedItems.map((row) => (
+                      <tr
+                        key={row.code}
+                        className={
+                          row.code === admin.selectedPpapCode ? 'doc-admin__row--active' : undefined
+                        }
+                      >
+                        <td>
+                          <button
+                            type="button"
+                            className="doc-admin__linkish"
+                            onClick={() => admin.selectPpap(row.code)}
+                          >
+                            {row.code}
+                          </button>
+                        </td>
+                        <td>{row.status}</td>
+                        <td>{row.customerLabel}</td>
+                        <td>{row.itemLabel}</td>
+                        <td>{row.ppapLevel}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {admin.ppapRows.map((row) => (
-                        <tr
-                          key={row.code}
-                          className={
-                            row.code === admin.selectedPpapCode ? 'doc-admin__row--active' : undefined
-                          }
-                        >
-                          <td>
-                            <button
-                              type="button"
-                              className="doc-admin__linkish"
-                              onClick={() => admin.selectPpap(row.code)}
-                            >
-                              {row.code}
-                            </button>
-                          </td>
-                          <td>{row.status}</td>
-                          <td>{row.customerLabel}</td>
-                          <td>{row.itemLabel}</td>
-                          <td>{row.ppapLevel}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {admin.ppapHasMore && admin.ppapNextCursor ? (
-                  <button
-                    type="button"
-                    className="doc-admin__more"
-                    onClick={() => admin.setPpapCursor(admin.ppapNextCursor as string)}
-                  >
-                    Trang tiếp
-                  </button>
-                ) : null}
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              {admin.ppapDetail ? <PpapDetail detail={admin.ppapDetail} admin={admin} /> : null}
-            </div>
+              <TablePagination
+                {...ppapPagination}
+                hasMore={admin.ppapHasMore}
+                onLoadMore={() => {
+                  if (admin.ppapNextCursor) {
+                    admin.setPpapCursor(admin.ppapNextCursor)
+                  }
+                }}
+              />
+
+              <Dialog
+                isOpen={!!admin.selectedPpapCode}
+                onClose={() => admin.selectPpap('')}
+                title={`Chi tiết PPAP ${admin.selectedPpapCode || ''}`}
+                maxWidth="max-w-[75%]"
+              >
+                {admin.ppapDetail ? <PpapDetail detail={admin.ppapDetail} admin={admin} /> : null}
+              </Dialog>
+            </>
           ) : null}
         </>
       )}

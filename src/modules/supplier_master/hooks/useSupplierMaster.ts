@@ -398,7 +398,7 @@ export function useSupplierMaster() {
       if (next) setSupCursor(next)
     },
     selectedSupplierCode,
-    selectSupplier: (code: string) => {
+    selectSupplier: (code: string | null) => {
       setSelectedSupplierCode(code)
       setShowSupplierCreate(false)
       setConfirmSupplierDeactivate(false)
@@ -456,7 +456,7 @@ export function useSupplierMaster() {
       if (next) setSiCursor(next)
     },
     selectedSupplierItemCode,
-    selectSupplierItem: (code: string) => {
+    selectSupplierItem: (code: string | null) => {
       setSelectedSupplierItemCode(code)
       setShowSupplierItemCreate(false)
       setConfirmSupplierItemDeactivate(false)
@@ -516,7 +516,7 @@ export function useSupplierMaster() {
       if (next) setEvCursor(next)
     },
     selectedEvaluationCode,
-    selectEvaluation: (code: string) => setSelectedEvaluationCode(code),
+    selectEvaluation: (code: string | null) => setSelectedEvaluationCode(code),
     evaluationDetail: evaluationDetailQuery.data ?? null,
     evaluationDetailRow,
     evaluationDetailLoading: evaluationDetailQuery.isLoading,

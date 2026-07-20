@@ -1,4 +1,5 @@
 import type { NotificationItem, NotificationRow } from '../types/notification'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -23,8 +24,8 @@ export function projectNotificationRow(item: NotificationItem): NotificationRow 
       : UNAVAILABLE,
     deepLink: item.deep_link || '',
     isRead: Boolean(item.is_read),
-    readAt: item.read_at || UNAVAILABLE,
-    createdAt: item.created_at || UNAVAILABLE,
+    readAt: item.read_at ? formatDateTime(item.read_at) : UNAVAILABLE,
+    createdAt: item.created_at ? formatDateTime(item.created_at) : UNAVAILABLE,
   }
 }
 

@@ -5,21 +5,15 @@ import { isSystemAdminSession } from '@/shared/api'
 
 import { useRbacAdmin } from '../hooks/useRbacAdmin'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import type { Permission } from '../types/rbac'
 
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
 import { Input, Select } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/shared/components/ui/Table'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { Search } from 'lucide-react'
 
 import './RbacAdminPage.css'
@@ -28,6 +22,61 @@ export function RbacAdminPage() {
   const session = useAuthStore((s) => s.session)
   const rbac = useRbacAdmin()
   const pagination = usePagination(rbac.permissions, 10)
+
+  const columns: ColumnDef<Permission>[] = [
+    {
+      header: 'Gán',
+      className: 'w-[80px]',
+      cell: (perm) => {
+        const checked = rbac.draftCodes.includes(perm.code)
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              className="rounded border-slate-350 dark:border-slate-800 cursor-pointer"
+              checked={checked}
+              onChange={() => rbac.toggleCode(perm.code)}
+              aria-label={`Gán ${perm.code}`}
+            />
+          </div>
+        )
+      },
+    },
+    {
+      header: 'Mã quyền',
+      cell: (perm) => (
+        <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200">
+          {perm.code}
+        </code>
+      ),
+    },
+    {
+      header: 'Phân hệ',
+      cell: (perm) => (
+        <span className="font-semibold text-slate-800 dark:text-slate-100">{perm.module_code}</span>
+      ),
+    },
+    {
+      header: 'Hành động',
+      cell: (perm) => perm.action,
+    },
+    {
+      header: 'Phạm vi',
+      cell: (perm) => perm.scope,
+    },
+    {
+      header: 'Ứng dụng',
+      cell: (perm) => <span className="text-xs text-slate-400">{perm.allowed_apps}</span>,
+    },
+    {
+      header: 'Mô tả chi tiết',
+      cell: (perm) => (
+        <span className="max-w-xs truncate text-xs block" title={perm.description}>
+          {perm.description}
+        </span>
+      ),
+    },
+  ]
 
   if (!isSystemAdminSession(session)) {
     return (
@@ -90,44 +139,43 @@ export function RbacAdminPage() {
         }
       />
 
-      {/* Filters Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2 min-w-[200px]">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</span>
-          <Select
-            value={rbac.roleCode}
-            onChange={(event) => rbac.setRoleCode(event.target.value)}
-            className="h-9"
-          >
-            {rbac.roleCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <form
-          className="flex flex-1 items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg max-w-md"
-          onSubmit={(event) => {
-            event.preventDefault()
-            rbac.applySearch()
-          }}
-        >
-          <div className="flex-1">
-            <Input
-              value={rbac.searchInput}
-              onChange={(event) => rbac.setSearchInput(event.target.value)}
-              placeholder="Tìm permission (ví dụ: MES-01.view.ALL)..."
-              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-8 px-2"
-              autoComplete="off"
-            />
-          </div>
-          <Button type="submit" size="sm" className="h-8 w-8 px-0" aria-label="Lọc">
-            <Search size={14} />
-          </Button>
-        </form>
-      </div>
+      <FilterBar
+        fields={[
+          {
+            name: 'role',
+            type: 'select',
+            label: 'Role',
+            options: rbac.roleCodes.map((code) => ({ value: code, label: code })),
+          },
+          {
+            name: 'search',
+            type: 'text',
+            label: 'Tìm kiếm permission',
+            placeholder: 'Tìm permission (ví dụ: MES-01.view.ALL)...',
+          },
+        ]}
+        values={{
+          role: rbac.roleCode,
+          search: rbac.searchInput,
+        }}
+        onChange={(name, value) => {
+          if (name === 'role') {
+            rbac.setRoleCode(value)
+          } else if (name === 'search') {
+            rbac.setSearchInput(value)
+          }
+        }}
+        onSubmit={(event) => {
+          event.preventDefault()
+          rbac.applySearch()
+        }}
+        onReset={() => {
+          rbac.setSearchInput('')
+          // Reset action logic needs to trigger the actual filter logic update
+          rbac.applySearch()
+        }}
+        isResetActive={Boolean(rbac.searchInput)}
+      />
 
       {rbac.roleError && (
         <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-sm text-red-650 border border-red-200" role="alert">
@@ -140,7 +188,7 @@ export function RbacAdminPage() {
         </p>
       )}
 
-      {(rbac.listState === 'loading' || rbac.roleLoading) && (
+      {rbac.roleLoading && (
         <div className="text-sm text-slate-400">Đang tải cấu hình RBAC…</div>
       )}
       {rbac.listState === 'permission-denied' && (
@@ -161,56 +209,15 @@ export function RbacAdminPage() {
         </div>
       )}
 
-      {rbac.listState === 'ready' && (
-        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
-          <Table containerClassName="relative w-full overflow-auto">
-            <TableHeader>
-              <TableRow className="pointer-events-none hover:bg-transparent">
-                <TableHead className="w-[80px]">Gán</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Scope</TableHead>
-                <TableHead>Apps</TableHead>
-                <TableHead>Description</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pagination.paginatedItems.map((perm) => {
-                const checked = rbac.draftCodes.includes(perm.code)
-                return (
-                  <TableRow
-                    key={perm.code}
-                    className={checked ? 'bg-blue-50/20 dark:bg-slate-900/30' : ''}
-                    onClick={() => rbac.toggleCode(perm.code)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-350 dark:border-slate-800 cursor-pointer"
-                        checked={checked}
-                        onChange={() => rbac.toggleCode(perm.code)}
-                        aria-label={`Gán ${perm.code}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {perm.code}
-                      </code>
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-800 dark:text-slate-100">{perm.module_code}</TableCell>
-                    <TableCell>{perm.action}</TableCell>
-                    <TableCell>{perm.scope}</TableCell>
-                    <TableCell className="text-xs text-slate-400">{perm.allowed_apps}</TableCell>
-                    <TableCell className="max-w-xs truncate text-xs" title={perm.description}>{perm.description}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-
-          <DataTablePagination {...pagination} />
-        </div>
+      {(rbac.listState === 'ready' || rbac.listState === 'loading') && (
+        <GenericDataTable
+          data={pagination.paginatedItems}
+          columns={columns}
+          pagination={pagination}
+          isLoading={rbac.listState === 'loading'}
+          onRowClick={(perm) => rbac.toggleCode(perm.code)}
+          getRowClassName={(perm) => rbac.draftCodes.includes(perm.code) ? 'bg-blue-50/20 dark:bg-slate-900/30' : ''}
+        />
       )}
     </section>
   )

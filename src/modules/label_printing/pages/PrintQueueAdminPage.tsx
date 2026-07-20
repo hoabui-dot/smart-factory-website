@@ -13,6 +13,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input, Select } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import {
   Table,
   TableHeader,
@@ -323,32 +324,38 @@ export function PrintQueueAdminPage() {
 
             {/* Print Jobs List */}
             <div className="lg:col-span-2 flex flex-col gap-3">
-              {/* Search Toolbar */}
-              <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <form
-                  className="flex-1 flex gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    admin.applySearch()
-                  }}
-                >
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input
-                      value={admin.searchInput}
-                      onChange={(event) => admin.setSearchInput(event.target.value)}
-                      placeholder="Tìm kiếm theo mã in, loại nhãn..."
-                      className="pl-9 h-9"
-                    />
-                  </div>
-                  <Button type="submit" size="sm" className="h-9">
-                    Lọc
+              <FilterBar
+                fields={[
+                  {
+                    name: 'search',
+                    type: 'text',
+                    placeholder: 'Tìm kiếm theo mã in, loại nhãn...',
+                  },
+                ]}
+                values={{
+                  search: admin.searchInput,
+                }}
+                onChange={(name, value) => {
+                  if (name === 'search') {
+                    admin.setSearchInput(value)
+                  }
+                }}
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  admin.applySearch()
+                }}
+                onReset={() => {
+                  admin.setSearchInput('')
+                  admin.applySearch()
+                }}
+                isResetActive={Boolean(admin.searchInput)}
+                expands={
+                  <Button type="button" variant="secondary" size="sm" className="h-9 gap-1" onClick={admin.refresh}>
+                    <RotateCw size={14} className={admin.listState === 'loading' ? 'animate-spin' : ''} />
+                    Làm mới
                   </Button>
-                  <Button type="button" variant="secondary" size="sm" className="h-9" onClick={admin.refresh}>
-                    <RotateCw size={14} />
-                  </Button>
-                </form>
-              </div>
+                }
+              />
 
               <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
                 <Table containerClassName="relative w-full overflow-auto">

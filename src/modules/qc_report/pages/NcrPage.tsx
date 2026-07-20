@@ -5,10 +5,13 @@ import { useNcr } from '../hooks/useNcr'
 import type { CapaRecord, NcrRecord } from '../types/ncr'
 import { NCR_DISPOSITIONS, NCR_SEVERITIES, NCR_SOURCES } from '../types/ncr'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { Input, Select } from '@/shared/components/ui/Input'
 import { Button } from '@/shared/components/ui/Button'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { Search } from 'lucide-react'
 
 import './NcrPage.css'
@@ -111,27 +114,27 @@ function NcrEditor({ detail, admin }: { detail: NcrRecord; admin: Api }) {
 
       <div className="ncr-admin__actions">
         {row?.canStartInvestigation ? (
-          <button type="button" onClick={() => setIsConfirmStartInvOpen(true)}>
+          <button type="button" className="ncr-admin__btn" onClick={() => setIsConfirmStartInvOpen(true)}>
             Start investigation
           </button>
         ) : null}
         {row?.canContain ? (
-          <button type="button" onClick={() => admin.openContain()}>
+          <button type="button" className="ncr-admin__btn" onClick={() => admin.openContain()}>
             Contain
           </button>
         ) : null}
         {row?.canStartCapa ? (
-          <button type="button" onClick={() => setIsConfirmStartCapaOpen(true)}>
+          <button type="button" className="ncr-admin__btn" onClick={() => setIsConfirmStartCapaOpen(true)}>
             Start CAPA
           </button>
         ) : null}
         {row?.canClose ? (
-          <button type="button" onClick={() => admin.setShowClose(true)}>
+          <button type="button" className="ncr-admin__btn" onClick={() => admin.setShowClose(true)}>
             Close
           </button>
         ) : null}
         {row?.canVoid ? (
-          <button type="button" className="ncr-admin__btn--danger" onClick={() => setIsConfirmVoidOpen(true)}>
+          <button type="button" className="ncr-admin__btn ncr-admin__btn--danger" onClick={() => setIsConfirmVoidOpen(true)}>
             Void
           </button>
         ) : null}
@@ -530,135 +533,149 @@ export function NcrPage() {
 
       {admin.tab === 'ncrs' ? (
         <>
-          <form
-            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                placeholder: 'Tìm theo code...',
+              },
+            ]}
+            values={{
+              search: admin.searchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySearch()
             }}
-          >
-            <div className="flex-1">
-              <input
-                className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
-                value={admin.searchInput}
-                onChange={(e) => admin.setSearchInput(e.target.value)}
-                placeholder="Tìm theo code..."
-              />
-            </div>
-            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-              <Search size={16} />
-            </Button>
-          </form>
+            onReset={() => {
+              admin.setSearchInput('')
+              admin.applySearch()
+            }}
+            isResetActive={Boolean(admin.searchInput)}
+            className="max-w-md"
+          />
 
-          {admin.showCreate ? (
+          <Dialog
+            isOpen={admin.showCreate}
+            onClose={() => admin.setShowCreate(false)}
+            title="Tạo NCR mới"
+            maxWidth="max-w-[50%]"
+          >
             <form
-              className="ncr-admin__form"
+              className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]"
               onSubmit={(e) => {
                 e.preventDefault()
                 setIsConfirmCreateNcrOpen(true)
               }}
             >
-              <h3>Tạo NCR mới</h3>
-              <label className="ncr-admin__field">
-                <span>Source</span>
-                <select
-                  value={admin.createForm.source}
-                  onChange={(e) => admin.setCreateForm({ ...admin.createForm, source: e.target.value })}
-                >
-                  {NCR_SOURCES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ncr-admin__field">
-                <span>Item</span>
-                <select
-                  value={admin.createForm.item_code}
-                  onChange={(e) => admin.setCreateForm({ ...admin.createForm, item_code: e.target.value })}
-                >
-                  <option value="">— chọn —</option>
-                  {admin.items.map((item) => (
-                    <option key={item.code} value={item.code}>
-                      {item.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ncr-admin__field">
-                <span>Defect</span>
-                <select
-                  value={admin.createForm.defect_code}
-                  onChange={(e) => admin.setCreateForm({ ...admin.createForm, defect_code: e.target.value })}
-                >
-                  <option value="">— chọn —</option>
-                  {admin.defects.map((d) => (
-                    <option key={d.code} value={d.code}>
-                      {d.code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="ncr-admin__field">
-                <span>Lot code (optional)</span>
-                <input
-                  value={admin.createForm.lot_code ?? ''}
-                  onChange={(e) => admin.setCreateForm({ ...admin.createForm, lot_code: e.target.value })}
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Work order code (optional)</span>
-                <input
-                  value={admin.createForm.work_order_code ?? ''}
-                  onChange={(e) =>
-                    admin.setCreateForm({ ...admin.createForm, work_order_code: e.target.value })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Qty affected</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={admin.createForm.qty_affected}
-                  onChange={(e) =>
-                    admin.setCreateForm({ ...admin.createForm, qty_affected: Number(e.target.value) })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Severity (optional)</span>
-                <select
-                  value={admin.createForm.severity ?? ''}
-                  onChange={(e) => admin.setCreateForm({ ...admin.createForm, severity: e.target.value })}
-                >
-                  <option value="">— default từ defect —</option>
-                  {NCR_SEVERITIES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Source</span>
+                  <Select
+                    value={admin.createForm.source}
+                    onChange={(e) => admin.setCreateForm({ ...admin.createForm, source: e.target.value })}
+                  >
+                    {NCR_SOURCES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Item</span>
+                  <Select
+                    value={admin.createForm.item_code}
+                    onChange={(e) => admin.setCreateForm({ ...admin.createForm, item_code: e.target.value })}
+                  >
+                    <option value="">— chọn —</option>
+                    {admin.items.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {item.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Defect</span>
+                  <Select
+                    value={admin.createForm.defect_code}
+                    onChange={(e) => admin.setCreateForm({ ...admin.createForm, defect_code: e.target.value })}
+                  >
+                    <option value="">— chọn —</option>
+                    {admin.defects.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.code}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Lot code (optional)</span>
+                  <Input
+                    value={admin.createForm.lot_code ?? ''}
+                    onChange={(e) => admin.setCreateForm({ ...admin.createForm, lot_code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Work order code (optional)</span>
+                  <Input
+                    value={admin.createForm.work_order_code ?? ''}
+                    onChange={(e) =>
+                      admin.setCreateForm({ ...admin.createForm, work_order_code: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Qty affected</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={admin.createForm.qty_affected}
+                    onChange={(e) =>
+                      admin.setCreateForm({ ...admin.createForm, qty_affected: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Severity (optional)</span>
+                  <Select
+                    value={admin.createForm.severity ?? ''}
+                    onChange={(e) => admin.setCreateForm({ ...admin.createForm, severity: e.target.value })}
+                  >
+                    <option value="">— default từ defect —</option>
+                    {NCR_SEVERITIES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
               {admin.createErrors.length ? (
-                <p className="ncr-admin__error">Thiếu: {admin.createErrors.join(', ')}</p>
+                <p className="text-xs text-[var(--color-danger-text)] font-semibold">Thiếu: {admin.createErrors.join(', ')}</p>
               ) : null}
               {admin.createError ? (
-                <p className="ncr-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createError.code}: {admin.createError.message}
                 </p>
               ) : null}
-              <div className="ncr-admin__actions">
-                <button type="submit" className="ncr-admin__btn" disabled={admin.createUi === 'pending'}>
-                  Lưu NCR
-                </button>
-                <button type="button" className="ncr-admin__btn--ghost" onClick={() => admin.setShowCreate(false)}>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button type="button" variant="secondary" onClick={() => admin.setShowCreate(false)}>
                   Hủy
-                </button>
+                </Button>
+                <Button type="submit" disabled={admin.createUi === 'pending'}>
+                  Lưu NCR
+                </Button>
               </div>
             </form>
-          ) : null}
+          </Dialog>
 
           {banner ? (
             <p className="ncr-admin__state" role={admin.listState === 'error' ? 'alert' : 'status'}>
@@ -668,7 +685,7 @@ export function NcrPage() {
           ) : null}
 
           {admin.listState === 'ready' ? (
-            <div className="ncr-admin__layout">
+            <>
               <div className="ncr-admin__table-wrap">
                 <table className="ncr-admin__table">
                   <thead>
@@ -704,163 +721,171 @@ export function NcrPage() {
                   </tbody>
                 </table>
                 
-                <div className="ncr-admin__paging-row">
-                  {admin.page?.has_more ? (
-                    <button type="button" className="ncr-admin__more" onClick={() => admin.loadMore()}>
-                      Nạp thêm từ Server
-                    </button>
-                  ) : (
-                    <span className="ncr-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
-                  )}
-                  
-                  <DataTablePagination
-                    currentPage={ncrPagination.currentPage}
-                    pageSize={ncrPagination.pageSize}
-                    totalItems={ncrPagination.totalItems}
-                    totalPages={ncrPagination.totalPages}
-                    startIndex={ncrPagination.startIndex}
-                    endIndex={ncrPagination.endIndex}
-                    setPage={ncrPagination.setPage}
-                    setPageSize={ncrPagination.setPageSize}
-                  />
-                </div>
+                <TablePagination
+                  {...ncrPagination}
+                  hasMore={admin.page?.has_more}
+                  onLoadMore={admin.loadMore}
+                  sticky
+                />
               </div>
-              {admin.detail && admin.selectedCode === admin.detail.code ? (
-                <NcrEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
-              ) : admin.detailLoading ? (
-                <p className="ncr-admin__state">Đang tải chi tiết…</p>
-              ) : (
-                <p className="ncr-admin__muted">Chọn một NCR để xem chi tiết / hành động.</p>
-              )}
-            </div>
+
+              <Dialog
+                isOpen={!!admin.selectedCode}
+                onClose={() => admin.selectNcr('')}
+                title={`Chi tiết NCR ${admin.selectedCode || ''}`}
+                maxWidth="max-w-[75%]"
+              >
+                {admin.detailLoading ? (
+                  <div className="p-8 text-center text-sm text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+                ) : admin.detail ? (
+                  <NcrEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
+                ) : null}
+              </Dialog>
+            </>
           ) : null}
         </>
       ) : null}
 
       {admin.tab === 'capas' ? (
         <>
-          <form
-            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                placeholder: 'Tìm CAPA...',
+              },
+            ]}
+            values={{
+              search: admin.capaSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setCapaSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyCapaSearch()
             }}
-          >
-            <div className="flex-1">
-              <input
-                className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
-                value={admin.capaSearchInput}
-                onChange={(e) => admin.setCapaSearchInput(e.target.value)}
-                placeholder="Tìm CAPA..."
-              />
-            </div>
-            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-              <Search size={16} />
-            </Button>
-          </form>
+            onReset={() => {
+              admin.setCapaSearchInput('')
+              admin.applyCapaSearch()
+            }}
+            isResetActive={Boolean(admin.capaSearchInput)}
+            className="max-w-md"
+          />
 
-          {admin.showCapaCreate ? (
+          <Dialog
+            isOpen={admin.showCapaCreate}
+            onClose={() => admin.setShowCapaCreate(false)}
+            title="Tạo CAPA mới"
+            maxWidth="max-w-[50%]"
+          >
             <form
-              className="ncr-admin__form"
+              className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]"
               onSubmit={(e) => {
                 e.preventDefault()
                 setIsConfirmCreateCapaOpen(true)
               }}
             >
-              <h3>Tạo CAPA mới</h3>
-              <label className="ncr-admin__field">
-                <span>NCR ID (lựa chọn từ NCR detail)</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={admin.capaCreateForm.ncr_id || ''}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({
-                      ...admin.capaCreateForm,
-                      ncr_id: Number(e.target.value),
-                    })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Root cause</span>
-                <textarea
-                  value={admin.capaCreateForm.root_cause}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({ ...admin.capaCreateForm, root_cause: e.target.value })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Corrective action</span>
-                <textarea
-                  value={admin.capaCreateForm.corrective_action}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({
-                      ...admin.capaCreateForm,
-                      corrective_action: e.target.value,
-                    })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Preventive action</span>
-                <textarea
-                  value={admin.capaCreateForm.preventive_action}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({
-                      ...admin.capaCreateForm,
-                      preventive_action: e.target.value,
-                    })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Owner User ID</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={admin.capaCreateForm.owner_id || ''}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({
-                      ...admin.capaCreateForm,
-                      owner_id: Number(e.target.value),
-                    })
-                  }
-                />
-              </label>
-              <label className="ncr-admin__field">
-                <span>Due date</span>
-                <input
-                  type="date"
-                  value={admin.capaCreateForm.due_date}
-                  onChange={(e) =>
-                    admin.setCapaCreateForm({ ...admin.capaCreateForm, due_date: e.target.value })
-                  }
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>NCR ID (lựa chọn từ NCR detail)</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={admin.capaCreateForm.ncr_id || ''}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({
+                        ...admin.capaCreateForm,
+                        ncr_id: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Owner User ID</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={admin.capaCreateForm.owner_id || ''}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({
+                        ...admin.capaCreateForm,
+                        owner_id: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Due date</span>
+                  <Input
+                    type="date"
+                    value={admin.capaCreateForm.due_date}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({ ...admin.capaCreateForm, due_date: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Root cause</span>
+                  <textarea
+                    rows={3}
+                    className="w-full p-2.5 border border-[var(--border-default)] rounded-lg bg-[var(--surface-3)] text-[var(--text-primary)] text-sm focus:outline-none"
+                    value={admin.capaCreateForm.root_cause}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({ ...admin.capaCreateForm, root_cause: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Corrective action</span>
+                  <textarea
+                    rows={3}
+                    className="w-full p-2.5 border border-[var(--border-default)] rounded-lg bg-[var(--surface-3)] text-[var(--text-primary)] text-sm focus:outline-none"
+                    value={admin.capaCreateForm.corrective_action}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({
+                        ...admin.capaCreateForm,
+                        corrective_action: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Preventive action</span>
+                  <textarea
+                    rows={3}
+                    className="w-full p-2.5 border border-[var(--border-default)] rounded-lg bg-[var(--surface-3)] text-[var(--text-primary)] text-sm focus:outline-none"
+                    value={admin.capaCreateForm.preventive_action}
+                    onChange={(e) =>
+                      admin.setCapaCreateForm({
+                        ...admin.capaCreateForm,
+                        preventive_action: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+              </div>
               {admin.capaCreateErrors.length ? (
-                <p className="ncr-admin__error">Thiếu: {admin.capaCreateErrors.join(', ')}</p>
+                <p className="text-xs text-[var(--color-danger-text)] font-semibold">Thiếu: {admin.capaCreateErrors.join(', ')}</p>
               ) : null}
               {admin.capaCreateError ? (
-                <p className="ncr-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.capaCreateError.code}: {admin.capaCreateError.message}
                 </p>
               ) : null}
-              <div className="ncr-admin__actions">
-                <button type="submit" className="ncr-admin__btn" disabled={admin.capaCreateUi === 'pending'}>
-                  Lưu CAPA
-                </button>
-                <button
-                  type="button"
-                  className="ncr-admin__btn--ghost"
-                  onClick={() => admin.setShowCapaCreate(false)}
-                >
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button type="button" variant="secondary" onClick={() => admin.setShowCapaCreate(false)}>
                   Hủy
-                </button>
+                </Button>
+                <Button type="submit" disabled={admin.capaCreateUi === 'pending'}>
+                  Lưu CAPA
+                </Button>
               </div>
             </form>
-          ) : null}
+          </Dialog>
 
           {capaBanner ? (
             <p className="ncr-admin__state" role={admin.capaListState === 'error' ? 'alert' : 'status'}>
@@ -870,7 +895,7 @@ export function NcrPage() {
           ) : null}
 
           {admin.capaListState === 'ready' ? (
-            <div className="ncr-admin__layout">
+            <>
               <div className="ncr-admin__table-wrap">
                 <table className="ncr-admin__table">
                   <thead>
@@ -908,35 +933,27 @@ export function NcrPage() {
                   </tbody>
                 </table>
                 
-                <div className="ncr-admin__paging-row">
-                  {admin.capaPage?.has_more ? (
-                    <button type="button" className="ncr-admin__more" onClick={() => admin.loadMoreCapas()}>
-                      Nạp thêm từ Server
-                    </button>
-                  ) : (
-                    <span className="ncr-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
-                  )}
-                  
-                  <DataTablePagination
-                    currentPage={capaPagination.currentPage}
-                    pageSize={capaPagination.pageSize}
-                    totalItems={capaPagination.totalItems}
-                    totalPages={capaPagination.totalPages}
-                    startIndex={capaPagination.startIndex}
-                    endIndex={capaPagination.endIndex}
-                    setPage={capaPagination.setPage}
-                    setPageSize={capaPagination.setPageSize}
-                  />
-                </div>
+                <TablePagination
+                  {...capaPagination}
+                  hasMore={admin.capaPage?.has_more}
+                  onLoadMore={admin.loadMoreCapas}
+                  sticky
+                />
               </div>
-              {admin.capaDetail && admin.selectedCapaCode === admin.capaDetail.code ? (
-                <CapaEditor key={admin.capaDetail.code} detail={admin.capaDetail} admin={admin} />
-              ) : admin.capaDetailLoading ? (
-                <p className="ncr-admin__state">Đang tải chi tiết CAPA…</p>
-              ) : (
-                <p className="ncr-admin__muted">Chọn một CAPA để xem / cập nhật.</p>
-              )}
-            </div>
+
+              <Dialog
+                isOpen={!!admin.selectedCapaCode}
+                onClose={() => admin.selectCapa('')}
+                title={`Chi tiết CAPA ${admin.selectedCapaCode || ''}`}
+                maxWidth="max-w-[75%]"
+              >
+                {admin.capaDetailLoading ? (
+                  <div className="p-8 text-center text-sm text-[var(--text-secondary)]">Đang tải chi tiết CAPA…</div>
+                ) : admin.capaDetail ? (
+                  <CapaEditor key={admin.capaDetail.code} detail={admin.capaDetail} admin={admin} />
+                ) : null}
+              </Dialog>
+            </>
           ) : null}
         </>
       ) : null}

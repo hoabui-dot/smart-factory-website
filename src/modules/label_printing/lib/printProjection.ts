@@ -4,6 +4,7 @@ import type {
   PrintJobRecord,
   PrintJobRow,
 } from '../types/labelPrinting'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '—'
 
@@ -43,8 +44,8 @@ export function projectPrintJobRow(job: PrintJobRecord, lookups: LookupMaps): Pr
   return {
     code: job.code || UNAVAILABLE,
     status: job.status || UNAVAILABLE,
-    requestedAt: job.requested_at || UNAVAILABLE,
-    printedAt: job.printed_at || UNAVAILABLE,
+    requestedAt: job.requested_at ? formatDateTime(job.requested_at) : UNAVAILABLE,
+    printedAt: job.printed_at ? formatDateTime(job.printed_at) : UNAVAILABLE,
     labelType: job.label_type || UNAVAILABLE,
     parentType: job.parent_type || UNAVAILABLE,
     copies: Number.isFinite(job.copies) ? job.copies : 0,

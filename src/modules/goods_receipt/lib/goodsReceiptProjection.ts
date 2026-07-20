@@ -20,6 +20,7 @@ import type {
   SupplierLookupRecord,
   UomLookupRecord,
 } from '../types/goodsReceipt'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -70,7 +71,7 @@ export function projectPurchaseOrderLineRow(
     receivedQty: String(line.received_qty),
     remainingQty: String(remaining),
     uomLabel: line.uom_code || lookups.uomById.get(line.uom_id)?.code || UNAVAILABLE,
-    requestedDeliveryDate: line.requested_delivery_date || UNAVAILABLE,
+    requestedDeliveryDate: line.requested_delivery_date ? formatDate(line.requested_delivery_date) : UNAVAILABLE,
     lineStatus: line.line_status || UNAVAILABLE,
   }
 }
@@ -85,8 +86,8 @@ export function projectPurchaseOrderRow(
   return {
     code: po.code || UNAVAILABLE,
     supplierLabel: po.supplier_code || lookups.supplierById.get(po.supplier_id)?.code || UNAVAILABLE,
-    orderDate: po.order_date || UNAVAILABLE,
-    expectedDeliveryDate: po.expected_delivery_date || UNAVAILABLE,
+    orderDate: po.order_date ? formatDate(po.order_date) : UNAVAILABLE,
+    expectedDeliveryDate: po.expected_delivery_date ? formatDate(po.expected_delivery_date) : UNAVAILABLE,
     status: po.status || UNAVAILABLE,
     notes: po.notes || UNAVAILABLE,
     lineRows: (po.lines ?? []).map((line) => projectPurchaseOrderLineRow(line, lookups)),
@@ -109,8 +110,8 @@ export function projectAsnLineRow(line: AsnLineRecord, lookups: GoodsReceiptLook
     supplierLot: line.supplier_lot || UNAVAILABLE,
     shippedQty: String(line.shipped_qty),
     uomLabel: line.uom_code || lookups.uomById.get(line.uom_id)?.code || UNAVAILABLE,
-    manufacturingDate: line.manufacturing_date || UNAVAILABLE,
-    expiryDate: line.expiry_date || UNAVAILABLE,
+    manufacturingDate: line.manufacturing_date ? formatDate(line.manufacturing_date) : UNAVAILABLE,
+    expiryDate: line.expiry_date ? formatDate(line.expiry_date) : UNAVAILABLE,
   }
 }
 

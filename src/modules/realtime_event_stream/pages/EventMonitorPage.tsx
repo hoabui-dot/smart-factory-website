@@ -5,7 +5,8 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { useEventMonitor } from '../hooks/useEventMonitor'
 
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import type { EventRow, RealtimeSubscription } from '../types/realtimeEvent'
 
 // Import Shadcn & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
@@ -13,15 +14,8 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input, Select } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/shared/components/ui/Table'
 import { Search } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './EventMonitorPage.css'
 
@@ -49,6 +43,102 @@ export function EventMonitorPage() {
   const eventsPagination = usePagination(monitor.rows, 10)
   const subscriptionsPagination = usePagination(monitor.subscriptions, 10)
   
+  const eventColumns: ColumnDef<EventRow>[] = [
+    {
+      header: 'Mã sự kiện',
+      cell: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            monitor.setSelectedId(row.id)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.eventId}
+        </Button>
+      ),
+    },
+    {
+      header: 'Tên sự kiện',
+      cell: (row) => <span className="font-semibold text-slate-850 dark:text-slate-100">{row.eventType}</span>,
+    },
+    {
+      header: 'Nguồn phát',
+      cell: (row) => row.sourceModule,
+    },
+    {
+      header: 'Tham chiếu',
+      cell: (row) => row.entityReference,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => (
+        <Badge
+          variant={
+            row.status === 'PUBLISHED'
+              ? 'active'
+              : row.status === 'FAILED' || row.status === 'DEAD_LETTER'
+              ? 'inactive'
+              : 'default'
+          }
+        >
+          {row.status}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Số lần thử lại',
+      cell: (row) => <span className="font-semibold">{row.retryCount}</span>,
+    },
+    {
+      header: 'Thời gian xảy ra',
+      cell: (row) => <span className="text-xs text-slate-400">{row.occurredAt}</span>,
+    },
+  ]
+
+  const subscriptionColumns: ColumnDef<RealtimeSubscription>[] = [
+    {
+      header: 'Mã đăng ký',
+      cell: (subscription) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            monitor.setSelectedSubscriptionCode(subscription.code)
+            setIsSubDetailOpen(true)
+          }}
+        >
+          {subscription.code}
+        </Button>
+      ),
+    },
+    {
+      header: 'Người dùng',
+      cell: (subscription) => <span className="font-medium text-slate-800 dark:text-slate-200">{subscription.user_id}</span>,
+    },
+    {
+      header: 'Kênh thông tin',
+      cell: (subscription) => subscription.channel_key,
+    },
+    {
+      header: 'Kết nối cuối (Ping)',
+      cell: (subscription) => <span className="text-xs text-slate-400">{subscription.last_ping_at}</span>,
+    },
+    {
+      header: 'Thu hồi lúc',
+      cell: (subscription) => subscription.revoked_at ? (
+        <Badge variant="inactive">{subscription.revoked_at}</Badge>
+      ) : (
+        <span className="text-slate-400">-</span>
+      ),
+    },
+  ]
+
   // Modals visibility
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isCreateSubOpen, setIsCreateSubOpen] = useState(false)
@@ -111,13 +201,22 @@ export function EventMonitorPage() {
         title="Event Monitor"
         subtitle="Theo dõi transactional outbox, delivery health và subscription đang hoạt động."
         actions={
-          tab === 'events' ? (
-            <Button variant="secondary" onClick={monitor.refresh}>
-              Làm mới
-            </Button>
-          ) : (
-            <Button onClick={() => setIsCreateSubOpen(true)}>Tạo Subscription</Button>
-          )
+          <div className="flex gap-2">
+            {tab === 'events' ? (
+              <>
+                {monitor.hasMore && (
+                  <Button variant="secondary" size="sm" onClick={monitor.loadMore}>
+                    Tải thêm từ Server
+                  </Button>
+                )}
+                <Button variant="secondary" size="sm" onClick={monitor.refresh}>
+                  Làm mới
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" onClick={() => setIsCreateSubOpen(true)}>Tạo Subscription</Button>
+            )}
+          </div>
         }
       />
 
@@ -129,7 +228,7 @@ export function EventMonitorPage() {
           aria-selected={tab === 'events'}
           className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tab === 'events'
-              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-355'
           }`}
           onClick={() => setTab('events')}
@@ -142,7 +241,7 @@ export function EventMonitorPage() {
           aria-selected={tab === 'subscriptions'}
           className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             tab === 'subscriptions'
-              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              ? 'border-blue-600 text-blue-600 dark:border-blue-400'
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-355'
           }`}
           onClick={() => setTab('subscriptions')}
@@ -154,231 +253,106 @@ export function EventMonitorPage() {
       {tab === 'events' ? (
         <>
           {/* Advanced filter form */}
-          <form
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm"
+          <FilterBar
+            fields={[
+              {
+                name: 'event_type',
+                type: 'text',
+                label: 'Tên sự kiện',
+                placeholder: 'Ví dụ: production_log.posted'
+              },
+              {
+                name: 'source_module',
+                type: 'text',
+                label: 'Module phát sinh',
+                placeholder: 'Ví dụ: MES-05'
+              },
+              {
+                name: 'entity_type',
+                type: 'text',
+                label: 'Loại thực thể',
+                placeholder: 'Ví dụ: production_log'
+              },
+              {
+                name: 'status',
+                type: 'select',
+                label: 'Trạng thái',
+                options: [
+                  { value: '', label: 'Tất cả' },
+                  { value: 'PENDING', label: 'Chờ xử lý (PENDING)' },
+                  { value: 'PUBLISHING', label: 'Đang gửi (PUBLISHING)' },
+                  { value: 'PUBLISHED', label: 'Đã gửi (PUBLISHED)' },
+                  { value: 'FAILED', label: 'Thất bại (FAILED)' },
+                  { value: 'DEAD_LETTER', label: 'Lỗi vĩnh viễn (DEAD_LETTER)' }
+                ]
+              },
+              {
+                name: 'request_id',
+                type: 'text',
+                label: 'Mã yêu cầu (Request ID)',
+                placeholder: 'Ví dụ: req-...'
+              },
+              {
+                name: 'occurred_from',
+                type: 'text',
+                label: 'Thời gian bắt đầu',
+                placeholder: 'Ví dụ: 2026-07-18T00:00:00Z'
+              },
+              {
+                name: 'occurred_to',
+                type: 'text',
+                label: 'Thời gian kết thúc',
+                placeholder: 'Ví dụ: 2026-07-18T23:59:59Z'
+              }
+            ]}
+            values={monitor.draftFilters}
+            onChange={(name, value) => monitor.setDraftFilter(name as any, value)}
             onSubmit={(event) => {
               event.preventDefault()
               monitor.applyFilters()
             }}
-          >
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Event name</span>
-              <Input
-                value={String(monitor.draftFilters.event_type ?? '')}
-                onChange={(event) => monitor.setDraftFilter('event_type', event.target.value)}
-                placeholder="production_log.posted"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Producer module</span>
-              <Input
-                value={String(monitor.draftFilters.source_module ?? '')}
-                onChange={(event) => monitor.setDraftFilter('source_module', event.target.value)}
-                placeholder="MES-05"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Entity type</span>
-              <Input
-                value={String(monitor.draftFilters.entity_type ?? '')}
-                onChange={(event) => monitor.setDraftFilter('entity_type', event.target.value)}
-                placeholder="production_log"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Status</span>
-              <Select
-                value={String(monitor.draftFilters.status ?? '')}
-                onChange={(event: any) => monitor.setDraftFilter('status', event.target.value)}
-              >
-                <option value="">Tất cả</option>
-                <option value="PENDING">PENDING</option>
-                <option value="PUBLISHING">PUBLISHING</option>
-                <option value="PUBLISHED">PUBLISHED</option>
-                <option value="FAILED">FAILED</option>
-                <option value="DEAD_LETTER">DEAD_LETTER</option>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Request ID</span>
-              <Input
-                value={String(monitor.draftFilters.request_id ?? '')}
-                onChange={(event) => monitor.setDraftFilter('request_id', event.target.value)}
-                placeholder="req-..."
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Occurred from</span>
-              <Input
-                value={String(monitor.draftFilters.occurred_from ?? '')}
-                onChange={(event) => monitor.setDraftFilter('occurred_from', event.target.value)}
-                placeholder="2026-07-18T00:00:00Z"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Occurred to</span>
-              <Input
-                value={String(monitor.draftFilters.occurred_to ?? '')}
-                onChange={(event) => monitor.setDraftFilter('occurred_to', event.target.value)}
-                placeholder="2026-07-18T23:59:59Z"
-              />
-            </div>
-            <div className="flex items-end gap-2">
-              <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-                <Search size={16} />
-              </Button>
-              <Button type="button" variant="secondary" size="sm" onClick={monitor.clearFilters}>
-                Xóa lọc
-              </Button>
-            </div>
-          </form>
+            onReset={monitor.clearFilters}
+            isResetActive={Object.values(monitor.draftFilters).some(Boolean)}
+          />
 
-          {banner ? (
+          {banner && monitor.listState !== 'loading' ? (
             <p className="p-4 rounded bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-350" role="status">
               {banner}
               {monitor.listError ? ` (${monitor.listError.code})` : ''}
             </p>
           ) : null}
 
-          <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
-            <Table containerClassName="relative w-full overflow-auto">
-              <TableHeader>
-                <TableRow className="pointer-events-none hover:bg-transparent">
-                  <TableHead>Event ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Producer</TableHead>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Retry</TableHead>
-                  <TableHead>Occurred</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {eventsPagination.paginatedItems.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className={row.id === monitor.selectedId ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
-                    onClick={() => {
-                      monitor.setSelectedId(row.id)
-                      setIsDetailOpen(true)
-                    }}
-                  >
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-0 py-0 h-auto font-semibold hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          monitor.setSelectedId(row.id)
-                          setIsDetailOpen(true)
-                        }}
-                      >
-                        {row.eventId}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-850 dark:text-slate-100">
-                      {row.eventType}
-                    </TableCell>
-                    <TableCell>{row.sourceModule}</TableCell>
-                    <TableCell>{row.entityReference}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          row.status === 'PUBLISHED'
-                            ? 'active'
-                            : row.status === 'FAILED' || row.status === 'DEAD_LETTER'
-                            ? 'inactive'
-                            : 'default'
-                        }
-                      >
-                        {row.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold">{row.retryCount}</TableCell>
-                    <TableCell className="text-xs text-slate-400">{row.occurredAt}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
-              <div className="flex-1">
-                <DataTablePagination {...eventsPagination} />
-              </div>
-              {monitor.hasMore && (
-                <div className="pr-5 pb-3 sm:pb-0">
-                  <Button variant="secondary" size="sm" onClick={monitor.loadMore}>
-                    Tải thêm từ Server
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+          <GenericDataTable
+            data={eventsPagination.paginatedItems}
+            columns={eventColumns}
+            pagination={eventsPagination}
+            isLoading={monitor.listState === 'loading'}
+            onRowClick={(row) => {
+              monitor.setSelectedId(row.id)
+              setIsDetailOpen(true)
+            }}
+            getRowClassName={(row) => row.id === monitor.selectedId ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+          />
         </>
       ) : (
         <div className="w-full flex flex-col gap-4">
-          {monitor.subscriptionsLoading ? (
-            <p className="text-sm text-slate-400">Đang tải subscriptions...</p>
-          ) : null}
           {monitor.subscriptionsError ? (
             <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-sm text-red-650 border border-red-200" role="alert">
               {monitor.subscriptionsError.message}
             </p>
           ) : null}
 
-          <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
-            <Table containerClassName="relative w-full overflow-auto">
-              <TableHeader>
-                <TableRow className="pointer-events-none hover:bg-transparent">
-                  <TableHead>Code</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Channel</TableHead>
-                  <TableHead>Last ping</TableHead>
-                  <TableHead>Revoked</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {subscriptionsPagination.paginatedItems.map((subscription) => (
-                  <TableRow
-                    key={subscription.code}
-                    className={subscription.code === monitor.selectedSubscriptionCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
-                    onClick={() => {
-                      monitor.setSelectedSubscriptionCode(subscription.code)
-                      setIsSubDetailOpen(true)
-                    }}
-                  >
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-0 py-0 h-auto font-semibold hover:underline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          monitor.setSelectedSubscriptionCode(subscription.code)
-                          setIsSubDetailOpen(true)
-                        }}
-                      >
-                        {subscription.code}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="font-medium text-slate-800 dark:text-slate-200">{subscription.user_id}</TableCell>
-                    <TableCell>{subscription.channel_key}</TableCell>
-                    <TableCell className="text-xs text-slate-400">{subscription.last_ping_at}</TableCell>
-                    <TableCell>
-                      {subscription.revoked_at ? (
-                        <Badge variant="inactive">{subscription.revoked_at}</Badge>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            <DataTablePagination {...subscriptionsPagination} />
-          </div>
+          <GenericDataTable
+            data={subscriptionsPagination.paginatedItems}
+            columns={subscriptionColumns}
+            pagination={subscriptionsPagination}
+            isLoading={monitor.subscriptionsLoading}
+            onRowClick={(subscription) => {
+              monitor.setSelectedSubscriptionCode(subscription.code)
+              setIsSubDetailOpen(true)
+            }}
+            getRowClassName={(subscription) => subscription.code === monitor.selectedSubscriptionCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+          />
         </div>
       )}
 
@@ -538,7 +512,7 @@ export function EventMonitorPage() {
           </Button>
 
           {monitor.createError && (
-            <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-600 border border-red-200" role="alert">
+            <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-655 border border-red-200" role="alert">
               {monitor.createError.message}
             </p>
           )}

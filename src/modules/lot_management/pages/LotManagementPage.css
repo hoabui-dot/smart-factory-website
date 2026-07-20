@@ -1,6 +1,6 @@
 .lot-master {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .lot-master__header {
@@ -10,17 +10,9 @@
   align-items: flex-start;
 }
 
-.lot-master__eyebrow {
-  margin: 0;
-  color: var(--color-text-muted, #64748b);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .lot-master__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
 }
 
 .lot-master__actions {
@@ -32,42 +24,25 @@
 
 .lot-master button,
 .lot-master .lot-master__btn {
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   padding: 0.5rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--color-action, #155eef);
+  background: var(--color-action-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.lot-master button:hover,
+.lot-master .lot-master__btn:hover {
+  background: var(--color-action-primary-hover);
 }
 
 .lot-master button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.lot-master__tabs {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.lot-master__tab,
-.lot-master__tab--active {
-  min-height: 2.25rem;
-  padding: 0.4rem 0.9rem;
-  border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--color-text-muted, #64748b);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.lot-master__tab--active {
-  background: var(--color-action, #155eef);
-  border-color: var(--color-action, #155eef);
-  color: #fff;
 }
 
 .lot-master__filters {
@@ -83,56 +58,74 @@
   gap: 0.35rem;
 }
 
+.lot-master label span,
+.lot-master__field span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .lot-master input,
 .lot-master select {
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
   font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.lot-master input:focus,
+.lot-master select:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.15);
 }
 
 .lot-master__state {
   margin: 0;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  background: var(--color-banner-bg, #eef2ff);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .lot-master__banner {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-success-bg, #dcfce7);
-  color: var(--color-success-text, #166534);
+  background: var(--color-success-bg, rgba(22, 163, 74, 0.1));
+  color: var(--color-success-text);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .lot-master__error {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-error-bg, #fee2e2);
-  color: var(--color-error-text, #991b1b);
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.1));
+  color: var(--color-danger-text);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .lot-master__muted {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
-.lot-master__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 0.8fr);
-  gap: 1rem;
-}
-
-.lot-master__table-wrap,
-.lot-master__detail {
+.lot-master__table-wrap {
   overflow: auto;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .lot-master__table {
@@ -140,64 +133,69 @@
   border-collapse: collapse;
 }
 
-.lot-master__table th,
-.lot-master__table td {
-  padding: 0.7rem;
-  border-bottom: 1px solid var(--color-border, #cbd5e1);
+.lot-master__table th {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
+.lot-master__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.lot-master__table tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.lot-master__table tbody tr:hover {
+  background: var(--surface-2);
+}
+
 .lot-master__row--active {
-  background: var(--color-row-active, #e8eefc);
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--color-action-primary);
 }
 
 .lot-master__linkish {
   min-height: auto;
-  padding: 0;
-  background: transparent;
-  color: var(--color-action, #155eef);
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
   font-weight: 600;
 }
 
-.lot-master__detail {
-  padding: 1rem;
-  display: grid;
-  gap: 0.75rem;
-  align-content: start;
-}
-
-.lot-master__meta {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.lot-master__meta dt {
-  color: var(--color-text-muted, #64748b);
-  font-size: 0.8rem;
-}
-
-.lot-master__meta dd {
-  margin: 0.2rem 0 0;
-  word-break: break-word;
+.lot-master__linkish:hover {
+  text-decoration: underline;
+  background: transparent !important;
 }
 
 .lot-master__print {
   display: grid;
   gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 1rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-3);
 }
 
 .lot-master__more {
   margin: 0.75rem;
+  width: calc(100% - 1.5rem);
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
 }
 
-@media (max-width: 960px) {
-  .lot-master__layout {
-    grid-template-columns: 1fr;
-  }
+.lot-master__more:hover {
+  background: var(--surface-3) !important;
 }

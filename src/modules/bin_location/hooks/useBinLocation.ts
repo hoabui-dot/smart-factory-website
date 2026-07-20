@@ -229,7 +229,7 @@ export function useBinLocation() {
       if (next) setCursor(next)
     },
     selectedCode,
-    selectLocation: (code: string) => {
+    selectLocation: (code: string | null) => {
       setSelectedCode(code)
       setShowCreate(false)
       setConfirmDeactivate(false)

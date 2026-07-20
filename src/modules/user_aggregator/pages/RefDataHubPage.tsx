@@ -25,6 +25,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input, Select } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import {
   Table,
   TableHeader,
@@ -207,80 +208,77 @@ export function RefDataHubPage() {
       {tables.length > 0 && (
         <div className="flex flex-col gap-6">
           
-          {/* Toolbar Filters Panel */}
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-4 items-end">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-400">Bảng dữ liệu (Table)</span>
-                <Select
-                  value={resolvedTableKey}
-                  onChange={(e) => {
-                    setTableKey(e.target.value)
-                    setCursor(undefined)
-                    setSelected(null)
-                    setUsageText(null)
-                  }}
-                  className="h-9"
+          <FilterBar
+            fields={[
+              {
+                name: 'tableKey',
+                type: 'select',
+                label: 'Bảng dữ liệu (Table)',
+                options: tables.map((t) => ({
+                  value: t.tableKey,
+                  label: `${t.tableKey} (${t.sourceModule})`,
+                })),
+              },
+              {
+                name: 'q',
+                type: 'text',
+                label: 'Tìm kiếm theo mã/nhãn (q)',
+                placeholder: 'Nhập từ khóa tìm kiếm...',
+              },
+            ]}
+            values={{
+              tableKey: resolvedTableKey,
+              q: qInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'tableKey') {
+                setTableKey(value)
+                setCursor(undefined)
+                setSelected(null)
+                setUsageText(null)
+              } else if (name === 'q') {
+                setQInput(value)
+              }
+            }}
+            onSubmit={(ev) => {
+              ev.preventDefault()
+              setCursor(undefined)
+              setQ(qInput.trim())
+            }}
+            onReset={() => {
+              setQInput('')
+              setQ('')
+              setCursor(undefined)
+            }}
+            isResetActive={Boolean(qInput)}
+            expands={
+              <div className="flex items-center gap-4 h-9 pb-1.5 md:pb-0">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--text-secondary)]">
+                  <input
+                    type="checkbox"
+                    className="rounded border-[var(--border-default)] cursor-pointer"
+                    checked={includeInactive}
+                    onChange={(e) => {
+                      setIncludeInactive(e.target.checked)
+                      setCursor(undefined)
+                    }}
+                  />
+                  <span>Bao gồm bản ghi inactive</span>
+                </label>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 gap-1"
+                  onClick={() => rowsQuery.refetch()}
+                  disabled={rowsQuery.isFetching}
                 >
-                  {tables.map((t) => (
-                    <option key={t.tableKey} value={t.tableKey}>
-                      {t.tableKey} ({t.sourceModule})
-                    </option>
-                  ))}
-                </Select>
+                  <RefreshCw size={14} className={rowsQuery.isFetching ? 'animate-spin' : ''} />
+                  Làm mới
+                </Button>
               </div>
-              <form
-                className="flex flex-col gap-1 md:col-span-2"
-                onSubmit={(ev) => {
-                  ev.preventDefault()
-                  setCursor(undefined)
-                  setQ(qInput.trim())
-                }}
-              >
-                <span className="text-xs font-semibold text-slate-400">Tìm kiếm theo mã/nhãn (q)</span>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input
-                      value={qInput}
-                      onChange={(e) => setQInput(e.target.value)}
-                      placeholder="Nhập từ khóa tìm kiếm..."
-                      className="pl-8 h-9"
-                    />
-                  </div>
-                  <Button type="submit" size="sm" className="h-9 px-4">
-                    Tìm
-                  </Button>
-                </div>
-              </form>
-            </div>
-
-            <div className="flex items-center gap-4 h-9 pb-1.5 md:pb-0">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-655 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  className="rounded border-slate-350 dark:border-slate-800 cursor-pointer"
-                  checked={includeInactive}
-                  onChange={(e) => {
-                    setIncludeInactive(e.target.checked)
-                    setCursor(undefined)
-                  }}
-                />
-                <span>Bao gồm bản ghi inactive</span>
-              </label>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                className="h-9 gap-1"
-                onClick={() => rowsQuery.refetch()}
-                disabled={rowsQuery.isFetching}
-              >
-                <RefreshCw size={14} className={rowsQuery.isFetching ? 'animate-spin' : ''} />
-                Làm mới
-              </Button>
-            </div>
-          </div>
+            }
+          />
 
           {activeTable && (
             <div className="px-1 text-xs text-slate-450 flex flex-wrap gap-x-4 gap-y-1">

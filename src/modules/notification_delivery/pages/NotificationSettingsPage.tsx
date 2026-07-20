@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useNotificationSettings } from '../hooks/useNotificationSettings'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
@@ -127,7 +127,7 @@ export function NotificationSettingsPage() {
               {settings.preferenceRows.length === 0 && !settings.preferencesLoading && (
                 <div className="p-8 text-center text-xs text-slate-400">Chưa cấu hình tùy chọn nào.</div>
               )}
-              <DataTablePagination {...preferencePagination} />
+              <TablePagination {...preferencePagination} />
             </div>
 
             {/* Add Preference Form */}
@@ -270,7 +270,7 @@ export function NotificationSettingsPage() {
               {settings.subscriptionRows.length === 0 && !settings.subscriptionsLoading && (
                 <div className="p-8 text-center text-xs text-slate-400">Chưa có thiết bị đăng ký nhận tin.</div>
               )}
-              <DataTablePagination {...subscriptionPagination} />
+              <TablePagination {...subscriptionPagination} />
             </div>
 
             {/* Add Subscription Form */}

@@ -1,7 +1,7 @@
 .wo-admin {
   display: grid;
   gap: 1rem;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
 }
 
 .wo-admin__header {
@@ -13,7 +13,7 @@
 
 .wo-admin__eyebrow {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -21,7 +21,7 @@
 
 .wo-admin__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .wo-admin__actions {
@@ -37,7 +37,7 @@
   border: 0;
   border-radius: 0.5rem;
   background: var(--color-action-primary);
-  color: var(--color-text-on-primary);
+  color: #ffffff;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -77,16 +77,16 @@
 .wo-admin__field span {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .wo-admin input,
 .wo-admin select {
   min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-default);
-  background: var(--color-surface-card);
-  color: var(--color-text-primary);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
   border-radius: 0.5rem;
   font: inherit;
   outline: none;
@@ -94,16 +94,16 @@
 
 .wo-admin input:focus,
 .wo-admin select:focus {
-  border-color: var(--color-focus-ring);
+  border-color: var(--color-action-primary);
 }
 
 .wo-admin__create {
   display: grid;
   gap: 0.75rem;
   padding: 1.25rem;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: var(--color-surface-card);
+  background: var(--surface-1);
 }
 
 .wo-admin__state {
@@ -111,8 +111,8 @@
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   background: var(--color-info-bg);
-  border: 1px solid var(--color-border-default);
-  color: var(--color-text-secondary);
+  border: 1px solid var(--border-default);
+  color: var(--color-info-text);
 }
 
 .wo-admin__banner {
@@ -120,8 +120,8 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   background: var(--color-info-bg);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-default);
+  color: var(--color-info-text);
+  border: 1px solid var(--border-default);
 }
 
 .wo-admin__error {
@@ -129,13 +129,13 @@
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   background: var(--color-danger-bg);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  color: var(--color-danger-text);
+  border: 1px solid var(--border-default);
 }
 
 .wo-admin__muted {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -148,9 +148,9 @@
 .wo-admin__table-wrap,
 .wo-admin__detail {
   overflow: auto;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: var(--color-surface-card);
+  background: var(--surface-1);
 }
 
 .wo-admin__table {
@@ -160,25 +160,25 @@
 
 .wo-admin__table th {
   padding: 0.75rem;
-  border-bottom: 2px solid var(--color-border-default);
+  border-bottom: 2px solid var(--border-default);
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
-  background: var(--color-page-surface);
+  color: var(--text-secondary);
+  background: var(--surface-2);
   white-space: nowrap;
 }
 
 .wo-admin__table td {
   padding: 0.75rem;
-  border-bottom: 1px solid var(--color-border-default);
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
   font-size: 0.875rem;
   white-space: nowrap;
 }
 
 .wo-admin__table tr:hover {
-  background: var(--color-page-surface);
+  background: var(--surface-2);
 }
 
 .wo-admin__table--compact th,
@@ -189,7 +189,8 @@
 }
 
 .wo-admin__row--active {
-  background: var(--color-row-active) !important;
+  background: var(--surface-2) !important;
+  border-left: 4px solid var(--color-action-primary) !important;
 }
 
 .wo-admin__linkish {
@@ -226,13 +227,14 @@
   display: grid;
   gap: 0.5rem;
   margin: 0;
-  background: var(--color-page-surface);
+  background: var(--surface-2);
   padding: 0.75rem;
   border-radius: 6px;
+  border: 1px solid var(--border-default);
 }
 
 .wo-admin__meta dt {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 500;
 }
@@ -240,34 +242,38 @@
 .wo-admin__meta dd {
   margin: 0;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   word-break: break-word;
 }
 
 .wo-admin__paging-row {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border-default);
-  background: var(--color-surface-card);
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-1);
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .wo-admin__all-loaded {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   text-align: center;
-  background: var(--color-page-surface);
+  background: var(--surface-2);
 }
 
 .wo-admin__more {
   margin: 0.75rem;
-  background: var(--color-surface-card) !important;
-  color: var(--color-text-primary) !important;
-  border: 1px solid var(--color-border-default) !important;
+  background: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
 }
 
 .wo-admin__more:hover {
-  background: var(--color-page-surface) !important;
+  background: var(--surface-2) !important;
 }
 
 @media (max-width: 960px) {

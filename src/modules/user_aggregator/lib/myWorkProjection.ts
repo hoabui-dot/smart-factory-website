@@ -1,4 +1,5 @@
 import type { MyWorkGroup, MyWorkRow, MyWorkTask } from '../types/myWork.ts'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -17,7 +18,7 @@ export function projectTask(task: MyWorkTask): MyWorkRow {
     taskType: task.task_type || UNAVAILABLE,
     sourceModule: task.source_module || UNAVAILABLE,
     targetLabel: `${task.source_entity_type || UNAVAILABLE} · ${task.source_entity_code || UNAVAILABLE}`,
-    occurredAt: task.occurred_at || UNAVAILABLE,
+    occurredAt: task.occurred_at ? formatDateTime(task.occurred_at) : UNAVAILABLE,
     locationLabel: location,
     workOrderLabel: task.work_order?.code || UNAVAILABLE,
     deepLink: safeWebDeepLink(task.deep_link),

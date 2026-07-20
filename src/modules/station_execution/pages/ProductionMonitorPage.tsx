@@ -1,6 +1,13 @@
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { useProductionMonitor } from '../hooks/useProductionMonitor'
+import type { ProductionLogRow } from '../types/productionLog'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
+import { Button } from '@/shared/components/ui/Button'
 
 import './ProductionMonitorPage.css'
 
@@ -23,44 +30,91 @@ function listStateMessage(state: string): string {
 
 export function ProductionMonitorPage() {
   const mon = useProductionMonitor()
+  const pagination = usePagination(mon.rows, 10)
+
+  const columns: ColumnDef<ProductionLogRow>[] = [
+    {
+      header: 'Mã nhật ký',
+      cell: (row) => (
+        <button
+          type="button"
+          className="pl-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            mon.selectLog(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Lệnh sản xuất',
+      cell: (row) => row.workOrderLabel,
+    },
+    {
+      header: 'Công đoạn (Operation)',
+      cell: (row) => row.operationLabel,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Đạt chất lượng',
+      cell: (row) => row.goodQty,
+    },
+    {
+      header: 'Phế phẩm (Scrap)',
+      cell: (row) => row.scrapQty,
+    },
+    {
+      header: 'Bắt đầu lúc',
+      cell: (row) => row.startedAt,
+    },
+  ]
+
   const banner = listStateMessage(mon.listState)
 
   return (
     <section className="pl-admin" aria-labelledby="pl-admin-title">
-      <header className="pl-admin__header">
-        <div>
-          <p className="pl-admin__eyebrow">
-            WEB-MES-05-PRODUCTION-MONITOR · `/web/mes/production-logs`
-          </p>
-          <h2 id="pl-admin-title">Production Monitor</h2>
-          <p className="pl-admin__lead">
-            Giám sát production log do Tablet tạo; Web chỉ review 4M+T và audited void khi
-            server `allowed_actions` cho phép.
-          </p>
-        </div>
-        <div className="pl-admin__actions">
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Production Logs' },
+        ]}
+        title="Nhật ký sản xuất (Production Logs)"
+        subtitle="Giám sát nhật ký hoạt động sản xuất thời gian thực tại các trạm máy, ghi nhận dữ liệu 4M+T và phê duyệt hủy nhật ký lỗi."
+      />
 
-      <form
-        className="pl-admin__filters"
+      <FilterBar
+        fields={[
+          {
+            name: 'search',
+            type: 'text',
+            label: 'Tìm (code / WO)',
+            placeholder: 'Nhập mã nhật ký hoặc lệnh sản xuất...',
+          },
+        ]}
+        values={{
+          search: mon.searchInput,
+        }}
+        onChange={(name, value) => {
+          if (name === 'search') {
+            mon.setSearchInput(value)
+          }
+        }}
         onSubmit={(e) => {
           e.preventDefault()
           mon.applySearch()
         }}
-      >
-        <label className="pl-admin__field">
-          <span>Tìm (code / WO)</span>
-          <input
-            value={mon.searchInput}
-            onChange={(e) => mon.setSearchInput(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="pl-admin__btn">
-          Lọc
-        </button>
-      </form>
+        onReset={() => {
+          mon.setSearchInput('')
+          mon.applySearch()
+        }}
+        isResetActive={Boolean(mon.searchInput)}
+      />
 
       {banner ? (
         <p className="pl-admin__state" role={mon.listState === 'error' ? 'alert' : 'status'}>
@@ -71,48 +125,27 @@ export function ProductionMonitorPage() {
 
       {mon.listState === 'ready' ? (
         <div className="pl-admin__layout">
-          <div className="pl-admin__table-wrap">
-            <table className="pl-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Work order</th>
-                  <th>Operation</th>
-                  <th>Status</th>
-                  <th>Good</th>
-                  <th>Scrap</th>
-                  <th>Started</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mon.rows.map((row) => (
-                  <tr
-                    key={row.code}
-                    className={row.code === mon.selectedCode ? 'pl-admin__row--active' : ''}
-                  >
-                    <td>
-                      <button
-                        type="button"
-                        className="pl-admin__linkish"
-                        onClick={() => mon.selectLog(row.code)}
-                      >
-                        {row.code}
-                      </button>
-                    </td>
-                    <td>{row.workOrderLabel}</td>
-                    <td>{row.operationLabel}</td>
-                    <td>{row.status}</td>
-                    <td>{row.goodQty}</td>
-                    <td>{row.scrapQty}</td>
-                    <td>{row.startedAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="pl-admin__table-wrap flex flex-col gap-4">
+            <GenericDataTable
+              data={pagination.paginatedItems}
+              columns={columns}
+              pagination={pagination}
+              onRowClick={(row) => mon.selectLog(row.code)}
+              getRowClassName={(row) =>
+                row.code === mon.selectedCode
+                  ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                  : ''
+              }
+            />
             {mon.hasMore ? (
-              <button type="button" className="pl-admin__more" onClick={mon.loadMore}>
-                Tải thêm
-              </button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="self-center"
+                onClick={mon.loadMore}
+              >
+                Tải thêm từ máy chủ
+              </Button>
             ) : null}
           </div>
 
@@ -166,74 +199,74 @@ export function ProductionMonitorPage() {
               {mon.detail.materials && mon.detail.materials.length > 0 ? (
                 <>
                   <h4>Materials</h4>
-                  <table className="pl-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Lot</th>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>UoM</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Số lô</TableHead>
+                        <TableHead>Vật tư</TableHead>
+                        <TableHead>Số lượng</TableHead>
+                        <TableHead>ĐVT</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {mon.detail.materials.map((m) => (
-                        <tr key={m.code}>
-                          <td>{m.input_lot_code ?? '-'}</td>
-                          <td>{m.input_item_code ?? '-'}</td>
-                          <td>{m.consumed_qty}</td>
-                          <td>{m.uom_code ?? '-'}</td>
-                        </tr>
+                        <TableRow key={m.code} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{m.input_lot_code ?? '-'}</TableCell>
+                          <TableCell>{m.input_item_code ?? '-'}</TableCell>
+                          <TableCell>{m.consumed_qty}</TableCell>
+                          <TableCell>{m.uom_code ?? '-'}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </>
               ) : null}
 
               {mon.detail.machines && mon.detail.machines.length > 0 ? (
                 <>
                   <h4>Machines</h4>
-                  <table className="pl-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Machine</th>
-                        <th>Role</th>
-                        <th>Run min</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Thiết bị</TableHead>
+                        <TableHead>Vai trò</TableHead>
+                        <TableHead>Thời gian chạy (phút)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {mon.detail.machines.map((m) => (
-                        <tr key={m.code}>
-                          <td>{m.machine_code ?? '-'}</td>
-                          <td>{m.role}</td>
-                          <td>{m.run_minutes}</td>
-                        </tr>
+                        <TableRow key={m.code} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{m.machine_code ?? '-'}</TableCell>
+                          <TableCell>{m.role}</TableCell>
+                          <TableCell>{m.run_minutes}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </>
               ) : null}
 
               {mon.detail.defects && mon.detail.defects.length > 0 ? (
                 <>
                   <h4>Defects</h4>
-                  <table className="pl-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Defect</th>
-                        <th>Scrap</th>
-                        <th>Rework</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Mã lỗi</TableHead>
+                        <TableHead>Phế phẩm</TableHead>
+                        <TableHead>Làm lại</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {mon.detail.defects.map((d) => (
-                        <tr key={d.code}>
-                          <td>{d.defect_code ?? '-'}</td>
-                          <td>{d.scrap_qty}</td>
-                          <td>{d.rework_qty}</td>
-                        </tr>
+                        <TableRow key={d.code} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{d.defect_code ?? '-'}</TableCell>
+                          <TableCell>{d.scrap_qty}</TableCell>
+                          <TableCell>{d.rework_qty}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </>
               ) : null}
 

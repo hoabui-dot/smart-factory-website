@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
+import { Button } from '@/shared/components/ui/Button'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { Input, Select, Textarea } from '@/shared/components/ui/Input'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { useShiftSkill } from '../hooks/useShiftSkill'
 import {
   OPERATOR_SKILL_LEVEL_VALUES,
@@ -14,7 +20,14 @@ import type {
   ShiftAssignmentRecord,
   ShiftRecord,
   SkillMasterRecord,
+  ShiftRow,
+  ShiftAssignmentRow,
+  SkillMasterRow,
+  OperatorSkillRow,
+  TrainingRecordRow,
 } from '../types/shiftSkill'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
 
 import './ShiftSkillPage.css'
 
@@ -99,27 +112,14 @@ function ShiftEditor({ detail, admin }: { detail: ShiftRecord; admin: Api }) {
           {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
         </p>
       ) : null}
-      {admin.confirmShiftDeactivate ? (
-        <div className="shift-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>? Ca sẽ bị xoá (chỉ khi không còn
-            phân ca gắn).
-          </p>
-          <div className="shift-admin__actions">
-            <button
-              type="button"
-              className="shift-admin__btn shift-admin__btn--danger"
-              disabled={admin.deactivateShiftState === 'pending'}
-              onClick={admin.deactivateShift}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmShiftDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmShiftDeactivate}
+        onClose={() => admin.setConfirmShiftDeactivate(false)}
+        onConfirm={admin.deactivateShift}
+        title="Xác nhận deactivate"
+        description={`Xác nhận deactivate ${detail.code}? Ca sẽ bị xoá (chỉ khi không còn phân ca gắn).`}
+        isPending={admin.deactivateShiftState === 'pending'}
+      />
       {admin.deactivateShiftError ? (
         <p className="shift-admin__error" role="alert">
           {admin.deactivateShiftError.code}: {admin.deactivateShiftError.message}
@@ -204,26 +204,14 @@ function ShiftAssignmentEditor({
           {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
         </p>
       ) : null}
-      {admin.confirmAssignmentDeactivate ? (
-        <div className="shift-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>?
-          </p>
-          <div className="shift-admin__actions">
-            <button
-              type="button"
-              className="shift-admin__btn shift-admin__btn--danger"
-              disabled={admin.deactivateAssignmentState === 'pending'}
-              onClick={admin.deactivateAssignment}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmAssignmentDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmAssignmentDeactivate}
+        onClose={() => admin.setConfirmAssignmentDeactivate(false)}
+        onConfirm={admin.deactivateAssignment}
+        title="Xác nhận deactivate"
+        description={`Xác nhận deactivate ${detail.code}?`}
+        isPending={admin.deactivateAssignmentState === 'pending'}
+      />
       {admin.deactivateAssignmentError ? (
         <p className="shift-admin__error" role="alert">
           {admin.deactivateAssignmentError.code}: {admin.deactivateAssignmentError.message}
@@ -317,26 +305,14 @@ function SkillEditor({ detail, admin }: { detail: SkillMasterRecord; admin: Api 
           {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
         </p>
       ) : null}
-      {admin.confirmSkillDeactivate ? (
-        <div className="shift-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>?
-          </p>
-          <div className="shift-admin__actions">
-            <button
-              type="button"
-              className="shift-admin__btn shift-admin__btn--danger"
-              disabled={admin.deactivateSkillState === 'pending'}
-              onClick={admin.deactivateSkill}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmSkillDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmSkillDeactivate}
+        onClose={() => admin.setConfirmSkillDeactivate(false)}
+        onConfirm={admin.deactivateSkill}
+        title="Xác nhận deactivate"
+        description={`Xác nhận deactivate ${detail.code}?`}
+        isPending={admin.deactivateSkillState === 'pending'}
+      />
       {admin.deactivateSkillError ? (
         <p className="shift-admin__error" role="alert">
           {admin.deactivateSkillError.code}: {admin.deactivateSkillError.message}
@@ -431,26 +407,14 @@ function OperatorSkillEditor({
           {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
         </p>
       ) : null}
-      {admin.confirmOperatorSkillDeactivate ? (
-        <div className="shift-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>? Chứng chỉ sẽ chuyển sang SUSPENDED.
-          </p>
-          <div className="shift-admin__actions">
-            <button
-              type="button"
-              className="shift-admin__btn shift-admin__btn--danger"
-              disabled={admin.deactivateOperatorSkillState === 'pending'}
-              onClick={admin.deactivateOperatorSkill}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmOperatorSkillDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmOperatorSkillDeactivate}
+        onClose={() => admin.setConfirmOperatorSkillDeactivate(false)}
+        onConfirm={admin.deactivateOperatorSkill}
+        title="Xác nhận deactivate"
+        description={`Xác nhận deactivate ${detail.code}? Chứng chỉ sẽ chuyển sang SUSPENDED.`}
+        isPending={admin.deactivateOperatorSkillState === 'pending'}
+      />
       {admin.deactivateOperatorSkillError ? (
         <p className="shift-admin__error" role="alert">
           {admin.deactivateOperatorSkillError.code}: {admin.deactivateOperatorSkillError.message}
@@ -468,21 +432,194 @@ function OperatorSkillEditor({
 export function ShiftSkillPage() {
   const admin = useShiftSkill()
 
+  const shiftPagination = usePagination(admin.shiftRows, 10)
+  const saPagination = usePagination(admin.assignmentRows, 10)
+  const skillPagination = usePagination(admin.skillRows, 10)
+  const osPagination = usePagination(admin.operatorSkillRows, 10)
+  const trainingRecordPagination = usePagination(admin.trainingRecordRows, 10)
+
+  const shiftColumns: ColumnDef<ShiftRow>[] = [
+    {
+      header: 'Mã ca',
+      cell: (row) => (
+        <button
+          type="button"
+          className="shift-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectShift(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Bắt đầu',
+      cell: (row) => row.startTime,
+    },
+    {
+      header: 'Kết thúc',
+      cell: (row) => row.endTime,
+    },
+    {
+      header: 'Qua đêm',
+      cell: (row) => row.isOvernight,
+    },
+  ]
+
+  const saColumns: ColumnDef<ShiftAssignmentRow>[] = [
+    {
+      header: 'Mã phân lịch',
+      cell: (row) => (
+        <button
+          type="button"
+          className="shift-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectAssignment(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Nhân viên vận hành',
+      cell: (row) => row.operatorLabel,
+    },
+    {
+      header: 'Ca',
+      cell: (row) => row.shiftLabel,
+    },
+    {
+      header: 'Khu công đoạn',
+      cell: (row) => row.workCenterLabel,
+    },
+    {
+      header: 'Ngày',
+      cell: (row) => row.workDate,
+    },
+    {
+      header: 'Vai trò',
+      cell: (row) => row.roleOnLine,
+    },
+  ]
+
+  const skillColumns: ColumnDef<SkillMasterRow>[] = [
+    {
+      header: 'Mã kỹ năng',
+      cell: (row) => (
+        <button
+          type="button"
+          className="shift-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectSkill(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Tên kỹ năng',
+      cell: (row) => row.skillName,
+    },
+    {
+      header: 'Nhóm',
+      cell: (row) => row.skillCategory,
+    },
+    {
+      header: 'Hiệu lực (tháng)',
+      cell: (row) => row.validityMonths,
+    },
+    {
+      header: 'Hoạt động',
+      cell: (row) => (row.isActive ? 'Active' : 'Inactive'),
+    },
+  ]
+
+  const osColumns: ColumnDef<OperatorSkillRow>[] = [
+    {
+      header: 'Mã chứng chỉ',
+      cell: (row) => (
+        <button
+          type="button"
+          className="shift-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectOperatorSkill(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Nhân viên',
+      cell: (row) => row.operatorLabel,
+    },
+    {
+      header: 'Kỹ năng',
+      cell: (row) => row.skillLabel,
+    },
+    {
+      header: 'Cấp độ',
+      cell: (row) => row.level,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Ngày hết hạn',
+      cell: (row) => row.expiryDate,
+    },
+  ]
+
+  const trainingRecordColumns: ColumnDef<TrainingRecordRow>[] = [
+    {
+      header: 'Mã đào tạo',
+      cell: (row) => row.code,
+    },
+    {
+      header: 'Nhân viên vận hành',
+      cell: (row) => row.operatorLabel,
+    },
+    {
+      header: 'Kỹ năng đào tạo',
+      cell: (row) => row.skillLabel,
+    },
+    {
+      header: 'Ngày',
+      cell: (row) => row.trainingDate,
+    },
+    {
+      header: 'Số giờ',
+      cell: (row) => row.durationHours,
+    },
+    {
+      header: 'Giảng viên hướng dẫn',
+      cell: (row) => row.instructorLabel,
+    },
+    {
+      header: 'Kết quả',
+      cell: (row) => row.result,
+    },
+  ]
+
   return (
     <section className="shift-admin" aria-labelledby="shift-admin-title">
-      <header className="shift-admin__header">
-        <div>
-          <p className="shift-admin__eyebrow">WEB-MES-09-SHIFT-SKILL · `/web/mes/shifts`</p>
-          <h2 id="shift-admin-title">Lao động &amp; Ca làm việc — Shift / Skill / Training</h2>
-          <p className="shift-admin__lead">
-            Quản lý ca, phân ca, skill master, chứng chỉ operator và training record
-            (MES09-001..023). Mutation gated bởi server <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="shift-admin__actions">
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Ca & Kỹ năng' },
+        ]}
+        title="Quản lý Ca & Kỹ năng (Shift & Skill)"
+        subtitle="Quản lý ca làm việc, phân lịch nhân viên, danh mục ma trận kỹ năng tay nghề và kết quả đào tạo nội bộ."
+      />
 
       <div className="shift-admin__tabs" role="tablist" aria-label="Shift/Skill admin sections">
         <button
@@ -529,47 +666,69 @@ export function ShiftSkillPage() {
 
       {admin.tab === 'shifts' ? (
         <>
-          <form
-            className="shift-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm ca (code)',
+                placeholder: 'SHIFT-…',
+              },
+            ]}
+            values={{
+              search: admin.shiftSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setShiftSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyShiftSearch()
             }}
-          >
-            <label className="shift-admin__field">
-              <span>Tìm ca (code)</span>
-              <input
-                value={admin.shiftSearchInput}
-                onChange={(e) => admin.setShiftSearchInput(e.target.value)}
-                placeholder="SHIFT-…"
-              />
-            </label>
-            <button type="submit" className="shift-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="shift-admin__btn" onClick={admin.openShiftCreate}>
-              Tạo ca
-            </button>
-          </form>
+            onReset={() => {
+              admin.setShiftSearchInput('')
+              admin.applyShiftSearch()
+            }}
+            isResetActive={Boolean(admin.shiftSearchInput)}
+            expands={
+              <Button type="button" className="shift-admin__btn shrink-0" onClick={admin.openShiftCreate}>
+                Tạo ca
+              </Button>
+            }
+          />
 
-          {admin.showShiftCreate ? (
-            <div className="shift-admin__create">
-              <h3>Tạo ca mới</h3>
-              <p className="shift-admin__muted">
+          <Dialog
+            isOpen={admin.showShiftCreate}
+            onClose={admin.closeShiftCreate}
+            title="Tạo ca mới"
+            maxWidth="max-w-[50%]"
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!window.confirm('Xác nhận tạo ca làm việc này?')) return
+                admin.createShift()
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)]">
                 Form luôn hiển thị — server enforce quyền tạo (MES09-003).
               </p>
-              <label className="shift-admin__field">
-                <span>Code</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+                <Input
                   value={admin.shiftCreateForm.code}
                   onChange={(e) =>
                     admin.setShiftCreateForm({ ...admin.shiftCreateForm, code: e.target.value })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Giờ bắt đầu</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Giờ bắt đầu</span>
+                <Input
                   type="time"
                   value={admin.shiftCreateForm.start_time}
                   onChange={(e) =>
@@ -578,38 +737,42 @@ export function ShiftSkillPage() {
                       start_time: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Giờ kết thúc</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Giờ kết thúc</span>
+                <Input
                   type="time"
                   value={admin.shiftCreateForm.end_time}
                   onChange={(e) =>
                     admin.setShiftCreateForm({ ...admin.shiftCreateForm, end_time: e.target.value })
                   }
+                  required
                 />
               </label>
-              <div className="shift-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
                   type="button"
-                  className="shift-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeShiftCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
                   disabled={admin.shiftCreateErrors.length > 0 || admin.createShiftPending}
-                  onClick={() => admin.createShift()}
                 >
                   {admin.createShiftPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeShiftCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createShiftError ? (
-                <p className="shift-admin__error" role="alert">
+                <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
                   {admin.createShiftError.code}: {admin.createShiftError.message}
                 </p>
               ) : null}
-            </div>
-          ) : null}
+            </form>
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.shiftListState, 'ca')
@@ -623,42 +786,27 @@ export function ShiftSkillPage() {
 
           {admin.shiftListState === 'ready' ? (
             <div className="shift-admin__layout">
-              <div className="shift-admin__table-wrap">
-                <table className="shift-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Bắt đầu</th>
-                      <th>Kết thúc</th>
-                      <th>Qua đêm</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.shiftRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={row.code === admin.selectedShiftCode ? 'shift-admin__row--active' : ''}
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="shift-admin__linkish"
-                            onClick={() => admin.selectShift(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.startTime}</td>
-                        <td>{row.endTime}</td>
-                        <td>{row.isOvernight ? 'Có' : 'Không'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="shift-admin__table-wrap flex flex-col gap-4">
+                <GenericDataTable
+                  data={shiftPagination.paginatedItems}
+                  columns={shiftColumns}
+                  pagination={shiftPagination}
+                  onRowClick={(row) => admin.selectShift(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === admin.selectedShiftCode
+                      ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                      : ''
+                  }
+                />
                 {admin.shiftHasMore ? (
-                  <button type="button" className="shift-admin__more" onClick={admin.shiftLoadMore}>
-                    Tải thêm
-                  </button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="self-center"
+                    onClick={admin.shiftLoadMore}
+                  >
+                    Tải thêm từ máy chủ
+                  </Button>
                 ) : null}
               </div>
 
@@ -676,39 +824,60 @@ export function ShiftSkillPage() {
 
       {admin.tab === 'shift_assignments' ? (
         <>
-          <form
-            className="shift-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm phân ca (code / operator / work center)',
+                placeholder: 'SA-…',
+              },
+            ]}
+            values={{
+              search: admin.saSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setSaSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyAssignmentSearch()
             }}
-          >
-            <label className="shift-admin__field">
-              <span>Tìm phân ca (code / operator / work center)</span>
-              <input
-                value={admin.saSearchInput}
-                onChange={(e) => admin.setSaSearchInput(e.target.value)}
-                placeholder="SA-…"
-              />
-            </label>
-            <button type="submit" className="shift-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="shift-admin__btn" onClick={admin.openAssignmentCreate}>
-              Tạo phân ca
-            </button>
-          </form>
+            onReset={() => {
+              admin.setSaSearchInput('')
+              admin.applyAssignmentSearch()
+            }}
+            isResetActive={Boolean(admin.saSearchInput)}
+            expands={
+              <Button type="button" className="shift-admin__btn shrink-0" onClick={admin.openAssignmentCreate}>
+                Tạo phân ca
+              </Button>
+            }
+          />
 
-          {admin.showAssignmentCreate ? (
-            <div className="shift-admin__create">
-              <h3>Tạo phân ca mới</h3>
-              <p className="shift-admin__muted">
+          <Dialog
+            isOpen={admin.showAssignmentCreate}
+            onClose={admin.closeAssignmentCreate}
+            title="Tạo phân ca mới"
+            maxWidth="max-w-[50%]"
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!window.confirm('Xác nhận tạo phân ca này?')) return
+                admin.createAssignment()
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)]">
                 Form luôn hiển thị — server enforce quyền tạo (MES09-008). Operator dùng user ID
                 số (chưa có canonical lookup trả về id cho non-admin, xem BUILD-STATE notes).
               </p>
-              <label className="shift-admin__field">
-                <span>Code</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+                <Input
                   value={admin.assignmentCreateForm.code}
                   onChange={(e) =>
                     admin.setAssignmentCreateForm({
@@ -716,11 +885,12 @@ export function ShiftSkillPage() {
                       code: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Ngày làm</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Ngày làm</span>
+                <Input
                   type="date"
                   value={admin.assignmentCreateForm.work_date}
                   onChange={(e) =>
@@ -729,11 +899,12 @@ export function ShiftSkillPage() {
                       work_date: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Ca</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Ca</span>
+                <Select
                   value={admin.assignmentCreateForm.shift_id}
                   onChange={(e) =>
                     admin.setAssignmentCreateForm({
@@ -748,11 +919,11 @@ export function ShiftSkillPage() {
                       {s.code} ({s.start_time}–{s.end_time})
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label className="shift-admin__field">
-                <span>Operator (user ID)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Operator (user ID)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.assignmentCreateForm.operator_id || ''}
                   onChange={(e) =>
@@ -761,11 +932,12 @@ export function ShiftSkillPage() {
                       operator_id: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Work center (ID)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Work center (ID)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.assignmentCreateForm.work_center_id || ''}
                   onChange={(e) =>
@@ -774,11 +946,12 @@ export function ShiftSkillPage() {
                       work_center_id: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Vai trò</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Vai trò</span>
+                <Select
                   value={admin.assignmentCreateForm.role_on_line}
                   onChange={(e) =>
                     admin.setAssignmentCreateForm({
@@ -792,28 +965,30 @@ export function ShiftSkillPage() {
                       {r}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <div className="shift-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
                   type="button"
-                  className="shift-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeAssignmentCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
                   disabled={admin.assignmentCreateErrors.length > 0 || admin.createAssignmentPending}
-                  onClick={() => admin.createAssignment()}
                 >
                   {admin.createAssignmentPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeAssignmentCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createAssignmentError ? (
-                <p className="shift-admin__error" role="alert">
+                <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
                   {admin.createAssignmentError.code}: {admin.createAssignmentError.message}
                 </p>
               ) : null}
-            </div>
-          ) : null}
+            </form>
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.assignmentListState, 'phân ca')
@@ -830,48 +1005,27 @@ export function ShiftSkillPage() {
 
           {admin.assignmentListState === 'ready' ? (
             <div className="shift-admin__layout">
-              <div className="shift-admin__table-wrap">
-                <table className="shift-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Ngày</th>
-                      <th>Ca</th>
-                      <th>Operator</th>
-                      <th>Work center</th>
-                      <th>Vai trò</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.assignmentRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === admin.selectedAssignmentCode ? 'shift-admin__row--active' : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="shift-admin__linkish"
-                            onClick={() => admin.selectAssignment(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.workDate}</td>
-                        <td>{row.shiftLabel}</td>
-                        <td>{row.operatorLabel}</td>
-                        <td>{row.workCenterLabel}</td>
-                        <td>{row.roleOnLine}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="shift-admin__table-wrap flex flex-col gap-4">
+                <GenericDataTable
+                  data={saPagination.paginatedItems}
+                  columns={saColumns}
+                  pagination={saPagination}
+                  onRowClick={(row) => admin.selectAssignment(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === admin.selectedAssignmentCode
+                      ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                      : ''
+                  }
+                />
                 {admin.assignmentHasMore ? (
-                  <button type="button" className="shift-admin__more" onClick={admin.assignmentLoadMore}>
-                    Tải thêm
-                  </button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="self-center"
+                    onClick={admin.assignmentLoadMore}
+                  >
+                    Tải thêm từ máy chủ
+                  </Button>
                 ) : null}
               </div>
 
@@ -893,56 +1047,79 @@ export function ShiftSkillPage() {
 
       {admin.tab === 'skills' ? (
         <>
-          <form
-            className="shift-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm kỹ năng (code / tên)',
+                placeholder: 'SK-… / tên',
+              },
+            ]}
+            values={{
+              search: admin.skillSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setSkillSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySkillSearch()
             }}
-          >
-            <label className="shift-admin__field">
-              <span>Tìm kỹ năng (code / tên)</span>
-              <input
-                value={admin.skillSearchInput}
-                onChange={(e) => admin.setSkillSearchInput(e.target.value)}
-                placeholder="SK-… / tên"
-              />
-            </label>
-            <button type="submit" className="shift-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="shift-admin__btn" onClick={admin.openSkillCreate}>
-              Tạo kỹ năng
-            </button>
-          </form>
+            onReset={() => {
+              admin.setSkillSearchInput('')
+              admin.applySkillSearch()
+            }}
+            isResetActive={Boolean(admin.skillSearchInput)}
+            expands={
+              <Button type="button" className="shift-admin__btn shrink-0" onClick={admin.openSkillCreate}>
+                Tạo kỹ năng
+              </Button>
+            }
+          />
 
-          {admin.showSkillCreate ? (
-            <div className="shift-admin__create">
-              <h3>Tạo kỹ năng mới</h3>
-              <p className="shift-admin__muted">
+          <Dialog
+            isOpen={admin.showSkillCreate}
+            onClose={admin.closeSkillCreate}
+            title="Tạo kỹ năng mới"
+            maxWidth="max-w-[50%]"
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!window.confirm('Xác nhận tạo kỹ năng này?')) return
+                admin.createSkill()
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)]">
                 Form luôn hiển thị — server enforce quyền tạo (MES09-013).
               </p>
-              <label className="shift-admin__field">
-                <span>Code</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+                <Input
                   value={admin.skillCreateForm.code}
                   onChange={(e) =>
                     admin.setSkillCreateForm({ ...admin.skillCreateForm, code: e.target.value })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Tên kỹ năng</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Tên kỹ năng</span>
+                <Input
                   value={admin.skillCreateForm.skill_name}
                   onChange={(e) =>
                     admin.setSkillCreateForm({ ...admin.skillCreateForm, skill_name: e.target.value })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Nhóm</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Nhóm</span>
+                <Select
                   value={admin.skillCreateForm.skill_category}
                   onChange={(e) =>
                     admin.setSkillCreateForm({
@@ -956,11 +1133,11 @@ export function ShiftSkillPage() {
                       {c}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label className="shift-admin__field">
-                <span>Hiệu lực (tháng, optional)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Hiệu lực (tháng, optional)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.skillCreateForm.validity_months ?? ''}
                   onChange={(e) =>
@@ -971,35 +1148,38 @@ export function ShiftSkillPage() {
                   }
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Đơn vị cấp</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Đơn vị cấp</span>
+                <Input
                   value={admin.skillCreateForm.issuer}
                   onChange={(e) =>
                     admin.setSkillCreateForm({ ...admin.skillCreateForm, issuer: e.target.value })
                   }
+                  required
                 />
               </label>
-              <div className="shift-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
                   type="button"
-                  className="shift-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeSkillCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
                   disabled={admin.skillCreateErrors.length > 0 || admin.createSkillPending}
-                  onClick={() => admin.createSkill()}
                 >
                   {admin.createSkillPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeSkillCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createSkillError ? (
-                <p className="shift-admin__error" role="alert">
+                <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
                   {admin.createSkillError.code}: {admin.createSkillError.message}
                 </p>
               ) : null}
-            </div>
-          ) : null}
+            </form>
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.skillListState, 'kỹ năng')
@@ -1013,44 +1193,27 @@ export function ShiftSkillPage() {
 
           {admin.skillListState === 'ready' ? (
             <div className="shift-admin__layout">
-              <div className="shift-admin__table-wrap">
-                <table className="shift-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Tên</th>
-                      <th>Nhóm</th>
-                      <th>Hiệu lực (tháng)</th>
-                      <th>Active</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.skillRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={row.code === admin.selectedSkillCode ? 'shift-admin__row--active' : ''}
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="shift-admin__linkish"
-                            onClick={() => admin.selectSkill(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.skillName}</td>
-                        <td>{row.skillCategory}</td>
-                        <td>{row.validityMonths}</td>
-                        <td>{row.isActive ? 'Active' : 'Inactive'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="shift-admin__table-wrap flex flex-col gap-4">
+                <GenericDataTable
+                  data={skillPagination.paginatedItems}
+                  columns={skillColumns}
+                  pagination={skillPagination}
+                  onRowClick={(row) => admin.selectSkill(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === admin.selectedSkillCode
+                      ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                      : ''
+                  }
+                />
                 {admin.skillHasMore ? (
-                  <button type="button" className="shift-admin__more" onClick={admin.skillLoadMore}>
-                    Tải thêm
-                  </button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="self-center"
+                    onClick={admin.skillLoadMore}
+                  >
+                    Tải thêm từ máy chủ
+                  </Button>
                 ) : null}
               </div>
 
@@ -1068,43 +1231,64 @@ export function ShiftSkillPage() {
 
       {admin.tab === 'operator_skills' ? (
         <>
-          <form
-            className="shift-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm chứng chỉ (code / operator / skill)',
+                placeholder: 'OS-…',
+              },
+            ]}
+            values={{
+              search: admin.osSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setOsSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyOperatorSkillSearch()
             }}
-          >
-            <label className="shift-admin__field">
-              <span>Tìm chứng chỉ (code / operator / skill)</span>
-              <input
-                value={admin.osSearchInput}
-                onChange={(e) => admin.setOsSearchInput(e.target.value)}
-                placeholder="OS-…"
-              />
-            </label>
-            <button type="submit" className="shift-admin__btn">
-              Lọc
-            </button>
-            <button
-              type="button"
-              className="shift-admin__btn"
-              onClick={admin.openOperatorSkillCreate}
-            >
-              Tạo chứng chỉ
-            </button>
-          </form>
+            onReset={() => {
+              admin.setOsSearchInput('')
+              admin.applyOperatorSkillSearch()
+            }}
+            isResetActive={Boolean(admin.osSearchInput)}
+            expands={
+              <Button
+                type="button"
+                className="shift-admin__btn shrink-0"
+                onClick={admin.openOperatorSkillCreate}
+              >
+                Tạo chứng chỉ
+              </Button>
+            }
+          />
 
-          {admin.showOperatorSkillCreate ? (
-            <div className="shift-admin__create">
-              <h3>Tạo chứng chỉ operator mới</h3>
-              <p className="shift-admin__muted">
+          <Dialog
+            isOpen={admin.showOperatorSkillCreate}
+            onClose={admin.closeOperatorSkillCreate}
+            title="Tạo chứng chỉ operator mới"
+            maxWidth="max-w-[50%]"
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!window.confirm('Xác nhận tạo chứng chỉ operator này?')) return
+                admin.createOperatorSkill()
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)]">
                 Form luôn hiển thị — server enforce quyền tạo (MES09-018). Operator dùng user ID
                 số (chưa có canonical lookup trả về id cho non-admin, xem BUILD-STATE notes).
               </p>
-              <label className="shift-admin__field">
-                <span>Code</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+                <Input
                   value={admin.operatorSkillCreateForm.code}
                   onChange={(e) =>
                     admin.setOperatorSkillCreateForm({
@@ -1112,11 +1296,12 @@ export function ShiftSkillPage() {
                       code: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Operator (user ID)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Operator (user ID)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.operatorSkillCreateForm.operator_id || ''}
                   onChange={(e) =>
@@ -1125,11 +1310,12 @@ export function ShiftSkillPage() {
                       operator_id: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Skill</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Skill</span>
+                <Select
                   value={admin.operatorSkillCreateForm.skill_id}
                   onChange={(e) =>
                     admin.setOperatorSkillCreateForm({
@@ -1144,11 +1330,11 @@ export function ShiftSkillPage() {
                       {sk.code} — {sk.skill_name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label className="shift-admin__field">
-                <span>Level</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Level</span>
+                <Select
                   value={admin.operatorSkillCreateForm.level}
                   onChange={(e) =>
                     admin.setOperatorSkillCreateForm({
@@ -1162,11 +1348,11 @@ export function ShiftSkillPage() {
                       {l}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label className="shift-admin__field">
-                <span>Ngày cấp</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Ngày cấp</span>
+                <Input
                   type="date"
                   value={admin.operatorSkillCreateForm.issued_date}
                   onChange={(e) =>
@@ -1175,11 +1361,12 @@ export function ShiftSkillPage() {
                       issued_date: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Status</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Status</span>
+                <Select
                   value={admin.operatorSkillCreateForm.status}
                   onChange={(e) =>
                     admin.setOperatorSkillCreateForm({
@@ -1193,30 +1380,32 @@ export function ShiftSkillPage() {
                       {s}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <div className="shift-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
                   type="button"
-                  className="shift-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeOperatorSkillCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
                   disabled={
                     admin.operatorSkillCreateErrors.length > 0 || admin.createOperatorSkillPending
                   }
-                  onClick={() => admin.createOperatorSkill()}
                 >
                   {admin.createOperatorSkillPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeOperatorSkillCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createOperatorSkillError ? (
-                <p className="shift-admin__error" role="alert">
+                <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
                   {admin.createOperatorSkillError.code}: {admin.createOperatorSkillError.message}
                 </p>
               ) : null}
-            </div>
-          ) : null}
+            </form>
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.operatorSkillListState, 'chứng chỉ operator')
@@ -1233,52 +1422,27 @@ export function ShiftSkillPage() {
 
           {admin.operatorSkillListState === 'ready' ? (
             <div className="shift-admin__layout">
-              <div className="shift-admin__table-wrap">
-                <table className="shift-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Operator</th>
-                      <th>Skill</th>
-                      <th>Level</th>
-                      <th>Hết hạn</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {admin.operatorSkillRows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === admin.selectedOperatorSkillCode ? 'shift-admin__row--active' : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="shift-admin__linkish"
-                            onClick={() => admin.selectOperatorSkill(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.operatorLabel}</td>
-                        <td>{row.skillLabel}</td>
-                        <td>{row.level}</td>
-                        <td>{row.expiryDate}</td>
-                        <td>{row.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="shift-admin__table-wrap flex flex-col gap-4">
+                <GenericDataTable
+                  data={osPagination.paginatedItems}
+                  columns={osColumns}
+                  pagination={osPagination}
+                  onRowClick={(row) => admin.selectOperatorSkill(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === admin.selectedOperatorSkillCode
+                      ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                      : ''
+                  }
+                />
                 {admin.operatorSkillHasMore ? (
-                  <button
+                  <Button
                     type="button"
-                    className="shift-admin__more"
+                    variant="secondary"
+                    className="self-center"
                     onClick={admin.operatorSkillLoadMore}
                   >
-                    Tải thêm
-                  </button>
+                    Tải thêm từ máy chủ
+                  </Button>
                 ) : null}
               </div>
 
@@ -1300,44 +1464,65 @@ export function ShiftSkillPage() {
 
       {admin.tab === 'training_records' ? (
         <>
-          <form
-            className="shift-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm training record (code / operator / skill)',
+                placeholder: 'TR-…',
+              },
+            ]}
+            values={{
+              search: admin.trSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setTrSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyTrainingRecordSearch()
             }}
-          >
-            <label className="shift-admin__field">
-              <span>Tìm training record (code / operator / skill)</span>
-              <input
-                value={admin.trSearchInput}
-                onChange={(e) => admin.setTrSearchInput(e.target.value)}
-                placeholder="TR-…"
-              />
-            </label>
-            <button type="submit" className="shift-admin__btn">
-              Lọc
-            </button>
-            <button
-              type="button"
-              className="shift-admin__btn"
-              onClick={admin.openTrainingRecordCreate}
-            >
-              Tạo training record
-            </button>
-          </form>
+            onReset={() => {
+              admin.setTrSearchInput('')
+              admin.applyTrainingRecordSearch()
+            }}
+            isResetActive={Boolean(admin.trSearchInput)}
+            expands={
+              <Button
+                type="button"
+                className="shift-admin__btn shrink-0"
+                onClick={admin.openTrainingRecordCreate}
+              >
+                Tạo training record
+              </Button>
+            }
+          />
 
-          {admin.showTrainingRecordCreate ? (
-            <div className="shift-admin__create">
-              <h3>Tạo training record mới</h3>
-              <p className="shift-admin__muted">
+          <Dialog
+            isOpen={admin.showTrainingRecordCreate}
+            onClose={admin.closeTrainingRecordCreate}
+            title="Tạo training record mới"
+            maxWidth="max-w-[50%]"
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                if (!window.confirm('Xác nhận tạo training record này?')) return
+                admin.createTrainingRecord()
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)]">
                 Form luôn hiển thị — server enforce quyền tạo (MES09-023). Kết quả PASS tự động
                 tạo operator_skill TRAINEE. Không có update/deactivate cho entity này theo contract.
                 Operator/Instructor dùng user ID số (xem BUILD-STATE notes).
               </p>
-              <label className="shift-admin__field">
-                <span>Code</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+                <Input
                   value={admin.trainingRecordCreateForm.code}
                   onChange={(e) =>
                     admin.setTrainingRecordCreateForm({
@@ -1345,11 +1530,12 @@ export function ShiftSkillPage() {
                       code: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Operator (user ID)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Operator (user ID)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.trainingRecordCreateForm.operator_id || ''}
                   onChange={(e) =>
@@ -1358,11 +1544,12 @@ export function ShiftSkillPage() {
                       operator_id: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Skill</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Skill</span>
+                <Select
                   value={admin.trainingRecordCreateForm.skill_id}
                   onChange={(e) =>
                     admin.setTrainingRecordCreateForm({
@@ -1377,11 +1564,11 @@ export function ShiftSkillPage() {
                       {sk.code} — {sk.skill_name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <label className="shift-admin__field">
-                <span>Ngày training</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Ngày training</span>
+                <Input
                   type="date"
                   value={admin.trainingRecordCreateForm.training_date}
                   onChange={(e) =>
@@ -1390,11 +1577,12 @@ export function ShiftSkillPage() {
                       training_date: e.target.value,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Số giờ</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Số giờ</span>
+                <Input
                   inputMode="decimal"
                   value={admin.trainingRecordCreateForm.duration_hours || ''}
                   onChange={(e) =>
@@ -1403,11 +1591,12 @@ export function ShiftSkillPage() {
                       duration_hours: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Instructor (user ID)</span>
-                <input
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Instructor (user ID)</span>
+                <Input
                   inputMode="numeric"
                   value={admin.trainingRecordCreateForm.instructor_id || ''}
                   onChange={(e) =>
@@ -1416,11 +1605,12 @@ export function ShiftSkillPage() {
                       instructor_id: Number(e.target.value) || 0,
                     })
                   }
+                  required
                 />
               </label>
-              <label className="shift-admin__field">
-                <span>Kết quả</span>
-                <select
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Kết quả</span>
+                <Select
                   value={admin.trainingRecordCreateForm.result}
                   onChange={(e) =>
                     admin.setTrainingRecordCreateForm({
@@ -1434,30 +1624,32 @@ export function ShiftSkillPage() {
                       {r}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <div className="shift-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
                   type="button"
-                  className="shift-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeTrainingRecordCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="submit"
                   disabled={
                     admin.trainingRecordCreateErrors.length > 0 || admin.createTrainingRecordPending
                   }
-                  onClick={() => admin.createTrainingRecord()}
                 >
                   {admin.createTrainingRecordPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeTrainingRecordCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createTrainingRecordError ? (
-                <p className="shift-admin__error" role="alert">
+                <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
                   {admin.createTrainingRecordError.code}: {admin.createTrainingRecordError.message}
                 </p>
               ) : null}
-            </div>
-          ) : null}
+            </form>
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.trainingRecordListState, 'training record')
@@ -1473,41 +1665,21 @@ export function ShiftSkillPage() {
           })()}
 
           {admin.trainingRecordListState === 'ready' ? (
-            <div className="shift-admin__table-wrap">
-              <table className="shift-admin__table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Operator</th>
-                    <th>Skill</th>
-                    <th>Ngày</th>
-                    <th>Số giờ</th>
-                    <th>Instructor</th>
-                    <th>Kết quả</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {admin.trainingRecordRows.map((row) => (
-                    <tr key={row.code}>
-                      <td>{row.code}</td>
-                      <td>{row.operatorLabel}</td>
-                      <td>{row.skillLabel}</td>
-                      <td>{row.trainingDate}</td>
-                      <td>{row.durationHours}</td>
-                      <td>{row.instructorLabel}</td>
-                      <td>{row.result}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="shift-admin__table-wrap flex flex-col gap-4">
+              <GenericDataTable
+                data={trainingRecordPagination.paginatedItems}
+                columns={trainingRecordColumns}
+                pagination={trainingRecordPagination}
+              />
               {admin.trainingRecordHasMore ? (
-                <button
+                <Button
                   type="button"
-                  className="shift-admin__more"
+                  variant="secondary"
+                  className="self-center"
                   onClick={admin.trainingRecordLoadMore}
                 >
-                  Tải thêm
-                </button>
+                  Tải thêm từ máy chủ
+                </Button>
               ) : null}
             </div>
           ) : null}

@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: var(--size-sidebar) 1fr;
   min-height: 100vh;
-  transition: grid-template-columns 0.2s ease;
+  transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .shell--sidebar-off {
@@ -20,17 +20,15 @@
 .shell__sidebar {
   background: var(--color-nav-surface);
   color: var(--color-nav-content);
-  padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  transition: all 0.2s ease;
-  
-  /* Make sidebar fixed viewport height without scrolling internally at root */
+  justify-content: space-between;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: sticky;
   top: 0;
   height: 100vh;
   overflow: hidden;
+  z-index: 40;
 }
 
 .shell__brand-link {
@@ -43,47 +41,48 @@
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.5rem;
+  padding: 1.25rem 1rem;
   flex-shrink: 0;
-  border-radius: 0.5rem;
   transition: background 0.15s ease;
 }
 
 .shell__brand-link:hover .shell__brand {
-  background: rgb(255 255 255 / 5%);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .shell__brand-mark {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.65rem;
-  background: linear-gradient(145deg, var(--color-nav-active), var(--color-action-primary));
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--color-nav-active), var(--color-action-primary));
 }
 
 .shell__brand strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .shell__brand p {
-  margin: 0.15rem 0 0;
+  margin: 0.1rem 0 0;
   color: var(--color-nav-muted);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .shell__nav {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  
-  /* Scrollbar only on nav items list */
+  gap: 0.25rem;
   overflow-y: auto;
   flex: 1;
 }
 
+.shell__nav button {
+  white-space: nowrap;
+}
+
 /* Beautiful custom scrollbar for left menu nav items list */
 .shell__nav::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .shell__nav::-webkit-scrollbar-track {
@@ -91,31 +90,23 @@
 }
 
 .shell__nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2.5px;
 }
 
 .shell__nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .shell__nav-link {
-  padding: 0.7rem 0.85rem;
-  border-radius: 0.65rem;
-  color: var(--color-nav-content);
-  font-size: 0.875rem;
   text-decoration: none;
-  transition: background 0.15s ease;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .shell__nav-link:hover {
-  background: rgb(255 255 255 / 8%);
-}
-
-.shell__nav-link--active {
-  background: color-mix(in srgb, var(--color-nav-active) 28%, transparent);
-  color: var(--color-text-on-primary);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .shell__main {
@@ -129,24 +120,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 0 1.5rem;
   background: var(--color-surface-card);
   border-bottom: 1px solid var(--color-border-default);
-  height: 64px;
+  height: 56px;
 }
 
 .shell__header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .shell__sidebar-toggle {
   background: transparent;
   border: 1px solid var(--color-border-default);
   color: var(--color-text-primary);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,8 +152,9 @@
 
 .shell__header h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 650;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
 .shell__header-actions {
@@ -171,45 +163,15 @@
   gap: 0.75rem;
 }
 
-.shell__user {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-}
-
-.shell__signout {
-  border: 1px solid var(--color-border-default);
-  background: var(--color-surface-card);
-  border-radius: 0.55rem;
-  padding: 0.45rem 0.8rem;
-  cursor: pointer;
-  color: var(--color-text-primary);
-}
-
-.shell__theme-toggle {
-  border: 1px solid var(--color-border-default);
-  background: var(--color-surface-card);
-  border-radius: 0.55rem;
-  padding: 0.45rem 0.55rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-primary);
-}
-
-.shell__signout:hover,
-.shell__theme-toggle:hover {
-  background: var(--color-page-surface);
-}
-
 .shell__content {
   padding: 1.5rem;
   background: var(--color-page-surface);
   color: var(--color-text-primary);
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 56px);
 }
 
-@media (max-width: 900px) {
+/* Responsive Rules for Small Screens */
+@media (max-width: 1024px) {
   .shell {
     grid-template-columns: 1fr;
   }
@@ -219,22 +181,17 @@
   }
 
   .shell__sidebar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    height: auto;
-    overflow: visible;
-    position: relative;
-    padding: 1rem;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--size-sidebar);
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
   }
 
-  .shell__nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-y: visible;
-  }
-  
-  .shell__sidebar-toggle {
-    display: none;
+  /* When sidebar is on, overlay it drawer-style */
+  .shell:not(.shell--sidebar-off) .shell__sidebar {
+    transform: translateX(0);
   }
 }

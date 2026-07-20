@@ -5,20 +5,16 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { isSystemAdminSession } from '@/shared/api'
 
 import { useAuditViewer } from '../hooks/useAuditViewer'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import type { AuditEventRow } from '../lib/auditProjection'
 
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Dialog } from '@/shared/components/ui/Dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/shared/components/ui/Table'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import {
   RefreshCw,
   FileDown,
@@ -31,6 +27,7 @@ import {
   Database,
   Globe,
   Terminal,
+  Filter,
 } from 'lucide-react'
 
 import './AuditViewerPage.css'
@@ -77,6 +74,55 @@ export function AuditViewerPage() {
   const session = useAuthStore((s) => s.session)
   const viewer = useAuditViewer()
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const pagination = usePagination(viewer.rows, 10)
+
+  const columns: ColumnDef<AuditEventRow>[] = [
+    {
+      header: 'Mã sự kiện',
+      cell: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            viewer.setSelectedId(row.id)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.code}
+        </Button>
+      ),
+    },
+    {
+      header: 'Thời gian',
+      cell: (row) => <span className="text-slate-500 whitespace-nowrap">{row.occurredAt}</span>,
+    },
+    {
+      header: 'Loại sự kiện',
+      cell: (row) => <span className="font-semibold text-slate-800 dark:text-slate-100">{row.eventType}</span>,
+    },
+    {
+      header: 'Đối tượng tác động',
+      cell: (row) => <span className="text-slate-655 font-mono text-xs">{row.entityType}</span>,
+    },
+    {
+      header: 'Thao tác',
+      cell: (row) => <span className="font-semibold text-slate-700 dark:text-slate-300">{row.action}</span>,
+    },
+    {
+      header: 'Vị trí',
+      cell: (row) => row.locationLabel || '-',
+    },
+    {
+      header: 'Lệnh SX',
+      cell: (row) => row.workOrderLabel || '-',
+    },
+    {
+      header: 'Mã Lô',
+      cell: (row) => <span className="font-mono text-xs">{row.lotLabel || '-'}</span>,
+    },
+  ]
 
   if (!isSystemAdminSession(session)) {
     return (
@@ -119,6 +165,17 @@ export function AuditViewerPage() {
         subtitle="Nhật ký append-only activity_events — truy xuất, lọc và xuất bằng chứng kiểm toán."
         actions={
           <div className="flex items-center gap-2">
+            {viewer.page?.has_more && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-1.5 h-9"
+                onClick={viewer.loadMore}
+                disabled={viewer.listState === 'loading'}
+              >
+                Tải thêm sự kiện
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -143,30 +200,26 @@ export function AuditViewerPage() {
         }
       />
 
-      {/* Filter Toolbar */}
-      <div className="flex flex-col md:flex-row gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <form
-          className="flex-1 flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault()
-            viewer.applySearch()
-          }}
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <Input
-              value={viewer.searchInput}
-              onChange={(event) => viewer.setSearchInput(event.target.value)}
-              placeholder="Tìm kiếm theo event_type, entity, code hoặc action..."
-              className="pl-9 h-9"
-              autoComplete="off"
-            />
-          </div>
-          <Button type="submit" size="sm" className="h-9">
-            Tìm kiếm
-          </Button>
-        </form>
-      </div>
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo loại sự kiện / thực thể / mã / hành động...'
+          }
+        ]}
+        values={{ searchInput: viewer.searchInput }}
+        onChange={(_, val) => viewer.setSearchInput(val)}
+        onSubmit={(event) => {
+          event.preventDefault()
+          viewer.applySearch()
+        }}
+        onReset={() => {
+          viewer.setSearchInput('')
+          viewer.applySearch()
+        }}
+        isResetActive={!!viewer.appliedQuery}
+      />
 
       {exportBanner && (
         <div
@@ -182,7 +235,7 @@ export function AuditViewerPage() {
         </div>
       )}
 
-      {banner && viewer.listState !== 'ready' && (
+      {banner && viewer.listState !== 'ready' && viewer.listState !== 'loading' && (
         <div className="p-6 text-center text-sm text-slate-400 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 rounded-lg" role="status">
           <p>{banner}</p>
           {viewer.listError && (
@@ -193,73 +246,18 @@ export function AuditViewerPage() {
         </div>
       )}
 
-      {(viewer.listState === 'ready' || viewer.isRefreshing) && (
-        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-          <Table containerClassName="relative w-full overflow-auto">
-            <TableHeader>
-              <TableRow className="pointer-events-none hover:bg-transparent">
-                <TableHead>Mã sự kiện</TableHead>
-                <TableHead>Thời gian</TableHead>
-                <TableHead>Event Type</TableHead>
-                <TableHead>Entity Type</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Vị trí</TableHead>
-                <TableHead>Lệnh SX</TableHead>
-                <TableHead>Mã Lô</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {viewer.rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={`hover:bg-slate-50/50 cursor-pointer ${
-                    viewer.selectedId === row.id ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''
-                  }`}
-                  onClick={() => {
-                    viewer.setSelectedId(row.id)
-                    setIsDetailOpen(true)
-                  }}
-                >
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-0 py-0 h-auto font-semibold hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        viewer.setSelectedId(row.id)
-                        setIsDetailOpen(true)
-                      }}
-                    >
-                      {row.code}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-slate-500 whitespace-nowrap">{row.occurredAt}</TableCell>
-                  <TableCell className="font-semibold text-slate-800 dark:text-slate-100">{row.eventType}</TableCell>
-                  <TableCell className="text-slate-655 font-mono text-xs">{row.entityType}</TableCell>
-                  <TableCell className="font-semibold text-slate-700 dark:text-slate-300">{row.action}</TableCell>
-                  <TableCell className="text-slate-500">{row.locationLabel || '-'}</TableCell>
-                  <TableCell className="text-slate-500">{row.workOrderLabel || '-'}</TableCell>
-                  <TableCell className="text-slate-500 font-mono text-xs">{row.lotLabel || '-'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {viewer.page?.has_more && (
-            <div className="flex justify-center p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="gap-1.5 px-6"
-                onClick={viewer.loadMore}
-                disabled={viewer.listState === 'loading'}
-              >
-                Tải thêm sự kiện
-              </Button>
-            </div>
-          )}
-        </div>
+      {(viewer.listState === 'ready' || viewer.isRefreshing || viewer.listState === 'loading') && (
+        <GenericDataTable
+          data={pagination.paginatedItems}
+          columns={columns}
+          pagination={pagination}
+          isLoading={viewer.listState === 'loading'}
+          onRowClick={(row) => {
+            viewer.setSelectedId(row.id)
+            setIsDetailOpen(true)
+          }}
+          getRowClassName={(row) => viewer.selectedId === row.id ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+        />
       )}
 
       {/* Details Dialog Modal Overlay */}

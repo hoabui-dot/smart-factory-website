@@ -16,6 +16,11 @@ import {
   resolveApprovalListState,
 } from '../lib/approvalInboxProjection'
 
+// Import Shadcn & Layout components
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input } from '@/shared/components/ui/Input'
+
 import './SharedAggregatePages.css'
 
 function stateMessage(state: string): string {
@@ -98,53 +103,80 @@ export function ApprovalInboxPage() {
   const searchRows = (searchQuery.data?.items ?? []).map(projectSearchHit)
 
   return (
-    <section className="shared-agg" aria-labelledby="approval-title">
-      <header className="shared-agg__header">
-        <div>
-          <p className="shared-agg__eyebrow">
-            WEB-SHARED-01D-APPROVAL-INBOX · `/web/shared/approval-inbox`
-          </p>
-          <h2 id="approval-title">Approval Inbox + Global Search</h2>
-          <p className="shared-agg__lead">
-            Approve/Reject chỉ theo <code>allowed_actions</code> string từ server; search deep-link
-            nội bộ <code>/web/</code>.
-          </p>
-        </div>
-        <Link to="/home">Về trang chủ</Link>
-      </header>
+    <section className="flex flex-col gap-6 font-sans">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'Kênh phê duyệt' },
+        ]}
+        title="Danh sách phê duyệt"
+        subtitle="Duyệt hoặc từ chối các yêu cầu thay đổi, tài liệu chất lượng và lệnh sản xuất."
+      />
 
-      <div className="shared-agg__tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={tab === 'inbox'} onClick={() => setTab('inbox')}>
-          Inbox
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'inbox'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tab === 'inbox'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-355'
+          }`}
+          onClick={() => setTab('inbox')}
+        >
+          Hộp thư phê duyệt
         </button>
-        <button type="button" role="tab" aria-selected={tab === 'search'} onClick={() => setTab('search')}>
-          Global Search
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'search'}
+          className={`pb-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            tab === 'search'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-355'
+          }`}
+          onClick={() => setTab('search')}
+        >
+          Tìm kiếm toàn cầu
         </button>
       </div>
 
       {tab === 'inbox' ? (
         <>
           <form
-            className="shared-agg__toolbar"
+            className="flex items-center gap-2 max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(ev) => {
               ev.preventDefault()
               setInboxCursor(undefined)
               setInboxQ(inboxQInput.trim())
             }}
           >
-            <label>
-              <span>Lọc inbox</span>
-              <input value={inboxQInput} onChange={(e) => setInboxQInput(e.target.value)} />
-            </label>
-            <button type="submit">Tìm</button>
-            <button type="button" onClick={() => inboxQuery.refetch()} disabled={inboxQuery.isFetching}>
+            <div className="flex-1">
+              <Input
+                value={inboxQInput}
+                onChange={(e) => setInboxQInput(e.target.value)}
+                placeholder="Lọc hộp thư phê duyệt..."
+                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
+              />
+            </div>
+            <Button type="submit" size="sm">
+              Tìm
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => inboxQuery.refetch()}
+              disabled={inboxQuery.isFetching}
+            >
               Làm mới
-            </button>
+            </Button>
           </form>
 
           {inboxState !== 'ready' ? (
             <p
-              className="shared-agg__state"
+              className="p-4 rounded bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-355"
               role={inboxState === 'error' || inboxState === 'permission-denied' ? 'alert' : 'status'}
             >
               {stateMessage(inboxState)}
@@ -155,13 +187,14 @@ export function ApprovalInboxPage() {
               {inboxRows.map((row) => {
                 const raw = inboxQuery.data?.items.find((i) => i.approval_key === row.approvalKey)
                 return (
-                  <article className="shared-agg__item" key={row.approvalKey}>
-                    <h4>{row.title}</h4>
-                    <p className="shared-agg__muted">{row.sourceLabel}</p>
-                    <time dateTime={row.requestedAt}>{row.requestedAt}</time>
-                    <div className="shared-agg__actions">
-                      <button
+                  <article className="shared-agg__item border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-2" key={row.approvalKey}>
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-100">{row.title}</h4>
+                    <p className="text-sm text-slate-500">{row.sourceLabel}</p>
+                    <time className="text-xs text-slate-400" dateTime={row.requestedAt}>{row.requestedAt}</time>
+                    <div className="flex gap-2 mt-2">
+                      <Button
                         type="button"
+                        size="sm"
                         disabled={!row.canApprove || !raw}
                         onClick={() => {
                           if (!raw) return
@@ -171,10 +204,12 @@ export function ApprovalInboxPage() {
                           setActionError(null)
                         }}
                       >
-                        Approve
-                      </button>
-                      <button
+                        Duyệt
+                      </Button>
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         disabled={!row.canReject || !raw}
                         onClick={() => {
                           if (!raw) return
@@ -184,8 +219,8 @@ export function ApprovalInboxPage() {
                           setActionError(null)
                         }}
                       >
-                        Reject
-                      </button>
+                        Từ chối
+                      </Button>
                     </div>
                   </article>
                 )
@@ -193,40 +228,49 @@ export function ApprovalInboxPage() {
             </div>
           )}
           {inboxQuery.data?.page.has_more ? (
-            <button
-              type="button"
+            <Button
+              className="self-center"
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 const next = inboxQuery.data?.page.next_cursor
                 if (next) setInboxCursor(next)
               }}
             >
               Trang tiếp theo
-            </button>
+            </Button>
           ) : null}
         </>
       ) : (
         <>
           <form
-            className="shared-agg__toolbar"
+            className="flex items-center gap-2 max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
             onSubmit={(ev) => {
               ev.preventDefault()
               setSearchCursor(undefined)
               setSearchQ(searchInput.trim())
             }}
           >
-            <label>
-              <span>Global search (bắt buộc)</span>
-              <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} required />
-            </label>
-            <button type="submit">Tìm</button>
+            <div className="flex-1">
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Tìm kiếm toàn cục trong hệ thống..."
+                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
+                required
+              />
+            </div>
+            <Button type="submit" size="sm">
+              Tìm kiếm
+            </Button>
           </form>
           {!searchQ.trim() ? (
-            <p className="shared-agg__state" role="status">
-              Nhập từ khóa để tìm trong phạm vi được authorize.
+            <p className="p-4 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-500" role="status">
+              Nhập từ khóa để tìm trong phạm vi được ủy quyền.
             </p>
           ) : searchState !== 'ready' ? (
             <p
-              className="shared-agg__state"
+              className="p-4 rounded bg-red-50 dark:bg-red-955/20 text-sm text-red-650 border border-red-200"
               role={searchState === 'error' || searchState === 'permission-denied' ? 'alert' : 'status'}
             >
               {stateMessage(searchState === 'empty' ? 'no-result' : searchState)}
@@ -235,68 +279,85 @@ export function ApprovalInboxPage() {
           ) : (
             <div className="shared-agg__list">
               {searchRows.map((row) => (
-                <article className="shared-agg__item" key={row.key}>
-                  <h4>{row.label}</h4>
-                  <p className="shared-agg__muted">
-                    {row.sourceModule} · {row.resultType} · {row.businessCode}
+                <article className="shared-agg__item border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm flex flex-col gap-2" key={row.key}>
+                  <h4 className="font-semibold text-slate-800 dark:text-slate-100">{row.label}</h4>
+                  <p className="text-sm text-slate-500">
+                    Phân hệ: {row.sourceModule} · Loại: {row.resultType} · Mã nghiệp vụ: {row.businessCode}
                   </p>
                   {row.deepLink ? (
-                    <Link to={row.deepLink}>Mở <span aria-hidden>→</span></Link>
+                    <Link className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1 mt-1" to={row.deepLink}>
+                      Mở liên kết <span aria-hidden>→</span>
+                    </Link>
                   ) : (
-                    <p className="shared-agg__muted">Deep link không hợp lệ.</p>
+                    <p className="text-xs text-slate-400">Không có deep link khả dụng.</p>
                   )}
                 </article>
               ))}
             </div>
           )}
           {searchQuery.data?.page.has_more ? (
-            <button
-              type="button"
+            <Button
+              className="self-center"
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 const next = searchQuery.data?.page.next_cursor
                 if (next) setSearchCursor(next)
               }}
             >
               Trang tiếp theo
-            </button>
+            </Button>
           ) : null}
         </>
       )}
 
       {decisionTarget ? (
-        <div className="shared-agg__dialog" role="dialog" aria-labelledby="decide-title">
-          <h3 id="decide-title">
-            {decision === 'APPROVE' ? 'Approve' : 'Reject'}: {decisionTarget.title}
-          </h3>
-          <p className="shared-agg__muted">
-            {decisionTarget.source_module} · {decisionTarget.source_entity_code}
-          </p>
-          <label>
-            <span>Reason (bắt buộc)</span>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} required />
-          </label>
-          {actionError ? (
-            <p className="shared-agg__state" role="alert">
-              {actionError}
-            </p>
-          ) : null}
-          <div className="shared-agg__actions">
-            <button
-              type="button"
-              disabled={!reason.trim() || decideMut.isPending}
-              onClick={() => decideMut.mutate()}
-            >
-              {decideMut.isPending ? 'Đang gửi…' : 'Xác nhận'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDecisionTarget(null)
-                setActionError(null)
-              }}
-            >
-              Hủy
-            </button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-md w-full p-6 shadow-xl flex flex-col gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {decision === 'APPROVE' ? 'Duyệt yêu cầu' : 'Từ chối yêu cầu'}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                {decisionTarget.title} ({decisionTarget.source_module})
+              </p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-slate-500">Ý kiến phê duyệt (Bắt buộc)</span>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Nhập lý do hoặc ý kiến..."
+                className="w-full h-24 p-2.5 text-sm border border-slate-200 dark:border-slate-800 rounded bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                required
+              />
+            </div>
+            {actionError ? (
+              <p className="p-3 rounded bg-red-50 dark:bg-red-955/20 text-xs text-red-650 border border-red-200" role="alert">
+                {actionError}
+              </p>
+            ) : null}
+            <div className="flex gap-2 justify-end mt-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setDecisionTarget(null)
+                  setActionError(null)
+                }}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!reason.trim() || decideMut.isPending}
+                onClick={() => decideMut.mutate()}
+              >
+                {decideMut.isPending ? 'Đang xử lý…' : 'Xác nhận'}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}

@@ -8,6 +8,7 @@ import type {
   ItemLookupRecord,
   UomLookupRecord,
 } from '../types/bom'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -50,8 +51,8 @@ export function projectBomRow(bh: BomHeaderRecord, lookups: BomLookups): BomRow 
     productItemLabel,
     version: bh.version || UNAVAILABLE,
     status: bh.status || UNAVAILABLE,
-    effectiveFrom: bh.effective_from || UNAVAILABLE,
-    effectiveTo: bh.effective_to || UNAVAILABLE,
+    effectiveFrom: formatDate(bh.effective_from),
+    effectiveTo: bh.effective_to ? formatDate(bh.effective_to) : UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canDeactivate: deactivateAction?.enabled === true,
     canCopy: copyAction?.enabled === true,

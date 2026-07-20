@@ -1,9 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { useQcMaster } from '../hooks/useQcMaster'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
+import { Button } from '@/shared/components/ui/Button'
 import { CHAR_TYPES, SEVERITIES } from '../types/qcMaster'
 import type { InspectionPlanDetailRecord } from '../types/qcMaster'
+
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { FileSpreadsheet, Download, AlertCircle } from 'lucide-react'
+import { usePagination } from '@/shared/lib/usePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
+import { useImportExportCenter } from '@/modules/excel_import_export/hooks/useImportExportCenter'
 
 import './ChecksheetPage.css'
 
@@ -228,25 +239,36 @@ function PlanEditor({ detail, admin }: { detail: InspectionPlanDetailRecord; adm
 
 export function ChecksheetPage() {
   const admin = useQcMaster()
+  const [isExcelOpen, setIsExcelOpen] = useState(false)
+  const ie = useImportExportCenter()
+
+  const planPagination = usePagination(admin.planRows, 10)
+  const cmPagination = usePagination(admin.cmRows, 10)
+  const dcPagination = usePagination(admin.dcRows, 10)
+
+  useEffect(() => {
+    if (isExcelOpen) {
+      ie.setTemplateCode('QC_CHECKSHEET_IMPORT')
+    }
+  }, [isExcelOpen])
 
   return (
-    <section className="qc-admin" aria-labelledby="qc-admin-title">
-      <header className="qc-admin__header">
-        <div>
-          <p className="qc-admin__eyebrow">WEB-QMS-01-CHECKSHEET · `/web/qms/checksheets`</p>
-          <h2 id="qc-admin-title">Tiêu chuẩn &amp; Checksheet</h2>
-          <p className="qc-admin__lead">
-            Quản lý inspection plan (IQC + IPQC/FQC/OQC/FAI), characteristic master và defect code
-            (QMS01-001..020). Mutation gated bởi server <code>allowed_actions</code>. Đặc tính kiểm
-            tra trên plan (inspection_characteristic) chỉ quản lý qua QC_CHECKSHEET_IMPORT tại
-            Import/Export Center.
-          </p>
-        </div>
-        <div className="qc-admin__actions">
-          <Link to="/web/import-export">Import / Export Center</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+    <section className="qc-admin">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'QMS' },
+          { label: 'Tiêu chuẩn & Checksheet' },
+        ]}
+        title="Tiêu chuẩn & Checksheet"
+        subtitle="Quản lý inspection plan (IQC + IPQC/FQC/OQC/FAI), characteristic master và defect code (QMS01-001..020). Mutation gated bởi server allowed_actions."
+        actions={
+          <Button variant="secondary" className="flex items-center gap-1.5" onClick={() => setIsExcelOpen(true)}>
+            <FileSpreadsheet size={14} />
+            Import / Export Center
+          </Button>
+        }
+      />
 
       <div className="qc-admin__tabs" role="tablist" aria-label="Checksheet admin sections">
         <button
@@ -277,194 +299,217 @@ export function ChecksheetPage() {
 
       {admin.tab === 'checksheets' ? (
         <>
-          <form
-            className="qc-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm checksheet (code)',
+                placeholder: 'IP-…',
+              },
+            ]}
+            values={{
+              search: admin.planSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setPlanSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyPlanSearch()
             }}
-          >
-            <label className="qc-admin__field">
-              <span>Tìm checksheet (code)</span>
-              <input
-                value={admin.planSearchInput}
-                onChange={(e) => admin.setPlanSearchInput(e.target.value)}
-                placeholder="IP-…"
-              />
-            </label>
-            <button type="submit" className="qc-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="qc-admin__btn" onClick={admin.openPlanCreate}>
-              Tạo checksheet
-            </button>
-          </form>
+            onReset={() => {
+              admin.setPlanSearchInput('')
+              admin.applyPlanSearch()
+            }}
+            isResetActive={Boolean(admin.planSearchInput)}
+            expands={
+              <Button type="button" className="qc-admin__btn shrink-0" onClick={admin.openPlanCreate}>
+                Tạo checksheet
+              </Button>
+            }
+          />
 
-          {admin.showPlanCreate ? (
-            <div className="qc-admin__create">
-              <h3>Tạo checksheet mới</h3>
-              <p className="qc-admin__muted">Form luôn hiển thị — server enforce quyền tạo (QMS01-003).</p>
-              <label className="qc-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.planCreateForm.code}
-                  onChange={(e) => admin.setPlanCreateForm({ ...admin.planCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Inspection stage</span>
-                <select
-                  value={admin.planCreateForm.inspection_stage_id}
-                  onChange={(e) => {
-                    const stageId = Number(e.target.value)
-                    admin.setPlanCreateForm({
-                      ...admin.planCreateForm,
-                      inspection_stage_id: stageId,
-                      item_id: 0,
-                      item_revision_id: null,
-                    })
-                    admin.setPlanCreateItemCode('')
-                  }}
-                >
-                  <option value={0}>Chọn stage</option>
-                  {admin.stages.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.code} ({s.stage_group}) — {s.name_vi}
+          <Dialog
+            isOpen={admin.showPlanCreate}
+            onClose={admin.closePlanCreate}
+            title="Tạo checksheet mới"
+            maxWidth="max-w-[50%]"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]">
+              <p className="text-xs text-[var(--text-secondary)]">Form luôn hiển thị — server enforce quyền tạo (QMS01-003).</p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.planCreateForm.code}
+                    onChange={(e) => admin.setPlanCreateForm({ ...admin.planCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Inspection stage</span>
+                  <Select
+                    value={admin.planCreateForm.inspection_stage_id}
+                    onChange={(e) => {
+                      const stageId = Number(e.target.value)
+                      admin.setPlanCreateForm({
+                        ...admin.planCreateForm,
+                        inspection_stage_id: stageId,
+                        item_id: 0,
+                        item_revision_id: null,
+                      })
+                      admin.setPlanCreateItemCode('')
+                    }}
+                  >
+                    <option value={0}>Chọn stage</option>
+                    {admin.stages.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.code} ({s.stage_group}) — {s.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>
+                    Item (
+                    {admin.planCreateStageGroup.toUpperCase() === 'IQC'
+                      ? 'RAW/COMPONENT'
+                      : admin.planCreateRequiresRevision ||
+                          ['IPQC', 'OQC', 'SPECIAL'].includes(
+                            admin.planCreateStageGroup.toUpperCase(),
+                          )
+                        ? 'SF/FG'
+                        : 'theo stage'}
+                    )
+                  </span>
+                  <Select
+                    value={admin.planCreateForm.item_id}
+                    onChange={(e) => {
+                      const id = Number(e.target.value)
+                      const item = admin.planCreateItemOptions.find((it) => it.id === id)
+                      admin.setPlanCreateForm({
+                        ...admin.planCreateForm,
+                        item_id: id,
+                        item_revision_id: null,
+                      })
+                      admin.setPlanCreateItemCode(item?.code ?? '')
+                    }}
+                  >
+                    <option value={0}>Chọn item</option>
+                    {admin.planCreateItemOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.code} — {item.item_name}
+                        {item.item_type_code || item.item_type
+                          ? ` (${item.item_type_code || item.item_type})`
+                          : ''}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>
+                    Item revision
+                    {admin.planCreateRequiresRevision
+                      ? ' (bắt buộc)'
+                      : ' (tùy chọn)'}
+                  </span>
+                  <Select
+                    value={admin.planCreateForm.item_revision_id ?? 0}
+                    onChange={(e) =>
+                      admin.setPlanCreateForm({
+                        ...admin.planCreateForm,
+                        item_revision_id: Number(e.target.value) || null,
+                      })
+                    }
+                  >
+                    <option value={0}>
+                      {admin.planCreateRequiresRevision ? 'Chọn revision' : 'Không áp dụng'}
                     </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>
-                  Item (
-                  {admin.planCreateStageGroup.toUpperCase() === 'IQC'
-                    ? 'RAW/COMPONENT cho IQC'
-                    : admin.planCreateRequiresRevision ||
-                        ['IPQC', 'OQC', 'SPECIAL'].includes(
-                          admin.planCreateStageGroup.toUpperCase(),
-                        )
-                      ? 'SF/FG cho IPQC/FQC/OQC/FAI'
-                      : 'theo stage'}
-                  )
-                </span>
-                <select
-                  value={admin.planCreateForm.item_id}
-                  onChange={(e) => {
-                    const id = Number(e.target.value)
-                    const item = admin.planCreateItemOptions.find((it) => it.id === id)
-                    admin.setPlanCreateForm({
-                      ...admin.planCreateForm,
-                      item_id: id,
-                      item_revision_id: null,
-                    })
-                    admin.setPlanCreateItemCode(item?.code ?? '')
-                  }}
-                >
-                  <option value={0}>Chọn item</option>
-                  {admin.planCreateItemOptions.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.code} — {item.item_name}
-                      {item.item_type_code || item.item_type
-                        ? ` (${item.item_type_code || item.item_type})`
-                        : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>
-                  Item revision
-                  {admin.planCreateRequiresRevision
-                    ? ' (bắt buộc — plan sản xuất FG/SF)'
-                    : ' (tùy chọn)'}
-                </span>
-                <select
-                  value={admin.planCreateForm.item_revision_id ?? 0}
-                  onChange={(e) =>
-                    admin.setPlanCreateForm({
-                      ...admin.planCreateForm,
-                      item_revision_id: Number(e.target.value) || null,
-                    })
-                  }
-                >
-                  <option value={0}>
-                    {admin.planCreateRequiresRevision ? 'Chọn revision' : 'Không áp dụng'}
-                  </option>
-                  {admin.planCreateRevisionOptions.map((rev) => (
-                    <option key={rev.id} value={rev.id}>
-                      {rev.code} ({rev.status})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Sampling method</span>
-                <select
-                  value={admin.planCreateForm.sampling_method_id}
-                  onChange={(e) =>
-                    admin.setPlanCreateForm({
-                      ...admin.planCreateForm,
-                      sampling_method_id: Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value={0}>Chọn sampling method</option>
-                  {admin.samplingMethods.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.code} — {m.name_vi}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Inspection frequency</span>
-                <select
-                  value={admin.planCreateForm.inspection_frequency_id}
-                  onChange={(e) =>
-                    admin.setPlanCreateForm({
-                      ...admin.planCreateForm,
-                      inspection_frequency_id: Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value={0}>Chọn frequency</option>
-                  {admin.frequencies.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.code} — {f.name_vi}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Sampling param</span>
-                <input
-                  value={admin.planCreateForm.sampling_param}
-                  onChange={(e) =>
-                    admin.setPlanCreateForm({ ...admin.planCreateForm, sampling_param: e.target.value })
-                  }
-                  placeholder="n=5,c=0"
-                />
-              </label>
-              <div className="qc-admin__actions">
-                <button
+                    {admin.planCreateRevisionOptions.map((rev) => (
+                      <option key={rev.id} value={rev.id}>
+                        {rev.code} ({rev.status})
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Sampling method</span>
+                  <Select
+                    value={admin.planCreateForm.sampling_method_id}
+                    onChange={(e) =>
+                      admin.setPlanCreateForm({
+                        ...admin.planCreateForm,
+                        sampling_method_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value={0}>Chọn sampling method</option>
+                    {admin.samplingMethods.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.code} — {m.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Inspection frequency</span>
+                  <Select
+                    value={admin.planCreateForm.inspection_frequency_id}
+                    onChange={(e) =>
+                      admin.setPlanCreateForm({
+                        ...admin.planCreateForm,
+                        inspection_frequency_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value={0}>Chọn frequency</option>
+                    {admin.frequencies.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.code} — {f.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Sampling param</span>
+                  <Input
+                    value={admin.planCreateForm.sampling_param}
+                    onChange={(e) =>
+                      admin.setPlanCreateForm({ ...admin.planCreateForm, sampling_param: e.target.value })
+                    }
+                    placeholder="n=5,c=0"
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button
                   type="button"
-                  className="qc-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closePlanCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
                   disabled={admin.planCreateErrors.length > 0 || admin.createPlanPending}
-                  onClick={() => admin.createPlan()}
+                  onClick={() => {
+                    if (window.confirm('Xác nhận tạo checksheet mới?')) {
+                      admin.createPlan()
+                    }
+                  }}
                 >
                   {admin.createPlanPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closePlanCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createPlanError ? (
-                <p className="qc-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createPlanError.code}: {admin.createPlanError.message}
                 </p>
               ) : null}
             </div>
-          ) : null}
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.planListState, 'checksheet')
@@ -475,9 +520,8 @@ export function ChecksheetPage() {
               </p>
             ) : null
           })()}
-
           {admin.planListState === 'ready' ? (
-            <div className="qc-admin__layout">
+            <>
               <div className="qc-admin__table-wrap">
                 <table className="qc-admin__table">
                   <thead>
@@ -490,7 +534,7 @@ export function ChecksheetPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {admin.planRows.map((row) => (
+                    {planPagination.paginatedItems.map((row) => (
                       <tr
                         key={row.code}
                         className={row.code === admin.selectedPlanCode ? 'qc-admin__row--active' : ''}
@@ -512,136 +556,164 @@ export function ChecksheetPage() {
                     ))}
                   </tbody>
                 </table>
-                {admin.planHasMore ? (
-                  <button type="button" className="qc-admin__more" onClick={admin.planLoadMore}>
-                    Tải thêm
-                  </button>
-                ) : null}
+                <TablePagination
+                  {...planPagination}
+                  hasMore={admin.planHasMore}
+                  onLoadMore={admin.planLoadMore}
+                />
               </div>
 
-              {admin.planDetailLoading ? (
-                <div className="qc-admin__state">Đang tải chi tiết…</div>
-              ) : admin.planDetail ? (
-                <PlanEditor key={admin.planDetail.code} detail={admin.planDetail} admin={admin} />
-              ) : (
-                <div className="qc-admin__state">Chọn checksheet để xem chi tiết.</div>
-              )}
-            </div>
+              <Dialog
+                isOpen={!!admin.selectedPlanCode}
+                onClose={() => admin.selectPlan('')}
+                title={`Chi tiết Checksheet ${admin.selectedPlanCode || ''}`}
+                maxWidth="max-w-[75%]"
+              >
+                {admin.planDetailLoading ? (
+                  <div className="p-8 text-center text-sm text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+                ) : admin.planDetail ? (
+                  <PlanEditor key={admin.planDetail.code} detail={admin.planDetail} admin={admin} />
+                ) : null}
+              </Dialog>
+            </>
           ) : null}
         </>
       ) : null}
 
       {admin.tab === 'characteristics' ? (
         <>
-          <form
-            className="qc-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm characteristic (code / tên)',
+                placeholder: 'CM-… / tên',
+              },
+            ]}
+            values={{
+              search: admin.cmSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setCmSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyCmSearch()
             }}
-          >
-            <label className="qc-admin__field">
-              <span>Tìm characteristic (code / tên)</span>
-              <input
-                value={admin.cmSearchInput}
-                onChange={(e) => admin.setCmSearchInput(e.target.value)}
-                placeholder="CM-… / tên"
-              />
-            </label>
-            <button type="submit" className="qc-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="qc-admin__btn" onClick={admin.openCmCreate}>
-              Tạo characteristic
-            </button>
-          </form>
+            onReset={() => {
+              admin.setCmSearchInput('')
+              admin.applyCmSearch()
+            }}
+            isResetActive={Boolean(admin.cmSearchInput)}
+            expands={
+              <Button type="button" className="qc-admin__btn shrink-0" onClick={admin.openCmCreate}>
+                Tạo characteristic
+              </Button>
+            }
+          />
 
-          {admin.showCmCreate ? (
-            <div className="qc-admin__create">
-              <h3>Tạo characteristic master mới</h3>
-              <p className="qc-admin__muted">Form luôn hiển thị — server enforce quyền tạo (QMS01-010).</p>
-              <label className="qc-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.cmCreateForm.code}
-                  onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Tên (VI)</span>
-                <input
-                  value={admin.cmCreateForm.name_vi}
-                  onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, name_vi: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Tên (EN)</span>
-                <input
-                  value={admin.cmCreateForm.name_en}
-                  onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, name_en: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Characteristic category</span>
-                <select
-                  value={admin.cmCreateForm.characteristic_category_id}
-                  onChange={(e) =>
-                    admin.setCmCreateForm({
-                      ...admin.cmCreateForm,
-                      characteristic_category_id: Number(e.target.value) || 0,
-                    })
-                  }
-                >
-                  <option value={0}>Chọn category</option>
-                  {admin.categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.code} — {cat.name_vi}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Default char type</span>
-                <select
-                  value={admin.cmCreateForm.default_char_type}
-                  onChange={(e) =>
-                    admin.setCmCreateForm({ ...admin.cmCreateForm, default_char_type: e.target.value })
-                  }
-                >
-                  {CHAR_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Default UoM</span>
-                <input
-                  value={admin.cmCreateForm.default_uom}
-                  onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, default_uom: e.target.value })}
-                />
-              </label>
-              <div className="qc-admin__actions">
-                <button
+          <Dialog
+            isOpen={admin.showCmCreate}
+            onClose={admin.closeCmCreate}
+            title="Tạo characteristic master mới"
+            maxWidth="max-w-[50%]"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]">
+              <p className="text-xs text-[var(--text-secondary)]">Form luôn hiển thị — server enforce quyền tạo (QMS01-010).</p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.cmCreateForm.code}
+                    onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Tên (VI)</span>
+                  <Input
+                    value={admin.cmCreateForm.name_vi}
+                    onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, name_vi: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Tên (EN)</span>
+                  <Input
+                    value={admin.cmCreateForm.name_en}
+                    onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, name_en: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Characteristic category</span>
+                  <Select
+                    value={admin.cmCreateForm.characteristic_category_id}
+                    onChange={(e) =>
+                      admin.setCmCreateForm({
+                        ...admin.cmCreateForm,
+                        characteristic_category_id: Number(e.target.value) || 0,
+                      })
+                    }
+                  >
+                    <option value={0}>Chọn category</option>
+                    {admin.categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.code} — {cat.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Default char type</span>
+                  <Select
+                    value={admin.cmCreateForm.default_char_type}
+                    onChange={(e) =>
+                      admin.setCmCreateForm({ ...admin.cmCreateForm, default_char_type: e.target.value })
+                    }
+                  >
+                    {CHAR_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Default UoM</span>
+                  <Input
+                    value={admin.cmCreateForm.default_uom}
+                    onChange={(e) => admin.setCmCreateForm({ ...admin.cmCreateForm, default_uom: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button
                   type="button"
-                  className="qc-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeCmCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
                   disabled={admin.cmCreateErrors.length > 0 || admin.createCmPending}
-                  onClick={() => admin.createCm()}
+                  onClick={() => {
+                    if (window.confirm('Xác nhận tạo characteristic master mới?')) {
+                      admin.createCm()
+                    }
+                  }}
                 >
                   {admin.createCmPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeCmCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createCmError ? (
-                <p className="qc-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createCmError.code}: {admin.createCmError.message}
                 </p>
               ) : null}
             </div>
-          ) : null}
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.cmListState, 'characteristic')
@@ -668,7 +740,7 @@ export function ChecksheetPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {admin.cmRows.map((row) => (
+                    {cmPagination.paginatedItems.map((row) => (
                       <tr key={row.code} className={row.code === admin.selectedCmCode ? 'qc-admin__row--active' : ''}>
                         <td>
                           <button type="button" className="qc-admin__linkish" onClick={() => admin.selectCm(row.code)}>
@@ -684,11 +756,11 @@ export function ChecksheetPage() {
                     ))}
                   </tbody>
                 </table>
-                {admin.cmHasMore ? (
-                  <button type="button" className="qc-admin__more" onClick={admin.cmLoadMore}>
-                    Tải thêm
-                  </button>
-                ) : null}
+                <TablePagination
+                  {...cmPagination}
+                  hasMore={admin.cmHasMore}
+                  onLoadMore={admin.cmLoadMore}
+                />
               </div>
 
               {admin.cmDetailRow ? (
@@ -746,106 +818,129 @@ export function ChecksheetPage() {
 
       {admin.tab === 'defect_codes' ? (
         <>
-          <form
-            className="qc-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm defect code (code / tên)',
+                placeholder: 'DC-… / tên',
+              },
+            ]}
+            values={{
+              search: admin.dcSearchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                admin.setDcSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyDcSearch()
             }}
-          >
-            <label className="qc-admin__field">
-              <span>Tìm defect code (code / tên)</span>
-              <input
-                value={admin.dcSearchInput}
-                onChange={(e) => admin.setDcSearchInput(e.target.value)}
-                placeholder="DC-… / tên"
-              />
-            </label>
-            <button type="submit" className="qc-admin__btn">
-              Lọc
-            </button>
-            <button type="button" className="qc-admin__btn" onClick={admin.openDcCreate}>
-              Tạo defect code
-            </button>
-          </form>
+            onReset={() => {
+              admin.setDcSearchInput('')
+              admin.applyDcSearch()
+            }}
+            isResetActive={Boolean(admin.dcSearchInput)}
+            expands={
+              <Button type="button" className="qc-admin__btn shrink-0" onClick={admin.openDcCreate}>
+                Tạo defect code
+              </Button>
+            }
+          />
 
-          {admin.showDcCreate ? (
-            <div className="qc-admin__create">
-              <h3>Tạo defect code mới</h3>
-              <p className="qc-admin__muted">Form luôn hiển thị — server enforce quyền tạo (QMS01-015).</p>
-              <label className="qc-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.dcCreateForm.code}
-                  onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Tên (VI)</span>
-                <input
-                  value={admin.dcCreateForm.name_vi}
-                  onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, name_vi: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Tên (EN)</span>
-                <input
-                  value={admin.dcCreateForm.name_en}
-                  onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, name_en: e.target.value })}
-                />
-              </label>
-              <label className="qc-admin__field">
-                <span>Characteristic category</span>
-                <select
-                  value={admin.dcCreateForm.characteristic_category_id}
-                  onChange={(e) =>
-                    admin.setDcCreateForm({
-                      ...admin.dcCreateForm,
-                      characteristic_category_id: Number(e.target.value) || 0,
-                    })
-                  }
-                >
-                  <option value={0}>Chọn category</option>
-                  {admin.categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.code} — {cat.name_vi}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="qc-admin__field">
-                <span>Default severity</span>
-                <select
-                  value={admin.dcCreateForm.default_severity}
-                  onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, default_severity: e.target.value })}
-                >
-                  {SEVERITIES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="qc-admin__actions">
-                <button
+          <Dialog
+            isOpen={admin.showDcCreate}
+            onClose={admin.closeDcCreate}
+            title="Tạo defect code mới"
+            maxWidth="max-w-[50%]"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]">
+              <p className="text-xs text-[var(--text-secondary)]">Form luôn hiển thị — server enforce quyền tạo (QMS01-015).</p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.dcCreateForm.code}
+                    onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Tên (VI)</span>
+                  <Input
+                    value={admin.dcCreateForm.name_vi}
+                    onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, name_vi: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Tên (EN)</span>
+                  <Input
+                    value={admin.dcCreateForm.name_en}
+                    onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, name_en: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Characteristic category</span>
+                  <Select
+                    value={admin.dcCreateForm.characteristic_category_id}
+                    onChange={(e) =>
+                      admin.setDcCreateForm({
+                        ...admin.dcCreateForm,
+                        characteristic_category_id: Number(e.target.value) || 0,
+                      })
+                    }
+                  >
+                    <option value={0}>Chọn category</option>
+                    {admin.categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.code} — {cat.name_vi}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Default severity</span>
+                  <Select
+                    value={admin.dcCreateForm.default_severity}
+                    onChange={(e) => admin.setDcCreateForm({ ...admin.dcCreateForm, default_severity: e.target.value })}
+                  >
+                    {SEVERITIES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button
                   type="button"
-                  className="qc-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeDcCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
                   disabled={admin.dcCreateErrors.length > 0 || admin.createDcPending}
-                  onClick={() => admin.createDc()}
+                  onClick={() => {
+                    if (window.confirm('Xác nhận tạo defect code mới?')) {
+                      admin.createDc()
+                    }
+                  }}
                 >
                   {admin.createDcPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeDcCreate}>
-                  Hủy
-                </button>
+                </Button>
               </div>
               {admin.createDcError ? (
-                <p className="qc-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createDcError.code}: {admin.createDcError.message}
                 </p>
               ) : null}
             </div>
-          ) : null}
+          </Dialog>
 
           {(() => {
             const banner = listStateMessage(admin.dcListState, 'defect code')
@@ -871,7 +966,7 @@ export function ChecksheetPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {admin.dcRows.map((row) => (
+                    {dcPagination.paginatedItems.map((row) => (
                       <tr key={row.code} className={row.code === admin.selectedDcCode ? 'qc-admin__row--active' : ''}>
                         <td>
                           <button type="button" className="qc-admin__linkish" onClick={() => admin.selectDc(row.code)}>
@@ -886,11 +981,11 @@ export function ChecksheetPage() {
                     ))}
                   </tbody>
                 </table>
-                {admin.dcHasMore ? (
-                  <button type="button" className="qc-admin__more" onClick={admin.dcLoadMore}>
-                    Tải thêm
-                  </button>
-                ) : null}
+                <TablePagination
+                  {...dcPagination}
+                  hasMore={admin.dcHasMore}
+                  onLoadMore={admin.dcLoadMore}
+                />
               </div>
 
               {admin.dcDetailRow ? (
@@ -945,6 +1040,171 @@ export function ChecksheetPage() {
           ) : null}
         </>
       ) : null}
+      {/* Excel Import/Export Dialog Modal */}
+      <Dialog
+        isOpen={isExcelOpen}
+        onClose={() => setIsExcelOpen(false)}
+        title="Nhập / Xuất dữ liệu Excel (Checksheet)"
+        maxWidth="max-w-[75%]"
+      >
+        <div className="flex flex-col gap-6 font-sans text-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Import segment */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <FileSpreadsheet size={16} className="text-[var(--color-action-primary)]" />
+                Khởi tạo Batch Nhập dữ liệu mới
+              </h3>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (!window.confirm('Xác nhận tạo lô nạp dữ liệu (Import Batch) mới từ file nguồn?')) return
+                  ie.createBatch()
+                }}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">ID File nguồn</span>
+                  <Input
+                    value={ie.sourceFileId}
+                    onChange={(event) => ie.setSourceFileId(event.target.value)}
+                    placeholder="Nhập ID file dữ liệu nguồn..."
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ ghi nhận (Commit Mode)</span>
+                    <Select
+                      value={ie.mode}
+                      onChange={(event) => ie.setMode(event.target.value)}
+                    >
+                      <option value="ALL_OR_NOTHING">Lưu tất cả hoặc hủy (ALL_OR_NOTHING)</option>
+                      <option value="PARTIAL">Lưu một phần (PARTIAL)</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ nhập (Import Mode)</span>
+                    <Select
+                      value={ie.importMode}
+                      onChange={(event) => ie.setImportMode(event.target.value)}
+                    >
+                      <option value="UPSERT">Cập nhật hoặc thêm mới (UPSERT)</option>
+                      <option value="CREATE_ONLY">Chỉ thêm mới (CREATE_ONLY)</option>
+                      <option value="UPDATE_ONLY">Chỉ cập nhật (UPDATE_ONLY)</option>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={ie.downloadTemplate}
+                    disabled={ie.downloadPending}
+                  >
+                    <Download size={14} className="mr-1.5" />
+                    Tải template
+                  </Button>
+                  <Button type="submit" disabled={ie.createPending}>
+                    Tạo import batch
+                  </Button>
+                </div>
+              </form>
+              {ie.createError && (
+                <div className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs flex items-center gap-2" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{ie.createError.code}: {ie.createError.message}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Active Batch details if available */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              {ie.detailRow ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-[var(--text-primary)]">Lô đang hoạt động: {ie.detailRow.code}</h4>
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${ie.detailRow.status === 'COMMITTED' ? 'bg-green-100 text-green-800' : ie.detailRow.status === 'FAILED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {ie.detailRow.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Tổng số bản ghi</span>
+                      <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{ie.detailRow.totalRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Số dòng lỗi</span>
+                      <p className="font-semibold text-sm text-[var(--color-danger-text)] mt-0.5">{ie.detailRow.failedRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Nạp thành công</span>
+                      <p className="font-semibold text-sm text-[var(--color-success-text)] mt-0.5">{ie.detailRow.successRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Người khởi tạo</span>
+                      <p className="font-semibold text-sm mt-0.5 text-[var(--text-primary)]">{ie.detailRow.startedBy}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 mt-2">
+                    {ie.detailRow.canValidate && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận kiểm tra tính hợp lệ của lô nạp dữ liệu này?')) return
+                          ie.runValidate()
+                        }}
+                      >
+                        Kiểm tra (Validate)
+                      </Button>
+                    )}
+                    {ie.detailRow.canCommit && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          ie.setConfirmAction('commit')
+                        }}
+                      >
+                        Ghi nhận vào DB (Commit)
+                      </Button>
+                    )}
+                    {ie.detailRow.canCancel && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => {
+                          ie.setConfirmAction('cancel')
+                        }}
+                      >
+                        Hủy bỏ lô (Cancel)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] py-12">
+                  <AlertCircle size={24} className="opacity-40 mb-2" />
+                  <p className="text-xs">Chưa có lô nạp dữ liệu nào được khởi tạo hoặc chọn.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmation Action Dialog inside Modal */}
+        <ConfirmDialog
+          isOpen={ie.confirmAction !== null}
+          onClose={() => ie.setConfirmAction(null)}
+          onConfirm={ie.runConfirmedAction}
+          title={ie.confirmAction === 'commit' ? 'Xác nhận Commit' : 'Xác nhận Hủy'}
+          description={
+            ie.confirmAction === 'commit'
+              ? 'Xác nhận ghi nhận tất cả dữ liệu hợp lệ trong lô nạp này vào cơ sở dữ liệu hệ thống?'
+              : 'Xác nhận hủy bỏ hoàn toàn lô nạp dữ liệu này?'
+          }
+          isPending={ie.mutationState === 'pending'}
+        />
+      </Dialog>
     </section>
   )
 }

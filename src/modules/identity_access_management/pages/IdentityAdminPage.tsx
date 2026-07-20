@@ -9,7 +9,7 @@ import { DEVICE_TYPE_VALUES } from '../types/userAdmin'
 import type { StationDevice, UserDetail } from '../types/userAdmin'
 
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
@@ -26,6 +26,7 @@ import {
   TableCell,
 } from '@/shared/components/ui/Table'
 import { Search } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './IdentityAdminPage.css'
 
@@ -423,26 +424,27 @@ export function IdentityAdminPage() {
 
       {admin.tab === 'users' ? (
         <>
-          {/* Filters */}
-          <form
-            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+          <FilterBar
+            fields={[
+              {
+                name: 'searchInput',
+                type: 'text',
+                placeholder: 'Tìm theo mã EMP / họ tên...'
+              }
+            ]}
+            values={{ searchInput: admin.searchInput }}
+            onChange={(_, val) => admin.setSearchInput(val)}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applySearch()
             }}
-          >
-            <div className="flex-1">
-              <Input
-                value={admin.searchInput}
-                onChange={(e) => admin.setSearchInput(e.target.value)}
-                placeholder="Tìm user (mã EMP-… / họ tên)..."
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
-              />
-            </div>
-            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-              <Search size={16} />
-            </Button>
-          </form>
+            onReset={() => {
+              admin.setSearchInput('')
+              admin.applySearch()
+            }}
+            isResetActive={!!admin.searchInput}
+            className="max-w-md"
+          />
 
           {/* User Create Dialog Modal */}
           <Dialog
@@ -553,7 +555,7 @@ export function IdentityAdminPage() {
                   ))}
                 </TableBody>
               </Table>
-              <DataTablePagination {...usersPagination} />
+              <TablePagination {...usersPagination} />
             </div>
           )}
 
@@ -574,29 +576,29 @@ export function IdentityAdminPage() {
           </Dialog>
         </>
       ) : null}
-
       {admin.tab === 'station_devices' ? (
         <>
-          {/* Station device filters */}
-          <form
-            className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+          <FilterBar
+            fields={[
+              {
+                name: 'sdSearchInput',
+                type: 'text',
+                placeholder: 'Tìm theo mã thiết bị trạm (STN)...'
+              }
+            ]}
+            values={{ sdSearchInput: admin.sdSearchInput }}
+            onChange={(_, val) => admin.setSdSearchInput(val)}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyStationDeviceSearch()
             }}
-          >
-            <div className="flex-1">
-              <Input
-                value={admin.sdSearchInput}
-                onChange={(e) => admin.setSdSearchInput(e.target.value)}
-                placeholder="Tìm station device (code STN-…)..."
-                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
-              />
-            </div>
-            <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-              <Search size={16} />
-            </Button>
-          </form>
+            onReset={() => {
+              admin.setSdSearchInput('')
+              admin.applyStationDeviceSearch()
+            }}
+            isResetActive={!!admin.sdSearchInput}
+            className="max-w-md"
+          />
 
           {/* Station Device Create Dialog */}
           <Dialog
@@ -755,22 +757,11 @@ export function IdentityAdminPage() {
                 </TableBody>
               </Table>
               
-              <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
-                <div className="flex-1">
-                  <DataTablePagination {...devicesPagination} />
-                </div>
-                {admin.stationDeviceHasMore && (
-                  <div className="pr-5 pb-3 sm:pb-0">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={admin.stationDeviceLoadMore}
-                    >
-                      Tải thêm từ Server
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <TablePagination
+                {...devicesPagination}
+                hasMore={admin.stationDeviceHasMore}
+                onLoadMore={admin.stationDeviceLoadMore}
+              />
             </div>
           )}
 

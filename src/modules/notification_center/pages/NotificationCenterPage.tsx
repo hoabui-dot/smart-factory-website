@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useNotificationCenter } from '../hooks/useNotificationCenter'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
@@ -20,6 +20,7 @@ import {
   TableCell,
 } from '@/shared/components/ui/Table'
 import { Search, RotateCw, CheckCheck, ExternalLink, Calendar, AlertCircle } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './NotificationCenterPage.css'
 
@@ -79,35 +80,24 @@ export function NotificationCenterPage() {
         }
       />
 
-      {/* Filters Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
-        <form
-          className="flex flex-1 items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg max-w-md"
-          onSubmit={(event) => {
-            event.preventDefault()
-            center.applyFilters()
-          }}
-        >
-          <div className="flex-1">
-            <Input
-              value={center.draftQ}
-              onChange={(event) => center.setDraftQ(event.target.value)}
-              placeholder="Tìm kiếm theo tiêu đề, loại sự kiện..."
-              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-8 px-2"
-              autoComplete="off"
-            />
-          </div>
-          <Button type="submit" size="sm" className="h-8 w-8 px-0" aria-label="Lọc">
-            <Search size={14} />
-          </Button>
-        </form>
-
-        {center.draftQ && (
-          <Button variant="secondary" size="sm" onClick={center.clearFilters} className="h-9">
-            Xóa bộ lọc
-          </Button>
-        )}
-      </div>
+      <FilterBar
+        fields={[
+          {
+            name: 'draftQ',
+            type: 'text',
+            placeholder: 'Tìm theo tiêu đề / loại sự kiện...'
+          }
+        ]}
+        values={{ draftQ: center.draftQ }}
+        onChange={(_, val) => center.setDraftQ(val)}
+        onSubmit={(event) => {
+          event.preventDefault()
+          center.applyFilters()
+        }}
+        onReset={center.clearFilters}
+        isResetActive={!!center.draftQ}
+        className="max-w-md"
+      />
 
       {banner && (
         <p
@@ -181,18 +171,11 @@ export function NotificationCenterPage() {
             </TableBody>
           </Table>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
-            <div className="flex-1">
-              <DataTablePagination {...pagination} />
-            </div>
-            {center.hasMore && (
-              <div className="pr-5 pb-3 sm:pb-0">
-                <Button variant="secondary" size="sm" onClick={center.loadMore}>
-                  Tải thêm từ Server
-                </Button>
-              </div>
-            )}
-          </div>
+          <TablePagination
+            {...pagination}
+            hasMore={center.hasMore}
+            onLoadMore={center.loadMore}
+          />
         </div>
       )}
 

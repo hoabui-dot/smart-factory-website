@@ -6,6 +6,10 @@ import { useAuthStore } from '@/shared/store/authStore'
 
 import { useWorkerJobConsole } from '../hooks/useWorkerJobConsole'
 
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import type { WorkerJobRow } from '../types/workerJob'
+
 // Import Tailwind Shadcn UI & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
@@ -34,6 +38,7 @@ import {
   History,
   Terminal,
 } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './WorkerJobConsolePage.css'
 
@@ -58,6 +63,51 @@ export function WorkerJobConsolePage() {
   const session = useAuthStore((state) => state.session)
   const jobs = useWorkerJobConsole()
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const pagination = usePagination(jobs.rows, 10)
+
+  const columns: ColumnDef<WorkerJobRow>[] = [
+    {
+      header: 'Mã tác vụ (Job key)',
+      cell: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            jobs.setSelectedKey(row.jobKey)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.jobKey}
+        </Button>
+      ),
+    },
+    {
+      header: 'Tên hiển thị (Display Name)',
+      cell: (row) => <span className="font-semibold text-slate-850 dark:text-slate-100">{row.displayName}</span>,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => (
+        <Badge variant={row.enabled ? 'active' : 'inactive'}>
+          {row.enabled ? 'ON' : 'OFF'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Kết quả lần cuối',
+      cell: (row) => (
+        <Badge variant={row.lastStatus === 'SUCCESS' ? 'active' : row.lastStatus === 'FAILED' ? 'inactive' : 'default'}>
+          {row.lastStatus || 'NONE'}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Lần chạy tiếp theo',
+      cell: (row) => <span className="text-slate-450 text-xs whitespace-nowrap">{row.nextRunAt || '-'}</span>,
+    },
+  ]
 
   if (!isSystemAdminSession(session)) {
     return (
@@ -92,83 +142,73 @@ export function WorkerJobConsolePage() {
         title="Worker Job Console"
         subtitle="Quản trị danh sách tác vụ ngầm, thay đổi tần suất (cron), kích hoạt/vô hiệu hóa và xem lịch sử chạy."
         actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            className="gap-1.5 h-9"
-            onClick={jobs.refresh}
-            disabled={jobs.listState === 'loading'}
-          >
-            <RotateCw size={14} className={jobs.listState === 'loading' ? 'animate-spin' : ''} />
-            Làm mới
-          </Button>
+          <div className="flex gap-2">
+            {jobs.hasMore && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-9"
+                onClick={jobs.loadMore}
+              >
+                Tải thêm worker jobs
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={jobs.refresh}
+              disabled={jobs.listState === 'loading'}
+            >
+              <RotateCw size={14} className={jobs.listState === 'loading' ? 'animate-spin' : ''} />
+              Làm mới
+            </Button>
+          </div>
         }
       />
 
-      {/* Filters Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-4">
-        <form
-          className="grid grid-cols-1 md:grid-cols-4 gap-3"
-          onSubmit={(event) => {
-            event.preventDefault()
-            jobs.applyFilters()
-          }}
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-slate-400">Từ khóa (q)</span>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-              <Input
-                value={jobs.draftFilters.q}
-                onChange={(event) => jobs.setDraftFilter('q', event.target.value)}
-                placeholder="Job key, display name..."
-                className="pl-8 h-9"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-slate-400">Category</span>
-            <Input
-              value={jobs.draftFilters.job_category}
-              onChange={(event) => jobs.setDraftFilter('job_category', event.target.value)}
-              placeholder="e.g. system, calculation..."
-              className="h-9"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-slate-400">Module Scope</span>
-            <Input
-              value={jobs.draftFilters.module_scope}
-              onChange={(event) => jobs.setDraftFilter('module_scope', event.target.value)}
-              placeholder="e.g. MES, WMS..."
-              className="h-9"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-semibold text-slate-400">Trạng thái</span>
-            <Select
-              value={jobs.draftFilters.enabled}
-              onChange={(event) => jobs.setDraftFilter('enabled', event.target.value)}
-              className="h-9"
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="true">Đang kích hoạt (ON)</option>
-              <option value="false">Đang tắt (OFF)</option>
-            </Select>
-          </div>
-          
-          <div className="md:col-span-4 flex justify-end gap-2 mt-1">
-            <Button type="button" variant="ghost" size="sm" onClick={jobs.clearFilters}>
-              Xóa bộ lọc
-            </Button>
-            <Button type="submit" size="sm" className="px-5">
-              Áp dụng lọc
-            </Button>
-          </div>
-        </form>
-      </div>
+      <FilterBar
+        fields={[
+          {
+            name: 'q',
+            type: 'text',
+            label: 'Từ khóa tìm kiếm',
+            placeholder: 'Nhập mã job, tên hiển thị...'
+          },
+          {
+            name: 'job_category',
+            type: 'text',
+            label: 'Phân loại (Category)',
+            placeholder: 'Ví dụ: system, calculation...'
+          },
+          {
+            name: 'module_scope',
+            type: 'text',
+            label: 'Phạm vi module',
+            placeholder: 'Ví dụ: MES, WMS...'
+          },
+          {
+            name: 'enabled',
+            type: 'select',
+            label: 'Trạng thái hoạt động',
+            options: [
+              { value: '', label: 'Tất cả trạng thái' },
+              { value: 'true', label: 'Đang hoạt động (Kích hoạt)' },
+              { value: 'false', label: 'Tạm ngưng (Tắt)' }
+            ]
+          }
+        ]}
+        values={jobs.draftFilters}
+        onChange={(name, value) => jobs.setDraftFilter(name as any, value)}
+        onSubmit={(event) => {
+          event.preventDefault()
+          jobs.applyFilters()
+        }}
+        onReset={jobs.clearFilters}
+        isResetActive={Object.values(jobs.draftFilters).some(Boolean)}
+      />
 
-      {banner && (
+      {banner && jobs.listState !== 'loading' && (
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-205 dark:border-slate-800 text-slate-500 text-sm">
           {banner}
           {jobs.listError ? ` (${jobs.listError.code})` : ''}
@@ -176,74 +216,18 @@ export function WorkerJobConsolePage() {
       )}
 
       {/* Worker Jobs List Table */}
-      {(jobs.rows.length > 0) && (
-        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-          <Table containerClassName="relative w-full overflow-auto">
-            <TableHeader>
-              <TableRow className="pointer-events-none hover:bg-transparent">
-                <TableHead>Mã tác vụ (Job key)</TableHead>
-                <TableHead>Tên hiển thị (Display Name)</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Kết quả lần cuối</TableHead>
-                <TableHead>Lần chạy tiếp theo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.rows.map((row) => (
-                <TableRow
-                  key={row.jobKey}
-                  className={`hover:bg-slate-50/50 cursor-pointer ${
-                    row.jobKey === jobs.selectedKey ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''
-                  }`}
-                  onClick={() => {
-                    jobs.setSelectedKey(row.jobKey)
-                    setIsDetailOpen(true)
-                  }}
-                >
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-0 py-0 h-auto font-semibold hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        jobs.setSelectedKey(row.jobKey)
-                        setIsDetailOpen(true)
-                      }}
-                    >
-                      {row.jobKey}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="font-semibold text-slate-850 dark:text-slate-100">{row.displayName}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.enabled ? 'active' : 'inactive'}>
-                      {row.enabled ? 'ON' : 'OFF'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={row.lastStatus === 'SUCCESS' ? 'active' : row.lastStatus === 'FAILED' ? 'inactive' : 'default'}>
-                      {row.lastStatus || 'NONE'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-450 text-xs whitespace-nowrap">{row.nextRunAt || '-'}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {jobs.hasMore && (
-            <div className="flex justify-center p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="gap-1.5 px-6"
-                onClick={jobs.loadMore}
-              >
-                Tải thêm worker jobs
-              </Button>
-            </div>
-          )}
-        </div>
+      {(jobs.rows.length > 0 || jobs.listState === 'loading') && (
+        <GenericDataTable
+          data={pagination.paginatedItems}
+          columns={columns}
+          pagination={pagination}
+          isLoading={jobs.listState === 'loading'}
+          onRowClick={(row) => {
+            jobs.setSelectedKey(row.jobKey)
+            setIsDetailOpen(true)
+          }}
+          getRowClassName={(row) => row.jobKey === jobs.selectedKey ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+        />
       )}
 
       {/* Details Dialog Modal Overlay */}

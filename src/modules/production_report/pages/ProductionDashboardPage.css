@@ -1,18 +1,11 @@
 .mes08-admin {
   display: grid;
-  gap: 1rem;
-}
-
-.mes08-admin__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+  gap: 1.25rem;
 }
 
 .mes08-admin__eyebrow {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -20,7 +13,7 @@
 
 .mes08-admin__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
 }
 
 .mes08-admin__actions {
@@ -30,16 +23,42 @@
   align-items: center;
 }
 
+.mes08-admin__actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-action-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  transition: all 0.2s ease;
+}
+
+.mes08-admin__actions a:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
 .mes08-admin button,
 .mes08-admin .mes08-admin__btn {
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   padding: 0.5rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--color-action, #155eef);
+  background: var(--color-action-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.mes08-admin button:hover,
+.mes08-admin .mes08-admin__btn:hover {
+  background: var(--color-action-primary-hover);
 }
 
 .mes08-admin button:disabled {
@@ -50,10 +69,6 @@
 .mes08-admin__tabs {
   display: flex;
   gap: 0.5rem;
-}
-
-.mes08-admin__tabs button[aria-selected='true'] {
-  background: #0f172a;
 }
 
 .mes08-admin__filters {
@@ -69,42 +84,70 @@
   gap: 0.35rem;
 }
 
+.mes08-admin label span,
+.mes08-admin__field span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .mes08-admin input,
 .mes08-admin select,
 .mes08-admin textarea {
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
   font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.mes08-admin input:focus,
+.mes08-admin select:focus,
+.mes08-admin textarea:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.15);
 }
 
 .mes08-admin__state {
   margin: 0;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  background: var(--color-banner-bg, #eef2ff);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .mes08-admin__banner {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-success-bg, #dcfce7);
-  color: var(--color-success-text, #166534);
+  background: var(--color-success-bg, rgba(22, 163, 74, 0.1));
+  color: var(--color-success-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border-default);
 }
 
 .mes08-admin__error {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-error-bg, #fee2e2);
-  color: var(--color-error-text, #991b1b);
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.1));
+  color: var(--color-danger-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border-default);
 }
 
 .mes08-admin__muted {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -117,9 +160,9 @@
 .mes08-admin__kpi-card {
   margin: 0;
   padding: 0.85rem 1rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .mes08-admin__kpi-card h3 {
@@ -127,13 +170,14 @@
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
 }
 
 .mes08-admin__kpi-card p {
   margin: 0.35rem 0 0;
   font-size: 1.25rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .mes08-admin__layout {
@@ -145,14 +189,15 @@
 .mes08-admin__table-wrap,
 .mes08-admin__detail {
   overflow: auto;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .mes08-admin__table-wrap h3 {
   margin: 0.75rem 0.75rem 0;
   font-size: 0.95rem;
+  color: var(--text-primary);
 }
 
 .mes08-admin__table {
@@ -160,25 +205,50 @@
   border-collapse: collapse;
 }
 
-.mes08-admin__table th,
-.mes08-admin__table td {
-  padding: 0.7rem;
-  border-bottom: 1px solid var(--color-border, #cbd5e1);
+.mes08-admin__table th {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
+.mes08-admin__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.mes08-admin__table tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.mes08-admin__table tbody tr:hover {
+  background: var(--surface-2);
+}
+
 .mes08-admin__row--active {
-  background: var(--color-row-active, #e8eefc);
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--color-action-primary);
 }
 
 .mes08-admin__linkish {
   min-height: auto;
-  padding: 0;
-  background: transparent;
-  color: var(--color-action, #155eef);
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
   font-weight: 600;
+}
+
+.mes08-admin__linkish:hover {
+  text-decoration: underline;
+  background: transparent !important;
 }
 
 .mes08-admin__detail {
@@ -195,12 +265,14 @@
 }
 
 .mes08-admin__meta dt {
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
   font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .mes08-admin__meta dd {
   margin: 0.2rem 0 0;
+  color: var(--text-primary);
   word-break: break-word;
 }
 
@@ -211,6 +283,14 @@
 
 .mes08-admin__more {
   margin: 0.75rem;
+  width: calc(100% - 1.5rem);
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+.mes08-admin__more:hover {
+  background: var(--surface-3) !important;
 }
 
 @media (max-width: 960px) {

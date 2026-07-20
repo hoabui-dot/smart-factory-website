@@ -5,23 +5,17 @@ import { useAuthStore } from '@/shared/store/authStore'
 import { useNotificationDeliveryAdmin } from '../hooks/useNotificationDeliveryAdmin'
 
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import type { DeliveryLogRow } from '../types/notificationDelivery'
 
 // Import Shadcn & Layout components
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Search } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { Button } from '@/shared/components/ui/Button'
 import { Input } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/shared/components/ui/Table'
 
 import './NotificationDeliveryAdminPage.css'
 
@@ -47,6 +41,42 @@ export function NotificationDeliveryAdminPage() {
   const admin = useNotificationDeliveryAdmin()
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const pagination = usePagination(admin.rows, 10)
+
+  const columns: ColumnDef<DeliveryLogRow>[] = [
+    {
+      header: 'Mã thông báo',
+      cell: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.setSelectedId(row.id)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.code}
+        </Button>
+      ),
+    },
+    {
+      header: 'Kênh gửi',
+      cell: (row) => <span className="font-medium text-slate-800 dark:text-slate-200">{row.channel}</span>,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => (
+        <Badge variant={row.status === 'SUCCESS' || row.status === 'SENT' ? 'active' : 'inactive'}>
+          {row.status}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Thời điểm gửi',
+      cell: (row) => row.attemptedAt,
+    },
+  ]
 
   if (!isSystemAdminSession(session)) {
     return (
@@ -79,101 +109,55 @@ export function NotificationDeliveryAdminPage() {
         title="Notification Delivery"
         subtitle="Theo dõi lịch sử gửi thông báo và gửi lại các lượt thất bại."
         actions={
-          <Button variant="secondary" onClick={admin.refresh}>
-            Làm mới
-          </Button>
+          <div className="flex gap-2">
+            {admin.hasMore && (
+              <Button variant="secondary" size="sm" onClick={admin.loadMore}>
+                Tải thêm từ Server
+              </Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={admin.refresh}>
+              Làm mới
+            </Button>
+          </div>
         }
       />
 
-      <form
-        className="flex items-center gap-2 max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+      <FilterBar
+        fields={[
+          {
+            name: 'draftQ',
+            type: 'text',
+            placeholder: 'Tìm theo mã / kênh / trạng thái...'
+          }
+        ]}
+        values={{ draftQ: admin.draftQ }}
+        onChange={(_, val) => admin.setDraftQ(val)}
         onSubmit={(event) => {
           event.preventDefault()
           admin.applyFilters()
         }}
-      >
-        <div className="flex-1">
-          <Input
-            value={admin.draftQ}
-            onChange={(event) => admin.setDraftQ(event.target.value)}
-            placeholder="Tìm kiếm theo code / channel / status..."
-            className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
-          />
-        </div>
-        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-          <Search size={16} />
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={admin.clearFilters}>
-          Xóa lọc
-        </Button>
-      </form>
+        onReset={admin.clearFilters}
+        isResetActive={!!admin.draftQ}
+      />
 
-      {banner ? (
+      {banner && admin.listState !== 'loading' ? (
         <p className="p-4 rounded bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300" role="status">
           {banner}
           {admin.listError ? ` (${admin.listError.code})` : ''}
         </p>
       ) : null}
 
-      <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden">
-        <Table containerClassName="relative w-full overflow-auto">
-          <TableHeader>
-            <TableRow className="pointer-events-none hover:bg-transparent">
-              <TableHead>Code</TableHead>
-              <TableHead>Channel</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Attempted</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pagination.paginatedItems.map((row) => (
-              <TableRow
-                key={row.id}
-                className={row.id === admin.selectedId ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
-                onClick={() => {
-                  admin.setSelectedId(row.id)
-                  setIsDetailOpen(true)
-                }}
-              >
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-0 py-0 h-auto font-semibold hover:underline"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      admin.setSelectedId(row.id)
-                      setIsDetailOpen(true)
-                    }}
-                  >
-                    {row.code}
-                  </Button>
-                </TableCell>
-                <TableCell className="font-medium text-slate-800 dark:text-slate-200">{row.channel}</TableCell>
-                <TableCell>
-                  <Badge variant={row.status === 'SUCCESS' || row.status === 'SENT' ? 'active' : 'inactive'}>
-                    {row.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{row.attemptedAt}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-transparent">
-          <div className="flex-1">
-            <DataTablePagination {...pagination} />
-          </div>
-          {admin.hasMore && (
-            <div className="pr-5 pb-3 sm:pb-0">
-              <Button variant="secondary" size="sm" onClick={admin.loadMore}>
-                Tải thêm từ Server
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+      <GenericDataTable
+        data={pagination.paginatedItems}
+        columns={columns}
+        pagination={pagination}
+        isLoading={admin.listState === 'loading'}
+        onRowClick={(row) => {
+          admin.setSelectedId(row.id)
+          setIsDetailOpen(true)
+        }}
+        getRowClassName={(row) => row.id === admin.selectedId ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
+      />
 
       {/* Detail Dialog Modal Overlay */}
       <Dialog

@@ -2,13 +2,17 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { useWorkOrder } from '../hooks/useWorkOrder'
-import type { WorkOrderRecord } from '../types/workOrder'
+import type { WorkOrderRecord, WorkOrderRow, MaterialRequestRow } from '../types/workOrder'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Dialog } from '@/shared/components/ui/Dialog'
 import { Search } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './WorkOrderPage.css'
 
@@ -106,30 +110,30 @@ function WorkOrderEditor({ detail, admin }: { detail: WorkOrderRecord; admin: Ap
           Chưa có yêu cầu cấp vật tư (sinh tự động khi release nếu WO cần vật tư).
         </p>
       ) : (
-        <table className="wo-admin__table wo-admin__table--compact">
-          <thead>
-            <tr>
-              <th>Mã</th>
-              <th>Vật tư</th>
-              <th>SL cần</th>
-              <th>UoM</th>
-              <th>Vị trí đích</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+          <TableHeader>
+            <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+              <TableHead>Mã</TableHead>
+              <TableHead>Vật tư</TableHead>
+              <TableHead>SL cần</TableHead>
+              <TableHead>ĐVT</TableHead>
+              <TableHead>Vị trí đích</TableHead>
+              <TableHead>Trạng thái</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {admin.materialRequestRows.map((mr) => (
-              <tr key={mr.code}>
-                <td>{mr.code}</td>
-                <td>{mr.itemLabel}</td>
-                <td>{mr.requiredQty}</td>
-                <td>{mr.uomLabel}</td>
-                <td>{mr.targetLocationLabel}</td>
-                <td>{mr.status}</td>
-              </tr>
+              <TableRow key={mr.code} className="hover:bg-[var(--surface-2)]">
+                <TableCell>{mr.code}</TableCell>
+                <TableCell>{mr.itemLabel}</TableCell>
+                <TableCell>{mr.requiredQty}</TableCell>
+                <TableCell>{mr.uomLabel}</TableCell>
+                <TableCell>{mr.targetLocationLabel}</TableCell>
+                <TableCell>{mr.status}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
 
       <h4>Sửa (chỉ khi DRAFT/PLANNED)</h4>
@@ -413,6 +417,44 @@ export function WorkOrderPage() {
 
   const pagination = usePagination(admin.rows, 10)
 
+  const columns: ColumnDef<WorkOrderRow>[] = [
+    {
+      header: 'Mã lệnh SX',
+      cell: (row) => (
+        <button
+          type="button"
+          className="wo-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectWorkOrder(row.id)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Sản phẩm',
+      cell: (row) => row.itemLabel,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Số lượng kế hoạch',
+      cell: (row) => row.plannedQty,
+    },
+    {
+      header: 'Đã sản xuất / Hao hụt',
+      cell: (row) => `${row.producedQty} / ${row.scrapQty}`,
+    },
+    {
+      header: 'Bắt đầu dự kiến',
+      cell: (row) => row.plannedStart,
+    },
+  ]
+
   // Local creation confirm
   const [isConfirmCreateOpen, setIsConfirmCreateOpen] = useState(false)
 
@@ -422,50 +464,66 @@ export function WorkOrderPage() {
         breadcrumbs={[
           { label: 'Trang chủ', href: '/home' },
           { label: 'MES' },
-          { label: 'Production Orders' },
+          { label: 'Lệnh sản xuất' },
         ]}
-        title="Production Orders"
-        subtitle="Lập và điều phối vòng đời của các lệnh sản xuất."
+        title="Lệnh sản xuất (Work Order)"
+        subtitle="Lập kế hoạch, điều độ và kiểm soát tiến độ thực hiện các lệnh sản xuất trong nhà máy."
         actions={<Button onClick={admin.openCreate}>Tạo Work Order</Button>}
       />
 
-      <form
-        className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo mã lệnh...'
+          }
+        ]}
+        values={{ searchInput: admin.searchInput }}
+        onChange={(_, val) => admin.setSearchInput(val)}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
+        onReset={admin.clearSearch}
+        isResetActive={!!admin.appliedQuery}
+        className="w-full flex-nowrap"
       >
-        <div className="flex-1">
-          <input
-            className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="Tìm Work Order (code)..."
-          />
+        <div className="ml-auto flex items-center">
+          <Button type="button" variant="secondary" size="sm" onClick={admin.openCreate} className="mr-3">
+            Tạo lệnh sản xuất
+          </Button>
         </div>
-        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-          <Search size={16} />
-        </Button>
-      </form>
+      </FilterBar>
 
-      {admin.showCreate ? (
-        <div className="wo-admin__create">
-          <h3>Tạo Work Order mới</h3>
-          <p className="wo-admin__muted">
+      <Dialog
+        isOpen={admin.showCreate}
+        onClose={admin.closeCreate}
+        title="Tạo Work Order mới"
+        maxWidth="max-w-[50%]"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setIsConfirmCreateOpen(true)
+          }}
+        >
+          <p className="text-xs text-[var(--text-muted)]">
             Form luôn hiển thị — server enforce quyền tạo (MES04-003). Hệ thống tự động bung BOM +
             snapshot BOM/Routing hiện tại khi tạo.
           </p>
-          <label className="wo-admin__field">
-            <span>Code</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+            <Input
               value={admin.createForm.code}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
+              required
             />
           </label>
-          <label className="wo-admin__field">
-            <span>Sản phẩm (item — FG/SF)</span>
-            <select
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Sản phẩm (item — FG/SF)</span>
+            <Select
               value={admin.createForm.item_id}
               onChange={(e) => {
                 const id = Number(e.target.value)
@@ -480,11 +538,11 @@ export function WorkOrderPage() {
                   {item.code} — {item.item_name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="wo-admin__field">
-            <span>Item revision (tùy chọn — mặc định dùng revision hiện hành)</span>
-            <select
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Item revision (tùy chọn)</span>
+            <Select
               value={admin.createForm.item_revision_id ?? 0}
               onChange={(e) =>
                 admin.setCreateForm({
@@ -499,49 +557,53 @@ export function WorkOrderPage() {
                   {rev.code}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="wo-admin__field">
-            <span>Planned qty</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Planned qty</span>
+            <Input
               type="number"
               min={1}
               value={admin.createForm.planned_qty}
               onChange={(e) =>
                 admin.setCreateForm({ ...admin.createForm, planned_qty: Number(e.target.value) })
               }
+              required
             />
           </label>
-          <label className="wo-admin__field">
-            <span>Planned start</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Planned start</span>
+            <Input
               type="datetime-local"
               value={admin.createForm.planned_start}
               onChange={(e) =>
                 admin.setCreateForm({ ...admin.createForm, planned_start: e.target.value })
               }
+              required
             />
           </label>
-          <div className="wo-admin__actions">
-            <button
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
               type="button"
-              className="wo-admin__btn"
-              disabled={admin.createErrors.length > 0 || admin.createPending}
-              onClick={() => setIsConfirmCreateOpen(true)}
+              variant="secondary"
+              onClick={admin.closeCreate}
             >
-              {admin.createPending ? 'Đang tạo…' : 'Tạo'}
-            </button>
-            <button type="button" onClick={admin.closeCreate}>
               Hủy
-            </button>
+            </Button>
+            <Button
+              type="submit"
+              disabled={admin.createErrors.length > 0 || admin.createPending}
+            >
+              Tạo
+            </Button>
           </div>
           {admin.createError ? (
-            <p className="wo-admin__error" role="alert">
+            <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
               {admin.createError.code}: {admin.createError.message}
             </p>
           ) : null}
-        </div>
-      ) : null}
+        </form>
+      </Dialog>
 
       {banner ? (
         <p className="wo-admin__state" role={admin.listState === 'error' ? 'alert' : 'status'}>
@@ -552,65 +614,28 @@ export function WorkOrderPage() {
 
       {admin.listState === 'ready' ? (
         <div className="wo-admin__layout">
-          <div className="wo-admin__table-wrap">
-            <table className="wo-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Sản phẩm</th>
-                  <th>Status</th>
-                  <th>Planned</th>
-                  <th>Produced / Scrap</th>
-                  <th>Planned start</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagination.paginatedItems.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={row.id === admin.selectedId ? 'wo-admin__row--active' : ''}
-                  >
-                    <td>
-                      <button
-                        type="button"
-                        className="wo-admin__linkish"
-                        onClick={() => admin.selectWorkOrder(row.id)}
-                      >
-                        {row.code}
-                      </button>
-                    </td>
-                    <td>{row.itemLabel}</td>
-                    <td>{row.status}</td>
-                    <td>{row.plannedQty}</td>
-                    <td>
-                      {row.producedQty} / {row.scrapQty}
-                    </td>
-                    <td>{row.plannedStart}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            <div className="wo-admin__paging-row">
-              {admin.hasMore ? (
-                <button type="button" className="wo-admin__more" onClick={admin.loadMore}>
-                  Nạp thêm từ Server
-                </button>
-              ) : (
-                <span className="wo-admin__all-loaded">Đã tải hết dữ liệu từ Server</span>
-              )}
-              
-              <DataTablePagination
-                currentPage={pagination.currentPage}
-                pageSize={pagination.pageSize}
-                totalItems={pagination.totalItems}
-                totalPages={pagination.totalPages}
-                startIndex={pagination.startIndex}
-                endIndex={pagination.endIndex}
-                setPage={pagination.setPage}
-                setPageSize={pagination.setPageSize}
-              />
-            </div>
+          <div className="wo-admin__table-wrap flex flex-col gap-4">
+            <GenericDataTable
+              data={pagination.paginatedItems}
+              columns={columns}
+              pagination={pagination}
+              onRowClick={(row) => admin.selectWorkOrder(row.id)}
+              getRowClassName={(row) =>
+                row.id === admin.selectedId
+                  ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                  : ''
+              }
+            />
+            {admin.hasMore && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="self-center"
+                onClick={admin.loadMore}
+              >
+                Nạp thêm từ Server
+              </Button>
+            )}
           </div>
 
           {admin.detailLoading ? (
@@ -618,7 +643,11 @@ export function WorkOrderPage() {
           ) : admin.detail ? (
             <WorkOrderEditor key={admin.detail.id} detail={admin.detail} admin={admin} />
           ) : (
-            <div className="wo-admin__state">Chọn Work Order để xem chi tiết.</div>
+            <div className="wo-admin__detail flex flex-col items-center justify-center text-center p-8 gap-2 min-h-[300px]">
+              <Search size={32} className="text-[var(--text-muted)] opacity-60" />
+              <h4 className="text-sm font-semibold text-[var(--text-primary)]">Chưa chọn lệnh sản xuất</h4>
+              <p className="text-xs text-[var(--text-secondary)]">Chọn một lệnh sản xuất từ danh sách bên trái để xem chi tiết và cập nhật tiến độ.</p>
+            </div>
           )}
         </div>
       ) : null}

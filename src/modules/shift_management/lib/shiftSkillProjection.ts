@@ -11,6 +11,7 @@ import type {
   TrainingRecordRecord,
   TrainingRecordRow,
 } from '../types/shiftSkill'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -80,7 +81,7 @@ export function projectShiftAssignmentRow(
   const deactivateAction = findAllowedAction(sa.allowed_actions, 'deactivate')
   return {
     code: sa.code || UNAVAILABLE,
-    workDate: sa.work_date || UNAVAILABLE,
+    workDate: sa.work_date ? formatDate(sa.work_date) : UNAVAILABLE,
     shiftLabel: sa.shift_code || lookups.shiftCodeById.get(sa.shift_id) || UNAVAILABLE,
     operatorLabel: sa.operator_code || lookups.userCodeById.get(sa.operator_id) || UNAVAILABLE,
     workCenterLabel:
@@ -129,8 +130,8 @@ export function projectOperatorSkillRow(
     operatorLabel: os.operator_code || lookups.userCodeById.get(os.operator_id) || UNAVAILABLE,
     skillLabel: os.skill_code || lookups.skillCodeById.get(os.skill_id) || UNAVAILABLE,
     level: os.level || UNAVAILABLE,
-    issuedDate: os.issued_date || UNAVAILABLE,
-    expiryDate: os.expiry_date || UNAVAILABLE,
+    issuedDate: os.issued_date ? formatDate(os.issued_date) : UNAVAILABLE,
+    expiryDate: os.expiry_date ? formatDate(os.expiry_date) : UNAVAILABLE,
     status: os.status || UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canDeactivate: deactivateAction?.enabled === true,
@@ -151,7 +152,7 @@ export function projectTrainingRecordRow(
     code: tr.code || UNAVAILABLE,
     operatorLabel: tr.operator_code || lookups.userCodeById.get(tr.operator_id) || UNAVAILABLE,
     skillLabel: tr.skill_code || lookups.skillCodeById.get(tr.skill_id) || UNAVAILABLE,
-    trainingDate: tr.training_date || UNAVAILABLE,
+    trainingDate: tr.training_date ? formatDate(tr.training_date) : UNAVAILABLE,
     durationHours: tr.duration_hours,
     instructorLabel:
       tr.instructor_code || lookups.userCodeById.get(tr.instructor_id) || UNAVAILABLE,

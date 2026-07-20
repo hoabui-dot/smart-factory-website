@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
@@ -6,7 +7,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
     return (
       <input
         ref={ref}
-        className={`flex h-10 w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus-visible:ring-blue-600 ${className}`}
+        className={`flex h-10 w-full rounded border border-[var(--border-default)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
         {...props}
       />
     )
@@ -18,12 +19,16 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   value?: string | number
   onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void
   placeholder?: string
+  direction?: 'up' | 'down'
 }
 
 export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
-  ({ className = '', children, value, onChange, disabled, placeholder = 'Chọn...', ...props }, ref) => {
+  ({ className = '', children, value, onChange, disabled, placeholder = 'Chọn...', direction, ...props }, ref) => {
     const [isOpen, setIsOpen] = useState(false)
+    const [computedDirection, setComputedDirection] = useState<'up' | 'down'>('down')
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
     const containerRef = useRef<HTMLDivElement>(null)
+    const menuRef = useRef<HTMLDivElement>(null)
 
     // Parse options from children (expecting option tags)
     const options = React.useMemo(() => {
@@ -42,13 +47,57 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
 
     useEffect(() => {
       function handleClickOutside(event: MouseEvent) {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(event.target as Node) &&
+          menuRef.current &&
+          !menuRef.current.contains(event.target as Node)
+        ) {
           setIsOpen(false)
         }
       }
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
+
+    useEffect(() => {
+      if (!isOpen) return
+
+      const updateCoords = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect()
+          const scrollY = window.scrollY
+          const scrollX = window.scrollX
+          
+          setCoords({
+            top: rect.top + scrollY,
+            left: rect.left + scrollX,
+            width: rect.width,
+            height: rect.height,
+          })
+
+          const spaceBelow = window.innerHeight - rect.bottom
+          const dropdownHeight = 260
+          let directionToUse = direction
+          if (!directionToUse) {
+            if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+              directionToUse = 'up'
+            } else {
+              directionToUse = 'down'
+            }
+          }
+          setComputedDirection(directionToUse)
+        }
+      }
+
+      updateCoords()
+      window.addEventListener('resize', updateCoords)
+      window.addEventListener('scroll', updateCoords, { capture: true })
+      return () => {
+        window.removeEventListener('resize', updateCoords)
+        window.removeEventListener('scroll', updateCoords, { capture: true })
+      }
+    }, [isOpen, direction])
 
     const handleSelect = (val: string) => {
       if (disabled) return
@@ -69,35 +118,52 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex h-10 w-full items-center justify-between rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 ring-offset-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 text-left cursor-pointer ${className}`}
+          className={`select-trigger flex h-10 w-full items-center justify-between rounded border border-[var(--border-default)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-action-primary)] disabled:cursor-not-allowed disabled:opacity-50 text-left cursor-pointer ${className}`}
           {...(props as any)}
         >
           <span>{selectedOption ? selectedOption.label : placeholder}</span>
-          <ChevronDown size={16} className="text-slate-400 dark:text-slate-500 transition-transform duration-200" />
+          <ChevronDown size={16} className="text-[var(--text-muted)] transition-transform duration-200" />
         </button>
 
-        {isOpen && (
-          <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded border border-slate-200 bg-white dark:bg-slate-900 p-1 text-slate-900 dark:text-slate-100 shadow-lg focus:outline-none animate-in fade-in-50 slide-in-from-top-1 dark:border-slate-800">
-            {options.map((opt) => {
-              const isSelected = String(opt.value) === String(value ?? '')
-              return (
-                <div
-                  key={opt.value}
-                  onClick={() => handleSelect(opt.value)}
-                  className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors ${
-                    isSelected ? 'bg-slate-50 dark:bg-slate-800 font-semibold' : ''
-                  }`}
-                >
-                  {isSelected && (
-                    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-                      <Check size={14} className="text-slate-900 dark:text-slate-100" />
-                    </span>
-                  )}
-                  <span>{opt.label}</span>
-                </div>
-              )
-            })}
-          </div>
+        {isOpen && typeof document !== 'undefined' && createPortal(
+          <div
+            style={{
+              position: 'absolute',
+              top: coords.top,
+              left: coords.left,
+              width: coords.width,
+              height: coords.height,
+              pointerEvents: 'none',
+              zIndex: 99999,
+            }}
+          >
+            <div
+              ref={menuRef}
+              style={{ pointerEvents: 'auto' }}
+              className={`absolute w-full z-50 ${computedDirection === 'up' ? 'bottom-full mb-1 animate-in fade-in-50 slide-in-from-bottom-1' : 'top-full mt-1 animate-in fade-in-50 slide-in-from-top-1'} max-h-60 overflow-auto rounded border border-[var(--border-strong)] bg-[var(--surface-3)] p-1 text-[var(--text-primary)] shadow-lg focus:outline-none`}
+            >
+              {options.map((opt) => {
+                const isSelected = String(opt.value) === String(value ?? '')
+                return (
+                  <div
+                    key={opt.value}
+                    onClick={() => handleSelect(opt.value)}
+                    className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-[var(--surface-2)] transition-colors ${
+                      isSelected ? 'bg-[var(--surface-2)] font-semibold' : ''
+                    }`}
+                  >
+                    {isSelected && (
+                      <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                        <Check size={14} className="text-[var(--text-primary)]" />
+                      </span>
+                    )}
+                    <span>{opt.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>,
+          document.body
         )}
       </div>
     )
@@ -110,7 +176,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
     return (
       <textarea
         ref={ref}
-        className={`flex min-h-[80px] w-full rounded border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus-visible:ring-blue-600 ${className}`}
+        className={`flex min-h-[80px] w-full rounded border border-[var(--border-default)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-action-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
         {...props}
       />
     )

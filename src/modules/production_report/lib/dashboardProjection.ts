@@ -5,6 +5,7 @@ import type {
   DowntimeRowView,
   ProductionDashboard,
 } from '../types/dashboard'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -38,8 +39,8 @@ export function projectDowntimeRow(row: DowntimeLogRecord): DowntimeRowView {
     machineLabel: row.machine_code || UNAVAILABLE,
     workOrderLabel: row.work_order_code || UNAVAILABLE,
     shiftLabel: row.shift_code || UNAVAILABLE,
-    startedAt: row.started_at || UNAVAILABLE,
-    endedAt: row.ended_at || UNAVAILABLE,
+    startedAt: row.started_at ? formatDateTime(row.started_at) : UNAVAILABLE,
+    endedAt: row.ended_at ? formatDateTime(row.ended_at) : UNAVAILABLE,
     durationMin: row.duration_min != null ? String(row.duration_min) : UNAVAILABLE,
     reasonCode: row.reason_code || UNAVAILABLE,
     category: row.category || UNAVAILABLE,

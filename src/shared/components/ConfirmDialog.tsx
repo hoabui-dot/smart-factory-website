@@ -9,7 +9,7 @@ interface ConfirmDialogProps {
   description?: string
   confirmText?: string
   cancelText?: string
-  type: 'confirm-only' | 'reason-required'
+  type?: 'confirm-only' | 'reason-required'
   summary?: Record<string, string | number | boolean | null | undefined>
   isPending?: boolean
 }
@@ -22,7 +22,7 @@ export function ConfirmDialog({
   description,
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
-  type,
+  type = 'confirm-only',
   summary,
   isPending = false,
 }: ConfirmDialogProps) {

@@ -1,99 +1,166 @@
 .ecr-admin {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
-.ecr-admin__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.ecr-admin__eyebrow {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-}
-.ecr-admin__lead {
-  margin: 0.35rem 0 0;
-  color: #64748b;
-}
-.ecr-admin__create,
-.ecr-admin__filters,
-.ecr-admin__detail,
-.ecr-admin__table-wrap {
+
+.ecr-admin__create {
   display: grid;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid #cbd5e1;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  padding: 1.25rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
+
+.ecr-admin__create h3 {
+  grid-column: 1 / -1;
+  margin: 0 0 0.25rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 .ecr-admin label {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
+
 .ecr-admin input,
 .ecr-admin select,
 .ecr-admin button {
   min-height: 2.25rem;
   font: inherit;
 }
+
+.ecr-admin input,
+.ecr-admin select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.ecr-admin input:focus,
+.ecr-admin select:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.15);
+}
+
 .ecr-admin button {
   border: 0;
   border-radius: 0.5rem;
-  background: #155eef;
+  background: var(--color-action-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
+
+.ecr-admin button:hover:not(:disabled) {
+  background: var(--color-action-primary-hover);
+}
+
 .ecr-admin button:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
 }
-.ecr-admin__layout {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 1rem;
+
+.ecr-admin__table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 0.75rem;
+  background: var(--surface-1);
 }
+
 .ecr-admin__table {
   width: 100%;
   border-collapse: collapse;
 }
-.ecr-admin__table th,
+
+.ecr-admin__table th {
+  padding: 0.75rem;
+  border-bottom: 2px solid var(--border-default);
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 .ecr-admin__table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid #cbd5e1;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
   font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
+
+.ecr-admin__table tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.ecr-admin__table tr:hover {
+  background: var(--surface-2);
+}
+
 .ecr-admin__table tr.active {
-  background: #e8eefc;
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--color-action-primary);
 }
+
 .ecr-admin .linkish {
-  background: transparent;
-  color: #155eef;
-  padding: 0;
   min-height: auto;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
+  font-weight: 600;
 }
-.ecr-admin__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+
+.ecr-admin .linkish:hover {
+  text-decoration: underline;
+  background: transparent !important;
 }
+
 .ecr-admin__state {
   margin: 0;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  background: #eef2ff;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
+
 .ecr-admin__error {
   margin: 0;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.1));
+  color: var(--color-danger-text);
+  border: 1px solid var(--border-default);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
-@media (max-width: 960px) {
-  .ecr-admin__layout {
-    grid-template-columns: 1fr;
-  }
+
+.ecr-admin__more {
+  margin: 0.75rem;
+  width: calc(100% - 1.5rem);
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+.ecr-admin__more:hover {
+  background: var(--surface-3) !important;
 }

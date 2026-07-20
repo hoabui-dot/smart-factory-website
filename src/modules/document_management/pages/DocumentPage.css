@@ -1,18 +1,11 @@
 .doc-admin {
   display: grid;
-  gap: 1rem;
-}
-
-.doc-admin__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+  gap: 1.25rem;
 }
 
 .doc-admin__eyebrow {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -20,7 +13,7 @@
 
 .doc-admin__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
 }
 
 .doc-admin__actions {
@@ -30,41 +23,60 @@
   align-items: center;
 }
 
-.doc-admin button,
+.doc-admin__actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-action-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  transition: all 0.2s ease;
+}
+
+.doc-admin__actions a:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+}
+
+.doc-admin button:not(.table-pagination *):not(.select-trigger),
 .doc-admin .doc-admin__btn {
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   padding: 0.5rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--color-action, #155eef);
+  background: var(--color-action-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
-.doc-admin button:disabled {
+.doc-admin button:not(.table-pagination *):not(.select-trigger):hover,
+.doc-admin .doc-admin__btn:hover {
+  background: var(--color-action-primary-hover);
+}
+
+.doc-admin button:not(.table-pagination *):not(.select-trigger):disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
 .doc-admin__btn--danger {
-  background: var(--color-danger, #dc2626);
+  background: var(--color-danger-text) !important;
+}
+
+.doc-admin__btn--danger:hover {
+  opacity: 0.9;
 }
 
 .doc-admin__tabs {
   display: flex;
   gap: 0.5rem;
-}
-
-.doc-admin__tabs button[aria-selected='true'] {
-  background: #0f172a;
-}
-
-.doc-admin__filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 0.75rem;
-  align-items: end;
 }
 
 .doc-admin label,
@@ -73,13 +85,33 @@
   gap: 0.35rem;
 }
 
+.doc-admin label span,
+.doc-admin__field span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .doc-admin input,
 .doc-admin select,
 .doc-admin textarea {
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.doc-admin input:focus,
+.doc-admin select:focus,
+.doc-admin textarea:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.15);
 }
 
 .doc-admin__layout {
@@ -91,6 +123,9 @@
 
 .doc-admin__table-wrap {
   overflow: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 0.75rem;
+  background: var(--surface-1);
 }
 
 .doc-admin__table {
@@ -98,33 +133,59 @@
   border-collapse: collapse;
 }
 
-.doc-admin__table th,
-.doc-admin__table td {
-  padding: 0.55rem 0.65rem;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+.doc-admin__table th {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
-  vertical-align: top;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.doc-admin__table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.doc-admin__table tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.doc-admin__table tbody tr:hover {
+  background: var(--surface-2);
 }
 
 .doc-admin__row--active {
-  background: #eff6ff;
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--color-action-primary);
 }
 
 .doc-admin__linkish {
-  background: transparent;
-  color: var(--color-action, #155eef);
-  padding: 0;
   min-height: auto;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
   font-weight: 600;
+}
+
+.doc-admin__linkish:hover {
+  text-decoration: underline;
+  background: transparent !important;
 }
 
 .doc-admin__detail {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .doc-admin__meta {
@@ -140,16 +201,17 @@
 }
 
 .doc-admin__meta dt {
-  color: var(--color-text-muted, #64748b);
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
 .doc-admin__meta dd {
   margin: 0;
+  color: var(--text-primary);
 }
 
 .doc-admin__muted {
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
 }
 
 .doc-admin__state,
@@ -158,29 +220,62 @@
   margin: 0;
 }
 
+.doc-admin__state {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.doc-admin__banner {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-success-bg, rgba(22, 163, 74, 0.1));
+  color: var(--color-success-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
 .doc-admin__error {
-  color: var(--color-danger, #dc2626);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.1));
+  color: var(--color-danger-text);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .doc-admin__confirm {
   display: grid;
   gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px dashed var(--color-border, #cbd5e1);
+  padding: 1rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-3);
 }
 
 .doc-admin__more {
   margin-top: 0.75rem;
+  width: 100%;
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
+}
+
+.doc-admin__more:hover {
+  background: var(--surface-3) !important;
 }
 
 .doc-admin__note {
   margin: 0;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: #f8fafc;
-  color: var(--color-text-muted, #64748b);
-  font-size: 0.9rem;
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 @media (max-width: 900px) {

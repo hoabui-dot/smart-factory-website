@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { useItemMaster } from '../hooks/useItemMaster'
-import type { ItemRecord } from '../types/itemMaster'
+import type { ItemRecord, ItemRow } from '../types/itemMaster'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 
 // Import Tailwind Shadcn UI components
@@ -12,16 +12,9 @@ import { Button } from '@/shared/components/ui/Button'
 import { Input, Select } from '@/shared/components/ui/Input'
 import { Badge } from '@/shared/components/ui/Badge'
 import { Dialog } from '@/shared/components/ui/Dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/shared/components/ui/Table'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
-import { Search } from 'lucide-react'
+import { Search, Package, MapPin } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 type Api = ReturnType<typeof useItemMaster>
 
@@ -47,10 +40,11 @@ function ItemEditor({
   admin,
   onClose,
 }: {
-  detail: ItemRecord
+  detail: NonNullable<Api['detail']>
   admin: Api
   onClose: () => void
 }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'edit'>('overview')
   const [itemName, setItemName] = useState(detail.item_name)
   const [itemTypeId, setItemTypeId] = useState(detail.item_type_id)
   const [categoryId, setCategoryId] = useState(detail.category_id)
@@ -68,166 +62,242 @@ function ItemEditor({
   const row = admin.detailRow
 
   return (
-    <div className="flex flex-col gap-6 font-sans">
-      <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">{detail.code}</h2>
-          <Badge variant={detail.is_active ? 'active' : 'inactive'}>
-            {detail.is_active ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
-        <p className="text-sm text-slate-500 mt-1">{detail.item_name}</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Thông tin chung</h4>
-        <dl className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-lg text-sm">
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-xs text-slate-400 font-medium">Item type</dt>
-            <dd className="font-semibold text-slate-800 dark:text-slate-200">{detail.item_type_code ?? '-'}</dd>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-xs text-slate-400 font-medium">Category</dt>
-            <dd className="font-semibold text-slate-800 dark:text-slate-200">{detail.category_code ?? '-'}</dd>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-xs text-slate-400 font-medium">Base UOM</dt>
-            <dd className="font-semibold text-slate-800 dark:text-slate-200">{detail.base_uom_code ?? '-'}</dd>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <dt className="text-xs text-slate-400 font-medium">Current revision</dt>
-            <dd className="font-semibold text-slate-800 dark:text-slate-200">{detail.current_revision_code ?? '-'}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Cấu hình thông số</h4>
-        
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500">Tên item</span>
-          <Input value={itemName} onChange={(e) => setItemName(e.target.value)} />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500">Item type</span>
-          <Select value={itemTypeId} onChange={(e) => setItemTypeId(Number(e.target.value))}>
-            {admin.itemTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.code} — {t.name_vi}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500">Category</span>
-          <Select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>
-            {admin.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.code} — {c.category_name}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-3 mt-1">
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              checked={isLotTracked}
-              onChange={(e) => setIsLotTracked(e.target.checked)}
-            />
-            <span>Lot tracked</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              checked={isSerialTracked}
-              onChange={(e) => setIsSerialTracked(e.target.checked)}
-            />
-            <span>Serial tracked</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-              checked={isPhantom}
-              onChange={(e) => setIsPhantom(e.target.checked)}
-            />
-            <span>Phantom (BOM only)</span>
-          </label>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-500">Shelf life (days)</span>
-          <Input
-            inputMode="numeric"
-            value={shelfLifeDays}
-            onChange={(e) => setShelfLifeDays(e.target.value)}
-            placeholder="Bỏ trống nếu không giới hạn"
-          />
-        </div>
-
-        <Button
+    <div className="flex flex-col gap-4 font-sans text-sm">
+      {/* Tabs Header */}
+      <div className="flex border-b border-[var(--border-default)] mb-6">
+        <button
           type="button"
-          disabled={!row?.canUpdate || admin.updatePending}
-          title={row?.updateDisabledReason ?? undefined}
-          onClick={() => setIsConfirmEditOpen(true)}
-          className="w-full mt-2"
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'overview'
+              ? 'border-[var(--color-action-primary)] text-[var(--color-action-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+          onClick={() => setActiveTab('overview')}
         >
-          {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
-        </Button>
-
-        {!row?.canUpdate ? (
-          <p className="text-xs text-red-500 mt-1 text-center">
-            Update không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
-          </p>
-        ) : null}
-        {admin.updateError ? (
-          <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-650 border border-red-200 dark:border-red-900" role="alert">
-            {admin.updateError.code}: {admin.updateError.message}
-          </p>
-        ) : null}
-        {admin.updateSuccess ? (
-          <p className="p-3 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-600 border border-emerald-200 dark:border-emerald-900" role="status">
-            Đã lưu thay đổi.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ngừng hoạt động</h4>
-        <Button
+          Tổng quan
+        </button>
+        <button
           type="button"
-          variant="danger"
-          disabled={!row?.canDeactivate}
-          title={row?.deactivateDisabledReason ?? undefined}
-          onClick={() => setIsConfirmDeactivateOpen(true)}
-          className="w-full"
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'edit'
+              ? 'border-[var(--color-action-primary)] text-[var(--color-action-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+          onClick={() => setActiveTab('edit')}
         >
-          Deactivate item
-        </Button>
-        {!row?.canDeactivate ? (
-          <p className="text-xs text-slate-400 text-center">
-            Deactivate không khả dụng
-            {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
-          </p>
-        ) : null}
-
-        {admin.deactivateError ? (
-          <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-600 border border-red-200 dark:border-red-900" role="alert">
-            {admin.deactivateError.code}: {admin.deactivateError.message}
-          </p>
-        ) : null}
-        {admin.deactivateState === 'success' ? (
-          <p className="p-3 rounded bg-emerald-50 dark:bg-emerald-950/20 text-xs text-emerald-600 border border-emerald-200 dark:border-emerald-900" role="status">
-            Đã deactivate item.
-          </p>
-        ) : null}
+          Chỉnh sửa & Cấu hình
+        </button>
       </div>
+
+      {activeTab === 'overview' ? (
+        <div className="space-y-6">
+          {/* Header Info Card */}
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-[var(--surface-2)] border border-[var(--border-default)]">
+            <div className="p-3 bg-[var(--color-action-primary)]/10 text-[var(--color-action-primary)] rounded-lg">
+              <Package size={24} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{detail.code}</h4>
+                <Badge variant={detail.is_active ? 'active' : 'inactive'}>
+                  {detail.is_active ? 'Hoạt động' : 'Tạm ngưng'}
+                </Badge>
+              </div>
+              <p className="text-sm text-[var(--text-secondary)] truncate mt-1">{detail.item_name}</p>
+            </div>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Loại vật tư</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{detail.item_type_code ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Phân nhóm (Category)</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{detail.category_code ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Đơn vị tính cơ bản</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{detail.base_uom_code ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Phiên bản hiện tại (Revision)</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{detail.current_revision_code ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Hạn bảo quản (Shelf life)</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">
+                {detail.shelf_life_days ? `${detail.shelf_life_days} ngày` : 'Không giới hạn'}
+              </span>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <span className="block text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Phương thức quản lý</span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {isLotTracked && <Badge variant="default">Lot tracked</Badge>}
+                {isSerialTracked && <Badge variant="default">Serial tracked</Badge>}
+                {isPhantom && <Badge variant="default">Phantom</Badge>}
+                {!isLotTracked && !isSerialTracked && !isPhantom && <span className="text-sm text-[var(--text-secondary)]">Bình thường</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Tên vật tư *</span>
+              <Input 
+                value={itemName} 
+                onChange={(e) => setItemName(e.target.value)} 
+                className="bg-[var(--surface-2)] border-[var(--border-default)] text-[var(--text-primary)]"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Loại vật tư *</span>
+              <Select 
+                value={itemTypeId} 
+                onChange={(e) => setItemTypeId(Number(e.target.value))}
+                className="bg-[var(--surface-2)] border-[var(--border-default)] text-[var(--text-primary)]"
+              >
+                {admin.itemTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.code} — {t.name_vi}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Phân nhóm *</span>
+              <Select 
+                value={categoryId} 
+                onChange={(e) => setCategoryId(Number(e.target.value))}
+                className="bg-[var(--surface-2)] border-[var(--border-default)] text-[var(--text-primary)]"
+              >
+                {admin.categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.code} — {c.category_name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Hạn bảo quản (ngày)</span>
+              <Input
+                inputMode="numeric"
+                value={shelfLifeDays}
+                onChange={(e) => setShelfLifeDays(e.target.value)}
+                placeholder="Bỏ trống nếu không giới hạn"
+                className="bg-[var(--surface-2)] border-[var(--border-default)] text-[var(--text-primary)]"
+              />
+            </label>
+
+            <div className="flex flex-col gap-2.5 col-span-1 sm:col-span-2 mt-2">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Cấu hình theo dõi</span>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
+                    checked={isLotTracked}
+                    onChange={(e) => setIsLotTracked(e.target.checked)}
+                  />
+                  <span>Lot tracked</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
+                    checked={isSerialTracked}
+                    onChange={(e) => setIsSerialTracked(e.target.checked)}
+                  />
+                  <span>Serial tracked</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
+                    checked={isPhantom}
+                    onChange={(e) => setIsPhantom(e.target.checked)}
+                  />
+                  <span>Phantom (BOM only)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Feedback & Actions */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-[var(--border-default)]">
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="secondary" type="button" onClick={onClose}>
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                disabled={!row?.canUpdate || admin.updatePending}
+                title={row?.updateDisabledReason ?? undefined}
+                onClick={() => setIsConfirmEditOpen(true)}
+              >
+                {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+            
+            {!row?.canUpdate && (
+              <p className="text-xs text-[var(--color-danger-text)] mt-1">
+                Chỉnh sửa không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
+              </p>
+            )}
+            {admin.updateError && (
+              <p className="text-xs text-[var(--color-danger-text)] mt-1" role="alert">
+                Lỗi: {admin.updateError.message}
+              </p>
+            )}
+            {admin.updateSuccess && (
+              <p className="text-xs text-[var(--color-success-text)] mt-1" role="status">
+                Đã cập nhật thông tin vật tư thành công.
+              </p>
+            )}
+          </div>
+
+          {/* Danger Zone (Deactivation) */}
+          <div className="pt-6 mt-6 border-t border-[var(--border-default)]">
+            <div className="p-4 rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger-bg)] space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[var(--color-danger-text)]">Ngừng hoạt động vật tư</h4>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">
+                  Hành động này sẽ tạm dừng hoạt động của vật tư này. Vật tư này sẽ không khả dụng để lập lệnh sản xuất hay tạo BOM.
+                </p>
+              </div>
+              <div className="flex justify-start">
+                <Button
+                  type="button"
+                  variant="danger"
+                  disabled={!row?.canDeactivate}
+                  title={row?.deactivateDisabledReason ?? undefined}
+                  onClick={() => setIsConfirmDeactivateOpen(true)}
+                >
+                  Ngừng hoạt động (Deactivate)
+                </Button>
+              </div>
+              {!row?.canDeactivate && (
+                <p className="text-xs text-[var(--text-muted)]">
+                  Ngừng hoạt động không khả dụng{row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
+                </p>
+              )}
+              {admin.deactivateError && (
+                <p className="text-xs text-[var(--color-danger-text)]" role="alert">
+                  Lỗi: {admin.deactivateError.message}
+                </p>
+              )}
+              {admin.deactivateState === 'success' && (
+                <p className="text-xs text-[var(--color-danger-text)]" role="status">
+                  Đã ngừng hoạt động vật tư này.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={isConfirmEditOpen}
@@ -282,6 +352,50 @@ export function ItemMasterPage() {
 
   const pagination = usePagination(admin.rows, 10)
 
+  const columns: ColumnDef<ItemRow>[] = [
+    {
+      header: 'Mã vật tư',
+      cell: (row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-0 py-0 h-auto font-semibold hover:underline"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectItem(row.code)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.code}
+        </Button>
+      ),
+    },
+    {
+      header: 'Tên vật tư',
+      cell: (row) => <span className="font-medium text-slate-800 dark:text-slate-200">{row.itemName}</span>,
+    },
+    {
+      header: 'Loại vật tư',
+      cell: (row) => row.itemTypeLabel,
+    },
+    {
+      header: 'Phân nhóm',
+      cell: (row) => row.categoryLabel,
+    },
+    {
+      header: 'Đơn vị tính cơ bản',
+      cell: (row) => row.baseUomLabel,
+    },
+    {
+      header: 'Hoạt động',
+      cell: (row) => (
+        <Badge variant={row.isActive ? 'active' : 'inactive'}>
+          {row.isActive ? 'Có' : 'Không'}
+        </Badge>
+      ),
+    },
+  ]
+
   // Local creation confirm
   const [isConfirmCreateOpen, setIsConfirmCreateOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -296,54 +410,69 @@ export function ItemMasterPage() {
         ]}
         title="Item Master"
         subtitle="Quản lý danh mục vật tư và thành phẩm phục vụ sản xuất."
-        actions={<Button onClick={admin.openCreate}>Tạo item</Button>}
+        actions={
+          <div className="flex gap-2">
+            {admin.hasMore && (
+              <Button variant="secondary" size="sm" onClick={admin.loadMore}>
+                Nạp thêm từ Server
+              </Button>
+            )}
+            <Button size="sm" onClick={admin.openCreate}>
+              Tạo item
+            </Button>
+          </div>
+        }
       />
 
-      <form
-        className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo mã / tên mặt hàng...'
+          }
+        ]}
+        values={{ searchInput: admin.searchInput }}
+        onChange={(_, val) => admin.setSearchInput(val)}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
-      >
-        <div className="flex-1">
-          <Input
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="Tìm item (code / tên)..."
-            className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-transparent h-9 px-2"
-          />
-        </div>
-        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-          <Search size={16} />
-        </Button>
-      </form>
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={!!admin.searchInput}
+        className="max-w-lg"
+      />
 
-      {admin.showCreate ? (
+      <Dialog
+        isOpen={admin.showCreate}
+        onClose={admin.closeCreate}
+        title="Tạo item mới"
+        maxWidth="max-w-[75%]"
+      >
         <form
-          className="flex flex-col gap-5 p-6 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 shadow-sm"
+          className="flex flex-col gap-5"
           onSubmit={(e) => {
             e.preventDefault()
             setIsConfirmCreateOpen(true)
           }}
         >
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-50">Tạo item mới</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Form luôn hiển thị — server enforce quyền tạo (MES01-003).
-            </p>
-          </div>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Form luôn hiển thị — server enforce quyền tạo (MES01-003).
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Code</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
               <Input
                 value={admin.createForm.code}
                 onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
                 required
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Tên item</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Tên item</span>
               <Input
                 value={admin.createForm.item_name}
                 onChange={(e) =>
@@ -352,14 +481,15 @@ export function ItemMasterPage() {
                 required
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Item type</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Item type</span>
               <Select
                 value={admin.createForm.item_type_id}
                 onChange={(e) =>
                   admin.setCreateForm({ ...admin.createForm, item_type_id: Number(e.target.value) })
                 }
                 required
+                direction="up"
               >
                 <option value={0}>Chọn item type</option>
                 {admin.itemTypes.map((t) => (
@@ -369,14 +499,15 @@ export function ItemMasterPage() {
                 ))}
               </Select>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Category</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Category</span>
               <Select
                 value={admin.createForm.category_id}
                 onChange={(e) =>
                   admin.setCreateForm({ ...admin.createForm, category_id: Number(e.target.value) })
                 }
                 required
+                direction="up"
               >
                 <option value={0}>Chọn category</option>
                 {admin.categories.map((c) => (
@@ -386,14 +517,15 @@ export function ItemMasterPage() {
                 ))}
               </Select>
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-semibold text-slate-500">Base UOM</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[var(--text-secondary)]">Base UOM</span>
               <Select
                 value={admin.createForm.base_uom_id}
                 onChange={(e) =>
                   admin.setCreateForm({ ...admin.createForm, base_uom_id: Number(e.target.value) })
                 }
                 required
+                direction="up"
               >
                 <option value={0}>Chọn UOM</option>
                 {admin.uoms.map((u) => (
@@ -404,10 +536,10 @@ export function ItemMasterPage() {
               </Select>
             </div>
             <div className="flex flex-col gap-3 mt-4">
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
                   checked={admin.createForm.is_lot_tracked}
                   onChange={(e) =>
                     admin.setCreateForm({ ...admin.createForm, is_lot_tracked: e.target.checked })
@@ -415,10 +547,10 @@ export function ItemMasterPage() {
                 />
                 <span>Lot tracked</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
                   checked={admin.createForm.is_serial_tracked}
                   onChange={(e) =>
                     admin.setCreateForm({ ...admin.createForm, is_serial_tracked: e.target.checked })
@@ -426,10 +558,10 @@ export function ItemMasterPage() {
                 />
                 <span>Serial tracked</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
                   checked={admin.createForm.is_phantom}
                   onChange={(e) =>
                     admin.setCreateForm({ ...admin.createForm, is_phantom: e.target.checked })
@@ -437,10 +569,10 @@ export function ItemMasterPage() {
                 />
                 <span>Phantom (BOM only)</span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-blue-650 focus:ring-blue-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-[var(--border-default)] text-[var(--color-action-primary)] focus:ring-[var(--color-action-primary)] cursor-pointer"
                   checked={admin.createForm.is_active}
                   onChange={(e) =>
                     admin.setCreateForm({ ...admin.createForm, is_active: e.target.checked })
@@ -450,104 +582,44 @@ export function ItemMasterPage() {
               </label>
             </div>
           </div>
-          <div className="flex items-center gap-3 border-t border-slate-200 dark:border-slate-800 pt-4 mt-2">
+          <div className="flex items-center justify-end gap-3 border-t border-[var(--border-default)] pt-4 mt-2">
+            <Button type="button" variant="secondary" onClick={admin.closeCreate}>
+              Hủy
+            </Button>
             <Button
               type="submit"
               disabled={admin.createErrors.length > 0 || admin.createPending}
             >
               {admin.createPending ? 'Đang tạo…' : 'Tạo'}
             </Button>
-            <Button type="button" variant="secondary" onClick={admin.closeCreate}>
-              Hủy
-            </Button>
           </div>
           {admin.createError ? (
-            <p className="p-3 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-600 border border-red-200 dark:border-red-900" role="alert">
+            <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
               {admin.createError.code}: {admin.createError.message}
             </p>
           ) : null}
         </form>
-      ) : null}
+      </Dialog>
 
-      {banner ? (
-        <p className="p-4 rounded bg-blue-50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 text-sm text-slate-600 dark:text-slate-300" role={admin.listState === 'error' ? 'alert' : 'status'}>
+      {banner && admin.listState !== 'loading' ? (
+        <p className="p-4 rounded bg-[var(--surface-2)] border border-[var(--border-default)] text-sm text-[var(--text-secondary)]" role={admin.listState === 'error' ? 'alert' : 'status'}>
           {banner}
           {admin.listError ? ` (${admin.listError.code})` : ''}
         </p>
       ) : null}
 
-      {admin.listState === 'ready' ? (
-        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-          <Table containerClassName="relative w-full overflow-auto">
-            <TableHeader>
-              <TableRow className="pointer-events-none hover:bg-transparent">
-                <TableHead>Code</TableHead>
-                <TableHead>Tên item</TableHead>
-                <TableHead>Item type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Base UOM</TableHead>
-                <TableHead>Active</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pagination.paginatedItems.map((row) => (
-                <TableRow
-                  key={row.code}
-                  className={row.code === admin.selectedCode ? 'bg-blue-50/50 dark:bg-slate-800/80' : ''}
-                  onClick={() => {
-                    admin.selectItem(row.code)
-                    setIsDetailOpen(true)
-                  }}
-                >
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="px-0 py-0 h-auto font-semibold hover:underline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        admin.selectItem(row.code)
-                        setIsDetailOpen(true)
-                      }}
-                    >
-                      {row.code}
-                    </Button>
-                  </TableCell>
-                  <TableCell className="font-medium text-slate-800 dark:text-slate-200">{row.itemName}</TableCell>
-                  <TableCell>{row.itemTypeLabel}</TableCell>
-                  <TableCell>{row.categoryLabel}</TableCell>
-                  <TableCell>{row.baseUomLabel}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.isActive ? 'active' : 'inactive'}>
-                      {row.isActive ? 'Có' : 'Không'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10">
-            <div className="flex-1">
-              {admin.hasMore && (
-                <Button variant="secondary" size="sm" onClick={admin.loadMore}>
-                  Nạp thêm từ Server
-                </Button>
-              )}
-            </div>
-            
-            <DataTablePagination
-              currentPage={pagination.currentPage}
-              pageSize={pagination.pageSize}
-              totalItems={pagination.totalItems}
-              totalPages={pagination.totalPages}
-              startIndex={pagination.startIndex}
-              endIndex={pagination.endIndex}
-              setPage={pagination.setPage}
-              setPageSize={pagination.setPageSize}
-            />
-          </div>
-        </div>
+      {(admin.listState === 'ready' || admin.listState === 'loading') ? (
+        <GenericDataTable
+          data={pagination.paginatedItems}
+          columns={columns}
+          pagination={pagination}
+          isLoading={admin.listState === 'loading'}
+          onRowClick={(row) => {
+            admin.selectItem(row.code)
+            setIsDetailOpen(true)
+          }}
+          getRowClassName={(row) => row.code === admin.selectedCode ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]' : ''}
+        />
       ) : null}
 
       {/* Reusable Dialog wrapper */}

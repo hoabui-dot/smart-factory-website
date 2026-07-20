@@ -1,7 +1,21 @@
+import { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { useProductionDashboard } from '../hooks/useProductionDashboard'
 import { formatKpiValue } from '../lib/dashboardProjection'
+import type { DowntimeRowView } from '../types/dashboard'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
+
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { FileSpreadsheet, Download, AlertCircle } from 'lucide-react'
+import { useImportExportCenter } from '@/modules/excel_import_export/hooks/useImportExportCenter'
 
 import './ProductionDashboardPage.css'
 
@@ -53,26 +67,63 @@ function exportMessage(state: string, jobCode: string | null): string {
 
 export function ProductionDashboardPage() {
   const d = useProductionDashboard()
+  const pagination = usePagination(d.rows, 10)
+
+  const [isExcelOpen, setIsExcelOpen] = useState(false)
+  const ie = useImportExportCenter()
+
+  const downtimeColumns: ColumnDef<DowntimeRowView>[] = [
+    {
+      header: 'Mã downtime',
+      cell: (row) => (
+        <button
+          type="button"
+          className="mes08-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            d.selectDowntime(row.code)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Thiết bị',
+      cell: (row) => row.machineLabel,
+    },
+    {
+      header: 'Lệnh sản xuất',
+      cell: (row) => row.workOrderLabel,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Bắt đầu lúc',
+      cell: (row) => row.startedAt,
+    },
+  ]
+
   const dashBanner = stateMessage(d.dashState === 'ready' ? '' : d.dashState)
   const listBanner = stateMessage(d.listState)
   const exportBanner = exportMessage(d.exportState, d.exportJobCode)
 
   return (
     <section className="mes08-admin" aria-labelledby="mes08-title">
-      <header className="mes08-admin__header">
-        <div>
-          <p className="mes08-admin__eyebrow">WEB-MES-08-DASHBOARD · `/web/mes/dashboards`</p>
-          <h2 id="mes08-title">Production Dashboard</h2>
-          <p className="mes08-admin__lead">
-            KPI canonical, filter thời gian, export báo cáo và phân loại downtime (MES08-006) theo
-            server <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="mes08-admin__actions">
-          <Link to="/web/import-export">Import/Export Center</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Dashboards' },
+        ]}
+        title="Bảng điều hành sản xuất (Production Dashboard)"
+        subtitle="Theo dõi chỉ số hiệu suất OEE, tỷ lệ lỗi hỏng, năng suất ca trạm và thống kê downtime thời gian thực."
+        actions={
+          <Button variant="secondary" onClick={() => setIsExcelOpen(true)}>Nhập/Xuất Dữ liệu (Excel)</Button>
+        }
+      />
 
       <div className="mes08-admin__tabs" role="tablist" aria-label="Dashboard sections">
         <button
@@ -95,33 +146,53 @@ export function ProductionDashboardPage() {
 
       {d.tab === 'kpis' ? (
         <>
-          <form
-            className="mes08-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'from',
+                type: 'text',
+                label: 'from (ISO)',
+                placeholder: 'YYYY-MM-DD...',
+              },
+              {
+                name: 'to',
+                type: 'text',
+                label: 'to (ISO)',
+                placeholder: 'YYYY-MM-DD...',
+              },
+            ]}
+            values={{
+              from: d.from,
+              to: d.to,
+            }}
+            onChange={(name, value) => {
+              if (name === 'from') {
+                d.setFrom(value)
+              } else if (name === 'to') {
+                d.setTo(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               d.applyFilter()
             }}
-          >
-            <label className="mes08-admin__field">
-              <span>from (ISO)</span>
-              <input value={d.from} onChange={(e) => d.setFrom(e.target.value)} />
-            </label>
-            <label className="mes08-admin__field">
-              <span>to (ISO)</span>
-              <input value={d.to} onChange={(e) => d.setTo(e.target.value)} />
-            </label>
-            <button type="submit" className="mes08-admin__btn">
-              Áp dụng filter
-            </button>
-            <button
-              type="button"
-              className="mes08-admin__btn"
-              disabled={!d.dashView?.canExport}
-              onClick={d.export}
-            >
-              Export report
-            </button>
-          </form>
+            onReset={() => {
+              d.setFrom('')
+              d.setTo('')
+              d.applyFilter()
+            }}
+            isResetActive={Boolean(d.from || d.to)}
+            expands={
+              <Button
+                type="button"
+                className="mes08-admin__btn shrink-0"
+                disabled={!d.dashView?.canExport}
+                onClick={d.export}
+              >
+                Export report
+              </Button>
+            }
+          />
 
           {dashBanner ? (
             <p className="mes08-admin__state" role="status">
@@ -167,47 +238,47 @@ export function ProductionDashboardPage() {
               <div className="mes08-admin__layout">
                 <div className="mes08-admin__table-wrap">
                   <h3>Work orders</h3>
-                  <table className="mes08-admin__table">
-                    <thead>
-                      <tr>
-                        <th>WO</th>
-                        <th>Status</th>
-                        <th>Planned</th>
-                        <th>Good</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Lệnh sản xuất</TableHead>
+                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Kế hoạch</TableHead>
+                        <TableHead>Đạt chất lượng</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {d.dashView.workOrders.map((wo) => (
-                        <tr key={wo.work_order_code}>
-                          <td>{wo.work_order_code}</td>
-                          <td>{wo.status}</td>
-                          <td>{wo.planned_qty}</td>
-                          <td>{wo.good_qty}</td>
-                        </tr>
+                        <TableRow key={wo.work_order_code} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{wo.work_order_code}</TableCell>
+                          <TableCell>{wo.status}</TableCell>
+                          <TableCell>{wo.planned_qty}</TableCell>
+                          <TableCell>{wo.good_qty}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
                 <div className="mes08-admin__table-wrap">
                   <h3>Machines</h3>
-                  <table className="mes08-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Machine</th>
-                        <th>Open DT</th>
-                        <th>Last good</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Thiết bị</TableHead>
+                        <TableHead>Downtime hiện tại</TableHead>
+                        <TableHead>Sản phẩm đạt cuối</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {d.dashView.machines.map((m) => (
-                        <tr key={m.machine_code}>
-                          <td>{m.machine_code}</td>
-                          <td>{m.open_downtime ? 'yes' : 'no'}</td>
-                          <td>{m.last_good_qty}</td>
-                        </tr>
+                        <TableRow key={m.machine_code} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{m.machine_code}</TableCell>
+                          <TableCell>{m.open_downtime ? 'yes' : 'no'}</TableCell>
+                          <TableCell>{m.last_good_qty}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
 
@@ -225,24 +296,24 @@ export function ProductionDashboardPage() {
                 <p className="mes08-admin__state">Đang tải series…</p>
               ) : (
                 <div className="mes08-admin__table-wrap">
-                  <table className="mes08-admin__table">
-                    <thead>
-                      <tr>
-                        <th>Dimension</th>
-                        <th>Label</th>
-                        <th>Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                    <TableHeader>
+                      <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                        <TableHead>Chiều phân tích</TableHead>
+                        <TableHead>Nhãn phân tích</TableHead>
+                        <TableHead>Giá trị</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {d.kpiSeries.map((pt) => (
-                        <tr key={pt.dimension_key}>
-                          <td>{pt.dimension_key}</td>
-                          <td>{pt.dimension_label}</td>
-                          <td>{pt.value ?? '-'}</td>
-                        </tr>
+                        <TableRow key={pt.dimension_key} className="hover:bg-[var(--surface-2)]">
+                          <TableCell>{pt.dimension_key}</TableCell>
+                          <TableCell>{pt.dimension_label}</TableCell>
+                          <TableCell>{pt.value ?? '-'}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </>
@@ -250,24 +321,33 @@ export function ProductionDashboardPage() {
         </>
       ) : (
         <>
-          <form
-            className="mes08-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'search',
+                type: 'text',
+                label: 'Tìm downtime',
+                placeholder: 'Nhập thông tin downtime...',
+              },
+            ]}
+            values={{
+              search: d.searchInput,
+            }}
+            onChange={(name, value) => {
+              if (name === 'search') {
+                d.setSearchInput(value)
+              }
+            }}
             onSubmit={(e) => {
               e.preventDefault()
               d.applySearch()
             }}
-          >
-            <label className="mes08-admin__field">
-              <span>Tìm downtime</span>
-              <input
-                value={d.searchInput}
-                onChange={(e) => d.setSearchInput(e.target.value)}
-              />
-            </label>
-            <button type="submit" className="mes08-admin__btn">
-              Lọc
-            </button>
-          </form>
+            onReset={() => {
+              d.setSearchInput('')
+              d.applySearch()
+            }}
+            isResetActive={Boolean(d.searchInput)}
+          />
 
           {listBanner ? (
             <p className="mes08-admin__state" role="status">
@@ -278,46 +358,27 @@ export function ProductionDashboardPage() {
 
           {d.listState === 'ready' ? (
             <div className="mes08-admin__layout">
-              <div className="mes08-admin__table-wrap">
-                <table className="mes08-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Machine</th>
-                      <th>WO</th>
-                      <th>Status</th>
-                      <th>Started</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {d.rows.map((row) => (
-                      <tr
-                        key={row.code}
-                        className={
-                          row.code === d.selectedCode ? 'mes08-admin__row--active' : ''
-                        }
-                      >
-                        <td>
-                          <button
-                            type="button"
-                            className="mes08-admin__linkish"
-                            onClick={() => d.selectDowntime(row.code)}
-                          >
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.machineLabel}</td>
-                        <td>{row.workOrderLabel}</td>
-                        <td>{row.status}</td>
-                        <td>{row.startedAt}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="mes08-admin__table-wrap flex flex-col gap-4">
+                <GenericDataTable
+                  data={pagination.paginatedItems}
+                  columns={downtimeColumns}
+                  pagination={pagination}
+                  onRowClick={(row) => d.selectDowntime(row.code)}
+                  getRowClassName={(row) =>
+                    row.code === d.selectedCode
+                      ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                      : ''
+                  }
+                />
                 {d.hasMore ? (
-                  <button type="button" className="mes08-admin__more" onClick={d.loadMore}>
-                    Tải thêm
-                  </button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="self-center"
+                    onClick={d.loadMore}
+                  >
+                    Tải thêm từ máy chủ
+                  </Button>
                 ) : null}
               </div>
 
@@ -435,6 +496,184 @@ export function ProductionDashboardPage() {
           ) : null}
         </>
       )}
+      {/* Excel Import/Export Dialog Modal */}
+      <Dialog
+        isOpen={isExcelOpen}
+        onClose={() => setIsExcelOpen(false)}
+        title="Nhập / Xuất dữ liệu Excel"
+        maxWidth="max-w-[75%]"
+      >
+        <div className="flex flex-col gap-6 font-sans text-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Import segment */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <FileSpreadsheet size={16} className="text-[var(--color-action-primary)]" />
+                Khởi tạo Batch Nhập dữ liệu mới
+              </h3>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (!window.confirm('Xác nhận tạo lô nạp dữ liệu (Import Batch) mới từ file nguồn?')) return
+                  ie.createBatch()
+                }}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Mẫu nhập (Import Template)</span>
+                  <Select
+                    value={ie.templateCode}
+                    onChange={(event) => ie.setTemplateCode(event.target.value)}
+                  >
+                    {ie.templates.map((item) => (
+                      <option key={item.templateCode} value={item.templateCode}>
+                        {item.label} ({item.templateCode})
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">ID File nguồn</span>
+                  <Input
+                    value={ie.sourceFileId}
+                    onChange={(event) => ie.setSourceFileId(event.target.value)}
+                    placeholder="Nhập ID file dữ liệu nguồn..."
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ ghi nhận (Commit Mode)</span>
+                    <Select
+                      value={ie.mode}
+                      onChange={(event) => ie.setMode(event.target.value)}
+                    >
+                      <option value="ALL_OR_NOTHING">Lưu tất cả hoặc hủy (ALL_OR_NOTHING)</option>
+                      <option value="PARTIAL">Lưu một phần (PARTIAL)</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ nhập (Import Mode)</span>
+                    <Select
+                      value={ie.importMode}
+                      onChange={(event) => ie.setImportMode(event.target.value)}
+                    >
+                      <option value="UPSERT">Cập nhật hoặc thêm mới (UPSERT)</option>
+                      <option value="CREATE_ONLY">Chỉ thêm mới (CREATE_ONLY)</option>
+                      <option value="UPDATE_ONLY">Chỉ cập nhật (UPDATE_ONLY)</option>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={ie.downloadTemplate}
+                    disabled={ie.downloadPending}
+                  >
+                    <Download size={14} className="mr-1.5" />
+                    Tải template
+                  </Button>
+                  <Button type="submit" disabled={ie.createPending}>
+                    Tạo import batch
+                  </Button>
+                </div>
+              </form>
+              {ie.createError && (
+                <div className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs flex items-center gap-2" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{ie.createError.code}: {ie.createError.message}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Active Batch details if available */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              {ie.detailRow ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-[var(--text-primary)]">Lô đang hoạt động: {ie.detailRow.code}</h4>
+                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${ie.detailRow.status === 'COMMITTED' ? 'bg-green-100 text-green-800' : ie.detailRow.status === 'FAILED' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {ie.detailRow.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Tổng số bản ghi</span>
+                      <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{ie.detailRow.totalRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Số dòng lỗi</span>
+                      <p className="font-semibold text-sm text-[var(--color-danger-text)] mt-0.5">{ie.detailRow.failedRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Nạp thành công</span>
+                      <p className="font-semibold text-sm text-[var(--color-success-text)] mt-0.5">{ie.detailRow.successRows}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Người khởi tạo</span>
+                      <p className="font-semibold text-sm mt-0.5 text-[var(--text-primary)]">{ie.detailRow.startedBy}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 mt-2">
+                    {ie.detailRow.canValidate && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!window.confirm('Xác nhận kiểm tra tính hợp lệ của lô nạp dữ liệu này?')) return
+                          ie.runValidate()
+                        }}
+                      >
+                        Kiểm tra (Validate)
+                      </Button>
+                    )}
+                    {ie.detailRow.canCommit && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          ie.setConfirmAction('commit')
+                        }}
+                      >
+                        Ghi nhận vào DB (Commit)
+                      </Button>
+                    )}
+                    {ie.detailRow.canCancel && (
+                      <Button
+                        type="button"
+                        variant="danger"
+                        onClick={() => {
+                          ie.setConfirmAction('cancel')
+                        }}
+                      >
+                        Hủy bỏ lô (Cancel)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] py-12">
+                  <AlertCircle size={24} className="opacity-40 mb-2" />
+                  <p className="text-xs">Chưa có lô nạp dữ liệu nào được khởi tạo hoặc chọn.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmation Action Dialog inside Modal */}
+        <ConfirmDialog
+          isOpen={ie.confirmAction !== null}
+          onClose={() => ie.setConfirmAction(null)}
+          onConfirm={ie.runConfirmedAction}
+          title={ie.confirmAction === 'commit' ? 'Xác nhận Commit' : 'Xác nhận Hủy'}
+          description={
+            ie.confirmAction === 'commit'
+              ? 'Xác nhận ghi nhận tất cả dữ liệu hợp lệ trong lô nạp này vào cơ sở dữ liệu hệ thống?'
+              : 'Xác nhận hủy bỏ hoàn toàn lô nạp dữ liệu này?'
+          }
+          isPending={ie.mutationState === 'pending'}
+        />
+      </Dialog>
     </section>
   )
 }

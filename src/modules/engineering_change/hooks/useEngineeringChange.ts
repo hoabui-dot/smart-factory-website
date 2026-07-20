@@ -142,7 +142,7 @@ export function useEngineeringChange() {
       if (next) setCursor(next)
     },
     selectedCode,
-    select: (code: string) => {
+    select: (code: string | null) => {
       setSelectedCode(code)
       setEditForm({})
       lifecycleMutation.reset()

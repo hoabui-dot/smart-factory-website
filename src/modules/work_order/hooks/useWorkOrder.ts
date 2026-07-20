@@ -259,9 +259,15 @@ export function useWorkOrder() {
 
     searchInput,
     setSearchInput,
+    appliedQuery,
     applySearch: () => {
       setCursor(undefined)
       setAppliedQuery(searchInput.trim())
+    },
+    clearSearch: () => {
+      setCursor(undefined)
+      setSearchInput('')
+      setAppliedQuery('')
     },
     listState,
     listError,

@@ -14,13 +14,13 @@
 }
 
 .cf-dialog {
-  background: var(--color-surface-card);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-default);
+  background: var(--surface-3);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  width: 100%;
-  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  width: 75%;
+  max-width: 75%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -40,7 +40,7 @@
 
 .cf-dialog__header {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--color-border-default);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .cf-dialog__header h3 {
@@ -60,14 +60,14 @@
 
 .cf-dialog__desc {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   font-size: 0.9rem;
   line-height: 1.5;
 }
 
 .cf-dialog__summary {
-  background: var(--color-page-surface);
-  border: 1px solid var(--color-border-default);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   padding: 1rem;
 }
@@ -76,7 +76,7 @@
   margin: 0 0 0.5rem 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .cf-dialog__summary dl {
@@ -94,13 +94,13 @@
 }
 
 .cf-dialog__summary-row dt {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .cf-dialog__summary-row dd {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-weight: 600;
   word-break: break-all;
 }
@@ -115,15 +115,15 @@
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.35rem;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .cf-dialog__reason textarea {
   width: 100%;
   min-height: 80px;
-  border: 1px solid var(--color-border-default);
-  background: var(--color-surface-card);
-  color: var(--color-text-primary);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2);
+  color: var(--text-primary);
   border-radius: 6px;
   padding: 0.5rem;
   font-size: 0.875rem;
@@ -132,16 +132,16 @@
 }
 
 .cf-dialog__reason textarea:focus {
-  border-color: var(--color-focus-ring);
+  border-color: var(--color-action-primary);
 }
 
 .cf-dialog__footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid var(--color-border-default);
+  border-top: 1px solid var(--border-default);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  background: var(--color-page-surface);
+  background: var(--surface-2);
 }
 
 .cf-dialog__btn {
@@ -160,18 +160,18 @@
 }
 
 .cf-dialog__btn--cancel {
-  border-color: var(--color-border-default);
-  background: var(--color-surface-card);
-  color: var(--color-text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+  color: var(--text-primary);
 }
 
 .cf-dialog__btn--cancel:hover:not(:disabled) {
-  background: var(--color-page-surface);
+  background: var(--surface-2);
 }
 
 .cf-dialog__btn--confirm {
   background: var(--color-action-primary);
-  color: var(--color-text-on-primary);
+  color: #ffffff;
 }
 
 .cf-dialog__btn--confirm:hover:not(:disabled) {
@@ -180,7 +180,7 @@
 
 .cf-dialog__btn--danger {
   background: var(--color-danger);
-  color: var(--color-text-on-primary);
+  color: #ffffff;
 }
 
 .cf-dialog__btn--danger:hover:not(:disabled) {

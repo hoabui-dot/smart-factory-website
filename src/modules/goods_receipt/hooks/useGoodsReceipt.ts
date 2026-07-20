@@ -503,7 +503,7 @@ export function useGoodsReceipt() {
       if (next) setPoCursor(next)
     },
     selectedPoCode,
-    selectPo: (code: string) => {
+    selectPo: (code: string | null) => {
       setSelectedPoCode(code)
       setShowPoCreate(false)
       setPoConfirmAction(null)
@@ -571,7 +571,7 @@ export function useGoodsReceipt() {
       if (next) setAsnCursor(next)
     },
     selectedAsnCode,
-    selectAsn: (code: string) => {
+    selectAsn: (code: string | null) => {
       setSelectedAsnCode(code)
       setShowAsnCreate(false)
       setAsnConfirmAction(null)
@@ -628,7 +628,7 @@ export function useGoodsReceipt() {
       if (next) setGrnCursor(next)
     },
     selectedGrnCode,
-    selectGrn: (code: string) => {
+    selectGrn: (code: string | null) => {
       setSelectedGrnCode(code)
       setConfirmGrnCancel(false)
       setGrnCancelReason('')

@@ -4,11 +4,14 @@ import { Link } from 'react-router'
 import { useBinLocation } from '../hooks/useBinLocation'
 import type { LocationRecord } from '../types/binLocation'
 import { usePagination } from '@/shared/lib/usePagination'
-import { DataTablePagination } from '@/shared/components/DataTablePagination'
+import { TablePagination } from '@/shared/components/ui/TablePagination'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { Dialog } from '@/shared/components/ui/Dialog'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Button } from '@/shared/components/ui/Button'
-import { Search } from 'lucide-react'
+import { Input, Select } from '@/shared/components/ui/Input'
+import { Search, MapPin, FilterX } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 
 import './LocationMasterPage.css'
 
@@ -143,6 +146,7 @@ function LocationTreeItem({
 }
 
 function LocationEditor({ detail, admin }: { detail: LocationRecord; admin: Api }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'edit'>('overview')
   const [locationName, setLocationName] = useState(detail.location_name)
   const [locationTypeId, setLocationTypeId] = useState(detail.location_type_id)
   const [parentLocationId, setParentLocationId] = useState<number | null>(
@@ -168,186 +172,263 @@ function LocationEditor({ detail, admin }: { detail: LocationRecord; admin: Api 
     admin.locationTypes.find((t) => t.id === detail.location_type_id)?.code ?? '-'
 
   return (
-    <aside className="location-master__detail" aria-label="Chi tiết location">
-      <div className="location-master__detail-header">
-        <h3>{detail.code}</h3>
-        <p className="location-master__muted">
-          {detail.location_name} · {typeCode}
-        </p>
+    <div className="location-master__detail space-y-4" aria-label="Chi tiết location">
+      {/* Tabs Header */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'overview'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Tổng quan
+        </button>
+        <button
+          type="button"
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'edit'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+          onClick={() => setActiveTab('edit')}
+        >
+          Chỉnh sửa & Cấu hình
+        </button>
       </div>
 
-      <div className="location-master__detail-section">
-        <h4 className="location-master__detail-title">Thông tin chung</h4>
-        <dl className="location-master__meta">
-          <div>
-            <dt>Level</dt>
-            <dd>{detail.level}</dd>
+      {activeTab === 'overview' ? (
+        <div className="space-y-6">
+          {/* Header Info Card */}
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 rounded-lg">
+              <MapPin size={24} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-xl font-bold tracking-tight text-slate-950 dark:text-slate-50">{detail.code}</h4>
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  detail.is_active 
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50' 
+                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/50'
+                }`}>
+                  {detail.is_active ? 'Hoạt động' : 'Tạm ngưng'}
+                </span>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 truncate mt-1">{detail.location_name}</p>
+            </div>
           </div>
-          <div>
-            <dt>Path</dt>
-            <dd>{detail.path}</dd>
-          </div>
-          <div>
-            <dt>Parent</dt>
-            <dd>{row?.parentLabel ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>Warehouse category</dt>
-            <dd>{row?.warehouseCategoryLabel ?? '-'}</dd>
-          </div>
-          <div>
-            <dt>Manager</dt>
-            <dd>{detail.manager_user_id == null ? '-' : 'Assigned'}</dd>
-          </div>
-          <div>
-            <dt>Trạng thái</dt>
-            <dd>
-              <span className={`location-master__status-badge ${detail.is_active ? 'active' : 'inactive'}`}>
-                {detail.is_active ? 'Active' : 'Inactive'}
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Loại vị trí</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{typeCode}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Cấp bậc (Level)</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{detail.level}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950 col-span-1 sm:col-span-2">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Đường dẫn cấu trúc (Path)</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 font-mono break-all">{detail.path}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Vị trí cha</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{row?.parentLabel ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Danh mục kho</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{row?.warehouseCategoryLabel ?? '-'}</span>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Sức chứa tối đa</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {detail.capacity_qty ? `${detail.capacity_qty} ${admin.capacityUoms.find((u) => u.id === detail.capacity_uom_id)?.code ?? ''}` : 'Không giới hạn'}
               </span>
-            </dd>
+            </div>
+            <div className="p-3 rounded-lg border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+              <span className="block text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Mã vạch (Barcode)</span>
+              <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 font-mono">{detail.barcode ?? '-'}</span>
+            </div>
           </div>
-        </dl>
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Tên vị trí *</span>
+              <input 
+                type="text"
+                className="w-full min-h-[40px] px-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                value={locationName} 
+                onChange={(e) => setLocationName(e.target.value)} 
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Loại vị trí *</span>
+              <Select
+                value={locationTypeId}
+                onChange={(e) => setLocationTypeId(Number(e.target.value))}
+              >
+                {admin.locationTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.code} — {t.name_vi}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Vị trí cha</span>
+              <Select
+                value={parentLocationId ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setParentLocationId(v > 0 ? v : null)
+                }}
+              >
+                <option value={0}>— Root (không có parent) —</option>
+                {admin.parentOptions
+                  .filter((p) => p.code !== detail.code)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.code} — {p.location_name}
+                    </option>
+                  ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Phân nhóm (Warehouse category)</span>
+              <Select
+                value={warehouseCategoryId ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setWarehouseCategoryId(v > 0 ? v : null)
+                }}
+              >
+                <option value={0}>— Không —</option>
+                {admin.warehouseCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.code} — {c.name_vi}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mã vạch (Barcode)</span>
+              <input 
+                type="text"
+                className="w-full min-h-[40px] px-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-mono"
+                value={barcode} 
+                onChange={(e) => setBarcode(e.target.value)} 
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Sức chứa tối đa</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="w-full min-h-[40px] px-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                value={capacityQty}
+                onChange={(e) => setCapacityQty(e.target.value)}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Đơn vị sức chứa (Capacity UoM)</span>
+              <Select
+                value={capacityUomId ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setCapacityUomId(v > 0 ? v : null)
+                }}
+              >
+                <option value={0}>— Không —</option>
+                {admin.capacityUoms.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.code} — {u.uom_name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </div>
 
-      <div className="location-master__detail-section">
-        <h4 className="location-master__detail-title">Chỉnh sửa thông tin</h4>
-        <label className="location-master__field">
-          <span>Tên location</span>
-          <input value={locationName} onChange={(e) => setLocationName(e.target.value)} />
-        </label>
-        <label className="location-master__field">
-          <span>Location type</span>
-          <select
-            value={locationTypeId}
-            onChange={(e) => setLocationTypeId(Number(e.target.value))}
-          >
-            {admin.locationTypes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.code} — {t.name_vi}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="location-master__field">
-          <span>Parent location</span>
-          <select
-            value={parentLocationId ?? 0}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setParentLocationId(v > 0 ? v : null)
-            }}
-          >
-            <option value={0}>— Root (không có parent) —</option>
-            {admin.parentOptions
-              .filter((p) => p.code !== detail.code)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code} — {p.location_name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className="location-master__field">
-          <span>Warehouse category</span>
-          <select
-            value={warehouseCategoryId ?? 0}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setWarehouseCategoryId(v > 0 ? v : null)
-            }}
-          >
-            <option value={0}>— Không —</option>
-            {admin.warehouseCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.code} — {c.name_vi}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="location-master__field">
-          <span>Barcode</span>
-          <input value={barcode} onChange={(e) => setBarcode(e.target.value)} />
-        </label>
-        <label className="location-master__field">
-          <span>Capacity qty</span>
-          <input
-            inputMode="decimal"
-            value={capacityQty}
-            onChange={(e) => setCapacityQty(e.target.value)}
-          />
-        </label>
-        <label className="location-master__field">
-          <span>Capacity UoM</span>
-          <select
-            value={capacityUomId ?? 0}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setCapacityUomId(v > 0 ? v : null)
-            }}
-          >
-            <option value={0}>— Không —</option>
-            {admin.capacityUoms.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.code} — {u.uom_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="location-master__btn"
-          disabled={!row?.canUpdate || admin.updatePending}
-          title={row?.updateDisabledReason ?? undefined}
-          onClick={() => setIsConfirmEditOpen(true)}
-        >
-          {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
-        </button>
-        {!row?.canUpdate ? (
-          <p className="location-master__muted">
-            Update không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
-          </p>
-        ) : null}
-        {admin.updateError ? (
-          <p className="location-master__error" role="alert">
-            {admin.updateError.code}: {admin.updateError.message}
-          </p>
-        ) : null}
-        {admin.updateSuccess ? (
-          <p className="location-master__banner" role="status">
-            Đã lưu thay đổi.
-          </p>
-        ) : null}
-      </div>
+          {/* Form Feedback & Actions */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                type="button"
+                className="px-4 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-md text-sm font-semibold transition-all cursor-pointer text-slate-700 dark:text-slate-300"
+                onClick={() => admin.selectLocation(null)}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+                disabled={!row?.canUpdate || admin.updatePending}
+                onClick={() => setIsConfirmEditOpen(true)}
+              >
+                {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
+              </button>
+            </div>
+            
+            {!row?.canUpdate && (
+              <p className="text-xs text-rose-500 mt-1">
+                Chỉnh sửa không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
+              </p>
+            )}
+            {admin.updateError && (
+              <p className="text-xs text-rose-500 mt-1" role="alert">
+                Lỗi: {admin.updateError.message}
+              </p>
+            )}
+            {admin.updateSuccess && (
+              <p className="text-xs text-emerald-600 mt-1" role="status">
+                Đã cập nhật thông tin vị trí thành công.
+              </p>
+            )}
+          </div>
 
-      <div className="location-master__detail-section">
-        <h4 className="location-master__detail-title">Ngừng hoạt động</h4>
-        <button
-          type="button"
-          className="location-master__btn location-master__btn--danger"
-          disabled={!row?.canDeactivate}
-          title={row?.deactivateDisabledReason ?? undefined}
-          onClick={() => setIsConfirmDeactivateOpen(true)}
-        >
-          Deactivate location
-        </button>
-        {!row?.canDeactivate ? (
-          <p className="location-master__muted">
-            Deactivate không khả dụng
-            {row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
-          </p>
-        ) : null}
-        {admin.deactivateError ? (
-          <p className="location-master__error" role="alert">
-            {admin.deactivateError.code}: {admin.deactivateError.message}
-          </p>
-        ) : null}
-        {admin.deactivateState === 'success' ? (
-          <p className="location-master__banner" role="status">
-            Đã deactivate location.
-          </p>
-        ) : null}
-      </div>
+          {/* Danger Zone (Deactivation) */}
+          <div className="pt-6 mt-6 border-t border-rose-100 dark:border-rose-950/30">
+            <div className="p-4 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50/20 dark:bg-rose-950/10 space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold text-rose-900 dark:text-rose-400">Ngừng hoạt động vị trí</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Hành động này sẽ tạm dừng hoạt động của vị trí kho. Vị trí này sẽ không khả dụng để chứa hàng hóa hoặc vật tư.
+                </p>
+              </div>
+              <div className="flex justify-start">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-md text-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
+                  disabled={!row?.canDeactivate}
+                  onClick={() => setIsConfirmDeactivateOpen(true)}
+                >
+                  Ngừng hoạt động (Deactivate)
+                </button>
+              </div>
+              {!row?.canDeactivate && (
+                <p className="text-xs text-slate-400">
+                  Ngừng hoạt động không khả dụng{row?.deactivateDisabledReason ? ` (${row.deactivateDisabledReason})` : ''}.
+                </p>
+              )}
+              {admin.deactivateError && (
+                <p className="text-xs text-rose-500" role="alert">
+                  Lỗi: {admin.deactivateError.message}
+                </p>
+              )}
+              {admin.deactivateState === 'success' && (
+                <p className="text-xs text-rose-600" role="status">
+                  Đã ngừng hoạt động vị trí này.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         isOpen={isConfirmEditOpen}
@@ -390,7 +471,7 @@ function LocationEditor({ detail, admin }: { detail: LocationRecord; admin: Api 
           admin.deactivate()
         }}
       />
-    </aside>
+    </div>
   )
 }
 
@@ -455,45 +536,51 @@ export function LocationMasterPage() {
         actions={<Button onClick={admin.openCreate}>Tạo location</Button>}
       />
 
-      <form
-        className="flex items-center gap-2 max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg"
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo mã / tên vị trí...'
+          }
+        ]}
+        values={{ searchInput: admin.searchInput }}
+        onChange={(_, val) => admin.setSearchInput(val)}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
-      >
-        <div className="flex-1">
-          <input
-            className="w-full bg-transparent border-0 focus:outline-none text-sm text-slate-800 dark:text-slate-200 px-2"
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="Tìm location (code / tên)..."
-          />
-        </div>
-        <Button type="submit" size="sm" className="h-9 w-9 px-0" aria-label="Lọc">
-          <Search size={16} />
-        </Button>
-      </form>
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={!!admin.searchInput}
+        className="max-w-md"
+      />
 
-      {admin.showCreate ? (
-        <form className="location-master__create" onSubmit={handleCreateSubmit}>
-          <h3>Tạo location mới</h3>
-          <p className="location-master__muted">
+      <Dialog
+        isOpen={admin.showCreate}
+        onClose={admin.closeCreate}
+        title="Tạo location mới"
+        maxWidth="max-w-[50%]"
+      >
+        <form className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]" onSubmit={handleCreateSubmit}>
+          <p className="text-xs text-[var(--text-secondary)]">
             Form luôn hiển thị — server enforce quyền tạo (WMS01-003). Manager assignment bỏ trống
             (nullable; không có user-id lookup trên surface này).
           </p>
-          <div className="location-master__form-grid">
-            <label className="location-master__field">
-              <span>Code</span>
-              <input
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Code</span>
+              <Input
                 value={admin.createForm.code}
                 onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
                 required
               />
             </label>
-            <label className="location-master__field">
-              <span>Tên location</span>
-              <input
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Tên location</span>
+              <Input
                 value={admin.createForm.location_name}
                 onChange={(e) =>
                   admin.setCreateForm({ ...admin.createForm, location_name: e.target.value })
@@ -501,9 +588,9 @@ export function LocationMasterPage() {
                 required
               />
             </label>
-            <label className="location-master__field">
-              <span>Location type</span>
-              <select
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Location type</span>
+              <Select
                 value={admin.createForm.location_type_id}
                 onChange={(e) =>
                   admin.setCreateForm({
@@ -519,11 +606,11 @@ export function LocationMasterPage() {
                     {t.code} — {t.name_vi}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
-            <label className="location-master__field">
-              <span>Parent location</span>
-              <select
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Parent location</span>
+              <Select
                 value={admin.createForm.parent_location_id ?? 0}
                 onChange={(e) => {
                   const v = Number(e.target.value)
@@ -539,11 +626,11 @@ export function LocationMasterPage() {
                     {p.code} — {p.location_name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
-            <label className="location-master__field">
-              <span>Warehouse category</span>
-              <select
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Warehouse category</span>
+              <Select
                 value={admin.createForm.warehouse_category_id ?? 0}
                 onChange={(e) => {
                   const v = Number(e.target.value)
@@ -559,11 +646,11 @@ export function LocationMasterPage() {
                     {c.code} — {c.name_vi}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
-            <label className="location-master__field">
-              <span>Barcode</span>
-              <input
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Barcode</span>
+              <Input
                 value={admin.createForm.barcode ?? ''}
                 onChange={(e) =>
                   admin.setCreateForm({
@@ -573,9 +660,9 @@ export function LocationMasterPage() {
                 }
               />
             </label>
-            <label className="location-master__field">
-              <span>Capacity qty</span>
-              <input
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Capacity qty</span>
+              <Input
                 inputMode="decimal"
                 value={
                   admin.createForm.capacity_qty == null ? '' : String(admin.createForm.capacity_qty)
@@ -588,9 +675,9 @@ export function LocationMasterPage() {
                 }
               />
             </label>
-            <label className="location-master__field">
-              <span>Capacity UoM</span>
-              <select
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase">Capacity UoM</span>
+              <Select
                 value={admin.createForm.capacity_uom_id ?? 0}
                 onChange={(e) => {
                   const v = Number(e.target.value)
@@ -606,40 +693,43 @@ export function LocationMasterPage() {
                     {u.code} — {u.uom_name}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="location-master__checkbox">
-              <input
-                type="checkbox"
-                checked={admin.createForm.is_active}
-                onChange={(e) =>
-                  admin.setCreateForm({ ...admin.createForm, is_active: e.target.checked })
-                }
-              />
-              <span>Active</span>
+              </Select>
             </label>
           </div>
-          <div className="location-master__actions">
-            <button
+          <label className="flex items-center gap-2 mt-1">
+            <input
+              type="checkbox"
+              checked={admin.createForm.is_active}
+              onChange={(e) =>
+                admin.setCreateForm({ ...admin.createForm, is_active: e.target.checked })
+              }
+            />
+            <span>Active</span>
+          </label>
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={admin.closeCreate}
+            >
+              Hủy
+            </Button>
+            <Button
               type="submit"
-              className="location-master__btn"
               disabled={admin.createErrors.length > 0 || admin.createPending}
             >
               {admin.createPending ? 'Đang tạo…' : 'Tạo'}
-            </button>
-            <button type="button" className="location-master__btn--ghost" onClick={admin.closeCreate}>
-              Hủy
-            </button>
+            </Button>
           </div>
           {admin.createError ? (
-            <p className="location-master__error" role="alert">
+            <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
               {admin.createError.code}: {admin.createError.message}
             </p>
           ) : null}
         </form>
-      ) : null}
+      </Dialog>
 
-      {banner ? (
+      {banner && admin.listState !== 'loading' ? (
         <p
           className="location-master__state"
           role={admin.listState === 'error' ? 'alert' : 'status'}
@@ -649,7 +739,7 @@ export function LocationMasterPage() {
         </p>
       ) : null}
 
-      {admin.listState === 'ready' ? (
+      {(admin.listState === 'ready' || admin.listState === 'loading') ? (
         <div className="location-master__workspace">
           {/* Left Column: Location Tree */}
           <aside className="location-master__tree-column">
@@ -658,10 +748,12 @@ export function LocationMasterPage() {
               {selectedTreeId && (
                 <button
                   type="button"
-                  className="location-master__clear-tree-btn"
+                  className="location-master__clear-tree-btn flex items-center justify-center p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                   onClick={() => setSelectedTreeId(null)}
+                  title="Xóa bộ lọc"
+                  aria-label="Xóa bộ lọc"
                 >
-                  Xóa lọc
+                  <FilterX size={14} />
                 </button>
               )}
             </div>
@@ -691,30 +783,38 @@ export function LocationMasterPage() {
               <table className="location-master__table">
                 <thead>
                   <tr>
-                    <th>Code</th>
-                    <th>Tên</th>
-                    <th>Type</th>
-                    <th>Parent</th>
-                    <th>Category</th>
-                    <th>Level</th>
-                    <th>Active</th>
+                    <th>Mã vị trí</th>
+                    <th>Tên vị trí</th>
+                    <th>Loại vị trí</th>
+                    <th>Vị trí cha</th>
+                    <th>Phân nhóm</th>
+                    <th>Cấp bậc</th>
+                    <th>Hoạt động</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagination.paginatedItems.map((row) => (
+                  {admin.listState === 'loading' ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <tr key={idx} className="pointer-events-none hover:bg-transparent">
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[70%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[80%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[60%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[50%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[70%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[30%] my-1" /></td>
+                        <td><div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-[40%] my-1" /></td>
+                      </tr>
+                    ))
+                  ) : pagination.paginatedItems.map((row) => (
                     <tr
                       key={row.code}
                       className={row.code === admin.selectedCode ? 'location-master__row--active' : ''}
-                      onDoubleClick={() => admin.selectLocation(row.code)}
+                      onClick={() => admin.selectLocation(row.code)}
                     >
                       <td>
-                        <button
-                          type="button"
-                          className="location-master__linkish"
-                          onClick={() => admin.selectLocation(row.code)}
-                        >
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">
                           {row.code}
-                        </button>
+                        </span>
                       </td>
                       <td>{row.locationName}</td>
                       <td>{row.locationTypeLabel}</td>
@@ -731,45 +831,30 @@ export function LocationMasterPage() {
                 </tbody>
               </table>
 
-              <div className="location-master__paging-row">
-                {admin.hasMore ? (
-                  <button type="button" className="location-master__more" onClick={admin.loadMore}>
-                    Nạp thêm từ Server
-                  </button>
-                ) : (
-                  <span className="location-master__all-loaded">Đã tải hết từ Server</span>
-                )}
-
-                <DataTablePagination
-                  currentPage={pagination.currentPage}
-                  pageSize={pagination.pageSize}
-                  totalItems={pagination.totalItems}
-                  totalPages={pagination.totalPages}
-                  startIndex={pagination.startIndex}
-                  endIndex={pagination.endIndex}
-                  setPage={pagination.setPage}
-                  setPageSize={pagination.setPageSize}
-                />
-              </div>
+              <TablePagination
+                {...pagination}
+                hasMore={admin.hasMore}
+                onLoadMore={admin.loadMore}
+                sticky
+              />
             </div>
-          </div>
-
-          {/* Right Column: Detail Panel */}
-          <div className="location-master__detail-column">
-            {admin.detailLoading ? (
-              <div className="location-master__state">Đang tải chi tiết…</div>
-            ) : admin.detail ? (
-              <LocationEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
-            ) : (
-              <div className="location-master__empty-detail">
-                <div className="location-master__empty-icon">📍</div>
-                <h4>Thông tin chi tiết Vị trí</h4>
-                <p>Chọn một vị trí từ cây sơ đồ hoặc bảng danh sách để xem thông tin chi tiết.</p>
-              </div>
-            )}
           </div>
         </div>
       ) : null}
+
+      <Dialog
+        isOpen={!!admin.selectedCode}
+        onClose={() => admin.selectLocation(null)}
+        title={`Thông tin chi tiết Vị trí: ${admin.selectedCode ?? ''}`}
+      >
+        {admin.detailLoading ? (
+          <div className="location-master__state">Đang tải chi tiết…</div>
+        ) : admin.detail ? (
+          <LocationEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
+        ) : (
+          <div className="location-master__state">Không tìm thấy thông tin vị trí.</div>
+        )}
+      </Dialog>
 
       <ConfirmDialog
         isOpen={isConfirmCreateOpen}

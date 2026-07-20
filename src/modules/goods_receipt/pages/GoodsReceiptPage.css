@@ -1,26 +1,11 @@
 .grn-admin {
   display: grid;
-  gap: 1rem;
-}
-
-.grn-admin__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.grn-admin__eyebrow {
-  margin: 0;
-  color: var(--color-text-muted, #64748b);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  gap: 1.25rem;
 }
 
 .grn-admin__lead {
   margin: 0.35rem 0 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-secondary);
 }
 
 .grn-admin__actions {
@@ -30,38 +15,22 @@
   align-items: center;
 }
 
-.grn-admin__tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.grn-admin__tabs button {
-  min-height: 2.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border, #cbd5e1);
-  border-radius: 0.5rem;
-  background: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.grn-admin__tabs button[aria-selected='true'] {
-  background: var(--color-action, #155eef);
-  border-color: var(--color-action, #155eef);
-  color: #fff;
-}
-
 .grn-admin button,
 .grn-admin .grn-admin__btn {
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   padding: 0.5rem 1rem;
   border: 0;
   border-radius: 0.5rem;
-  background: var(--color-action, #155eef);
+  background: var(--color-action-primary);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.grn-admin button:hover,
+.grn-admin .grn-admin__btn:hover {
+  background: var(--color-action-primary-hover);
 }
 
 .grn-admin button:disabled {
@@ -70,7 +39,11 @@
 }
 
 .grn-admin__btn--danger {
-  background: var(--color-danger, #dc2626);
+  background: var(--color-danger-text) !important;
+}
+
+.grn-admin__btn--danger:hover {
+  opacity: 0.9;
 }
 
 .grn-admin__filters {
@@ -87,22 +60,40 @@
   min-width: 12rem;
 }
 
+.grn-admin label span,
+.grn-admin__field span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .grn-admin input,
 .grn-admin select {
-  min-height: 2.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-2);
+  color: var(--text-primary);
   font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.grn-admin input:focus,
+.grn-admin select:focus {
+  outline: none;
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 2px rgba(21, 94, 239, 0.15);
 }
 
 .grn-admin__create {
   display: grid;
   gap: 0.75rem;
   padding: 1rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-2);
 }
 
 .grn-admin__line-row {
@@ -120,43 +111,43 @@
   margin: 0;
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  background: var(--color-banner-bg, #eef2ff);
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .grn-admin__banner {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-success-bg, #dcfce7);
-  color: var(--color-success-text, #166534);
+  background: var(--color-success-bg, rgba(22, 163, 74, 0.1));
+  color: var(--color-success-text);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .grn-admin__error {
   margin: 0;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--color-error-bg, #fee2e2);
-  color: var(--color-error-text, #991b1b);
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.1));
+  color: var(--color-danger-text);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .grn-admin__muted {
   margin: 0;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
-.grn-admin__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(20rem, 1fr);
-  gap: 1rem;
-}
-
-.grn-admin__table-wrap,
-.grn-admin__detail {
+.grn-admin__table-wrap {
   overflow: auto;
-  border: 1px solid var(--color-border, #cbd5e1);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--surface-1);
 }
 
 .grn-admin__table,
@@ -166,60 +157,77 @@
 }
 
 .grn-admin__table th,
-.grn-admin__table td,
-.grn-admin__lines th,
-.grn-admin__lines td {
-  padding: 0.7rem;
-  border-bottom: 1px solid var(--color-border, #cbd5e1);
+.grn-admin__lines th {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
   text-align: left;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
+.grn-admin__table td,
+.grn-admin__lines td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.grn-admin__table tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+.grn-admin__table tbody tr:hover {
+  background: var(--surface-2);
+}
+
 .grn-admin__row--active {
-  background: var(--color-row-active, #e8eefc);
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--color-action-primary);
 }
 
 .grn-admin__linkish {
   min-height: auto;
-  padding: 0;
-  background: transparent;
-  color: var(--color-action, #155eef);
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--color-action-primary) !important;
   font-weight: 600;
 }
 
-.grn-admin__detail {
-  padding: 1rem;
-  display: grid;
-  gap: 0.75rem;
-  align-content: start;
+.grn-admin__linkish:hover {
+  text-decoration: underline;
+  background: transparent !important;
 }
 
 .grn-admin__confirm {
   display: grid;
   gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border, #cbd5e1);
+  padding: 1rem;
+  border: 1px solid var(--border-default);
   border-radius: 0.5rem;
+  background: var(--surface-3);
 }
 
 .grn-admin__cert-list {
   margin: 0;
   padding-left: 1.2rem;
   font-size: 0.85rem;
-  color: var(--color-text-muted, #64748b);
+  color: var(--text-muted);
 }
 
 .grn-admin__more {
   margin: 0.75rem;
+  width: calc(100% - 1.5rem);
+  background: var(--surface-2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-default) !important;
 }
 
-@media (max-width: 960px) {
-  .grn-admin__layout {
-    grid-template-columns: 1fr;
-  }
-
-  .grn-admin__line-row {
-    grid-template-columns: 1fr;
-  }
+.grn-admin__more:hover {
+  background: var(--surface-3) !important;
 }

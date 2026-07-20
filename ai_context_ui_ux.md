@@ -69,6 +69,13 @@ A unified overlay dialog that prompts users before committing write mutations:
 1. **`confirm-only` Mode**: Shows a summary panel listing all key-value changes (e.g. quantities, item codes, dates) to let users double-check input before saving.
 2. **`reason-required` Mode**: Standardizes deactivations, voids, and status modifications. Displays a mandatory textarea asking for a "Reason for change" (Lý do thay đổi); the confirm button is disabled unless the input is at least 3 characters long. All changes are logged with an audit trail, keeping raw API requests identical.
 
+### D. Reusable Filter Bar Component (`src/shared/components/ui/FilterBar.tsx`)
+A highly generic, declarative search and filtering component:
+- **Declarative Inputs**: Renders fields configured dynamically via `fields` configuration objects (`type: 'text'`, `type: 'select'`, or `type: 'radio'`).
+- **Conditional Layout**: Stacks fields as a multi-column responsive grid when top labels are specified (e.g., Event Monitor), or falls back to a compact, inline single-row alignment (`flex-row items-center p-1.5 h-12`) when no labels are specified (e.g., Audit Logs, WMS Locations, My Work), saving significant screen space.
+- **Action Modernization**: Features compact Lucide `<Filter size={20} />` (Apply) and `<FilterX size={20} />` (Reset) action icon buttons wrapped inside standard hover-triggered `<Tooltip />` boxes displaying clean Vietnamese descriptions ("Áp dụng lọc" / "Xóa bộ lọc").
+- **Theme-Aware Style**: Seamlessly supports light and dark themes using a CSS outline ring, adaptive borders (`border-slate-200 dark:border-slate-800`), and card surfaces (`bg-white dark:bg-slate-900`).
+
 ---
 
 ## 3. Page Directory by Business Module
@@ -95,8 +102,8 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Path**: `/admin`
 - **Component**: `ShellAdminPage` in [shell.tsx](file:///Users/hoabui/Desktop/smartfactory-web/src/routes/shell.tsx)
 - **Role**: `system_admin` or manager roles
-- **Layout**: Structured grid list.
-- **UX Features**: Administrative directory linking directly to all configuration, IAM, audit, and log sub-pages.
+- **Layout**: Categorized multi-column dashboard grid layout.
+- **UX Features**: Administrative directory utilizing standard `PageHeader` with breadcrumbs, linking directly to all configuration, IAM, audit, log sub-pages, production (MES), inventory (WMS), and quality (QMS).
 
 #### 4. IdentityAdminPage
 - **Path**: `/web/admin/users`
@@ -115,17 +122,17 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Role**: `system_admin`
 - **Layout**: Toolbar top, paginated permission matrix table below.
 - **UX Features**:
-  - Employs standard `PageHeader` layout with integrated actions.
-  - Dynamically alerts unsaved changes using animated badges and houses standard secondary cancel and primary save capability buttons.
-  - Displays permissions utilizing the standard `Table` layout, `DataTablePagination` client-side paginator (15 items per page), and checkbox matrices for roles configuration mapping.
-  - Features select dropdown controls for role switching.
+- Employs standard `PageHeader` layout with integrated actions.
+- Dynamically alerts unsaved changes using animated badges and houses standard secondary cancel and primary save capability buttons.
+- Displays permissions utilizing the generic `GenericDataTable` layout, client-side pagination (15 items per page), and checkbox matrices for roles configuration mapping.
+- Features select dropdown controls for role switching.
 
 #### 6. AuditViewerPage
 - **Path**: `/web/admin/audit-logs`
 - **Component**: [AuditViewerPage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/audit_log/pages/AuditViewerPage.tsx)
 - **Role**: `system_admin`
 - **Layout**: Toolbar top, unified Table below, with modal Dialog overlays.
-- **UX Features**: Logs table of `activity_events` with detailed metadata. Selecting a row opens a details modal overlay (`Dialog`) showing occurrences, actor labels, IP addresses, JSON state transitions, and async export triggers.
+- **UX Features**: Logs table of `activity_events` utilizing `GenericDataTable` with client-side pagination (15 items per page). Search filters use the inline `FilterBar` component with Vietnamese placeholders and compact, hover-triggered Lucide filter action icons. Selecting a row opens a details modal overlay (`Dialog`) showing occurrences, actor labels, IP addresses, JSON state transitions, and async export triggers.
 
 #### 7. FileStorageAdminPage
 - **Path**: `/web/admin/files`
@@ -148,7 +155,8 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Layout**: Full-width tabbed data tables for Event Outbox logs and Subscriptions, with advanced filtering panel and modal details/actions overlay.
 - **UX Features**:
   - Leverages the common `PageHeader` component with dynamic actions depending on active tab.
-  - Formatted tables using common Tailwind `<Table />` component and custom active/inactive/warning status badges.
+  - Formatted tables utilizing `GenericDataTable` and custom active/inactive/warning status badges.
+  - Standardized search buttons to use hover-triggered tooltip icons via the `FilterBar` component.
   - Dialog modals overlay for detailed Outbox message logs (with syntax payloads and replay commands) and active Subscription creations/revokes.
 
 #### 10. ImportExportCenterPage
@@ -179,7 +187,8 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Layout**: Full-width data table layout with client-side filters and details modal dialog.
 - **UX Features**:
   - Leverages the common `PageHeader` layout with standard breadcrumbs and subtitle controls.
-  - Formatted outbound messaging transactions inside a Tailwind `<Table />` component with custom channels/attempted badges.
+  - Formatted outbound messaging transactions inside the generic `GenericDataTable` component with custom channels/attempted badges and local pagination.
+  - Standardized search buttons to use inline row icons via the `FilterBar` component.
   - Selecting a row opens logs and gateways details in a centered `<Dialog />` modal.
   - Standardized error codes and retry responses in Vietnamese.
 
@@ -198,7 +207,7 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Component**: [WorkerJobConsolePage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/worker_scheduling/pages/WorkerJobConsolePage.tsx)
 - **Role**: Admin
 - **Layout**: Responsive filters toolbar, full-width Table card, and modal Dialog overlays.
-- **UX Features**: Schedule lists showing job queue metrics, cron frequencies, and statuses. Clicking a row opens a modal overlay (`Dialog`) containing details, toggle triggers, cron editor, and a sub-table of recent run history.
+- **UX Features**: Schedule lists utilizing `GenericDataTable` with standard pagination controls. Standardized filter buttons to use hover-triggered tooltip icons via the `FilterBar` component. Clicking a row opens a modal overlay (`Dialog`) containing details, toggle triggers, cron editor, and a sub-table of recent run history.
 
 ---
 
@@ -230,7 +239,7 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Component**: [RoutingPage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/routing/pages/RoutingPage.tsx)
 - **Role**: Manufacturing Engineer
 - **Layout**: Side-by-side workflow editor. Left list of routing templates, right section showing sequential steps, assigned Work Centers, and targeted cycle times.
-- **UX Features**: Interactive sequence diagram, drag-and-drop routing step ordering.
+- **UX Features**: Employs standard `PageHeader` layout with standard breadcrumbs and action controls (e.g. Export / Import). Interactive sequence diagram, drag-and-drop routing step ordering. Removed technical references.
 
 #### 18. BomPage
 - **Path**: `/web/mes/boms`
@@ -390,7 +399,7 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Component**: [MyWorkPage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/user_aggregator/pages/MyWorkPage.tsx)
 - **Role**: Operations Staff / Machine Operators
 - **Layout**: Consolidated card list.
-- **UX Features**: Automatically fetches all active tasks assigned to the current user, grouped by MES, WMS, and QMS with deep links.
+- **UX Features**: Employs standard `PageHeader` with actions and breadcrumbs. Standardized search inputs using inline row icons via the `FilterBar` component. Automatically fetches all active tasks assigned to the current user, grouped by MES, WMS, and QMS with deep links.
 
 #### 38. WO360Page
 - **Path**: `/web/shared/wo-360/:workOrderId`
@@ -404,7 +413,7 @@ The application routing is declared in `src/routes/index.tsx`. The pages are gro
 - **Component**: [ApprovalInboxPage](file:///Users/hoabui/Desktop/smartfactory-web/src/modules/user_aggregator/pages/ApprovalInboxPage.tsx)
 - **Role**: Managers / Team Leads
 - **Layout**: Unified approvals queue.
-- **UX Features**: Listing of pending items awaiting manager approval with quick bulk-approve button actions.
+- **UX Features**: Uses standard `PageHeader` layout with standard breadcrumbs and clean metadata descriptions. Listing of pending items awaiting manager approval with quick bulk-approve button actions and detailed review overlay inside a centered modal (`Dialog`) panel.
 
 #### 40. RefDataHubPage
 - **Path**: `/web/admin/ref-data`

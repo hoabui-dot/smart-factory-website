@@ -5,6 +5,7 @@ import type {
   ImportBatchRow,
   ImportTemplateDef,
 } from '../types/importExport'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -130,8 +131,8 @@ export function projectImportBatch(batch: ImportBatch): ImportBatchRow {
     failedRows: Number.isFinite(batch.failed_rows) ? batch.failed_rows : 0,
     skippedRows: Number.isFinite(batch.skipped_rows) ? batch.skipped_rows : 0,
     startedBy: Number.isFinite(batch.started_by) ? batch.started_by : 0,
-    startedAt: batch.started_at || UNAVAILABLE,
-    completedAt: batch.completed_at || UNAVAILABLE,
+    startedAt: batch.started_at ? formatDateTime(batch.started_at) : UNAVAILABLE,
+    completedAt: batch.completed_at ? formatDateTime(batch.completed_at) : UNAVAILABLE,
     canValidate: isActionEnabled(batch.allowed_actions, 'validate'),
     canCommit: isActionEnabled(batch.allowed_actions, 'commit'),
     canCancel: isActionEnabled(batch.allowed_actions, 'cancel'),

@@ -8,6 +8,7 @@ import type {
   WorkOrderRecord,
   WorkOrderRow,
 } from '../types/workOrder'
+import { formatDate, formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -63,11 +64,11 @@ export function projectWorkOrderRow(wo: WorkOrderRecord, lookups: WorkOrderLooku
     plannedQty: wo.planned_qty,
     producedQty: wo.produced_qty,
     scrapQty: wo.scrap_qty,
-    plannedStart: wo.planned_start || UNAVAILABLE,
-    actualStart: wo.actual_start || UNAVAILABLE,
-    actualEnd: wo.actual_end || UNAVAILABLE,
-    releasedAt: wo.released_at || UNAVAILABLE,
-    materialReadyAt: wo.material_ready_at || UNAVAILABLE,
+    plannedStart: wo.planned_start ? formatDate(wo.planned_start) : UNAVAILABLE,
+    actualStart: wo.actual_start ? formatDateTime(wo.actual_start) : UNAVAILABLE,
+    actualEnd: wo.actual_end ? formatDateTime(wo.actual_end) : UNAVAILABLE,
+    releasedAt: wo.released_at ? formatDateTime(wo.released_at) : UNAVAILABLE,
+    materialReadyAt: wo.material_ready_at ? formatDateTime(wo.material_ready_at) : UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canPlan: planAction?.enabled === true,
     canRelease: releaseAction?.enabled === true,

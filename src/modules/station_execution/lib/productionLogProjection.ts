@@ -3,6 +3,7 @@ import type {
   ProductionLogRecord,
   ProductionLogRow,
 } from '../types/productionLog'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -23,9 +24,9 @@ export function projectProductionLogRow(row: ProductionLogRecord): ProductionLog
     operationLabel: row.operation_code || UNAVAILABLE,
     operatorLabel: row.operator_code || UNAVAILABLE,
     shiftLabel: row.shift_code || UNAVAILABLE,
-    startedAt: row.started_at || UNAVAILABLE,
-    endedAt: row.ended_at || UNAVAILABLE,
-    recordedAt: row.recorded_at || UNAVAILABLE,
+    startedAt: row.started_at ? formatDateTime(row.started_at) : UNAVAILABLE,
+    endedAt: row.ended_at ? formatDateTime(row.ended_at) : UNAVAILABLE,
+    recordedAt: row.recorded_at ? formatDateTime(row.recorded_at) : UNAVAILABLE,
     goodQty: row.good_qty,
     scrapQty: row.scrap_qty,
     reworkQty: row.rework_qty,

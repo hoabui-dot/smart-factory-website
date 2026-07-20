@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { Input } from '@/shared/components/ui/Input'
 import { useGoodsReceipt } from '../hooks/useGoodsReceipt'
 import type { PurchaseOrderRecord, AsnRecord, GoodsReceiptRecord } from '../types/goodsReceipt'
 
@@ -76,13 +81,13 @@ function PoDetail({ detail, admin }: { detail: PurchaseOrderRecord; admin: Api }
       <table className="grn-admin__lines">
         <thead>
           <tr>
-            <th>Line</th>
-            <th>Item</th>
-            <th>Ordered</th>
-            <th>Received</th>
+            <th>Hạng mục</th>
+            <th>Vật tư</th>
+            <th>SL đặt hàng</th>
+            <th>SL đã nhận</th>
             <th>Còn lại</th>
-            <th>UoM</th>
-            <th>Status</th>
+            <th>ĐVT</th>
+            <th>Trạng thái</th>
           </tr>
         </thead>
         <tbody>
@@ -226,11 +231,11 @@ function AsnDetail({ detail, admin }: { detail: AsnRecord; admin: Api }) {
       <table className="grn-admin__lines">
         <thead>
           <tr>
-            <th>Line</th>
-            <th>Item</th>
-            <th>Supplier lot</th>
-            <th>Shipped qty</th>
-            <th>UoM</th>
+            <th>Hạng mục</th>
+            <th>Vật tư</th>
+            <th>Số lô NCC</th>
+            <th>SL giao (Shipped)</th>
+            <th>ĐVT</th>
           </tr>
         </thead>
         <tbody>
@@ -362,13 +367,13 @@ function GrnDetail({ detail, admin }: { detail: GoodsReceiptRecord; admin: Api }
       <table className="grn-admin__lines">
         <thead>
           <tr>
-            <th>Line</th>
-            <th>Item</th>
-            <th>Lot</th>
-            <th>Qty</th>
-            <th>UoM</th>
-            <th>Location</th>
-            <th>QC initial</th>
+            <th>Hạng mục</th>
+            <th>Vật tư</th>
+            <th>Số lô</th>
+            <th>Số lượng</th>
+            <th>ĐVT</th>
+            <th>Vị trí nhận</th>
+            <th>Kiểm định QC</th>
             <th></th>
           </tr>
         </thead>
@@ -501,26 +506,30 @@ export function GoodsReceiptPage() {
 
   return (
     <section className="grn-admin" aria-labelledby="grn-admin-title">
-      <header className="grn-admin__header">
-        <div>
-          <p className="grn-admin__eyebrow">WEB-WMS-03-GOODS-RECEIPT · `/web/wms/goods-receipts`</p>
-          <h2 id="grn-admin-title">Goods Receipt Review</h2>
-          <p className="grn-admin__lead">
-            PO → ASN → Goods Receipt review/reconcile (WMS03-001..020). Mutation gated bởi server{' '}
-            <code>allowed_actions</code>. GR create/confirm là PDA-only; Web review, đối soát, cập
-            nhật draft và attach mill certificate.
-          </p>
-        </div>
-        <div className="grn-admin__actions">
-          <Link to="/web/wms/suppliers">Supplier Master</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'WMS' },
+          { label: 'Goods Receipts' },
+        ]}
+        title="Nhập kho (Goods Receipt)"
+        subtitle="Đối soát nhà cung cấp, kiểm tra chất lượng ASN (Advanced Shipping Notice) và lập phiếu nhập kho thành phẩm."
+        actions={
+          <Link to="/web/wms/suppliers">
+            <Button variant="secondary">Danh mục nhà cung cấp</Button>
+          </Link>
+        }
+      />
 
-      <div className="grn-admin__tabs" role="tablist" aria-label="Goods receipt sections">
+      <div className="flex border-b border-[var(--border-default)] mb-4 gap-2" role="tablist" aria-label="Goods receipt sections">
         <button
           type="button"
           role="tab"
+          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+            admin.tab === 'purchase_orders'
+              ? 'border-[var(--color-action-primary)] text-[var(--color-action-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
           aria-selected={admin.tab === 'purchase_orders'}
           onClick={() => admin.setTab('purchase_orders')}
         >
@@ -529,6 +538,11 @@ export function GoodsReceiptPage() {
         <button
           type="button"
           role="tab"
+          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+            admin.tab === 'asns'
+              ? 'border-[var(--color-action-primary)] text-[var(--color-action-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
           aria-selected={admin.tab === 'asns'}
           onClick={() => admin.setTab('asns')}
         >
@@ -537,6 +551,11 @@ export function GoodsReceiptPage() {
         <button
           type="button"
           role="tab"
+          className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+            admin.tab === 'goods_receipts'
+              ? 'border-[var(--color-action-primary)] text-[var(--color-action-primary)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
           aria-selected={admin.tab === 'goods_receipts'}
           onClick={() => admin.setTab('goods_receipts')}
         >
@@ -546,156 +565,193 @@ export function GoodsReceiptPage() {
 
       {admin.tab === 'purchase_orders' ? (
         <>
-          <form
-            className="grn-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'poSearchInput',
+                type: 'text',
+                placeholder: 'Tìm theo mã PO (Ví dụ: PO-...)...',
+              }
+            ]}
+            values={{
+              poSearchInput: admin.poSearchInput,
+            }}
+            onChange={(_, val) => admin.setPoSearchInput(val)}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyPoSearch()
             }}
+            onReset={() => {
+              admin.setPoSearchInput('')
+              admin.applyPoSearch()
+            }}
+            isResetActive={Boolean(admin.poSearchInput)}
           >
-            <label className="grn-admin__field">
-              <span>Tìm PO (code)</span>
-              <input
-                value={admin.poSearchInput}
-                onChange={(e) => admin.setPoSearchInput(e.target.value)}
-                placeholder="PO-…"
-              />
-            </label>
-            <button type="submit" className="grn-admin__btn">Lọc</button>
-            <button type="button" className="grn-admin__btn" onClick={admin.openPoCreate}>
-              Tạo purchase order
-            </button>
-          </form>
+            <div className="ml-auto flex items-center gap-2">
+              <Button type="button" onClick={admin.openPoCreate} size="sm" className="h-9">
+                Tạo purchase order
+              </Button>
+            </div>
+          </FilterBar>
 
-          {admin.showPoCreate ? (
-            <div className="grn-admin__create">
-              <h3>Tạo purchase order mới</h3>
-              <p className="grn-admin__muted">
+          <Dialog
+            isOpen={admin.showPoCreate}
+            onClose={admin.closePoCreate}
+            title="Tạo purchase order mới"
+            maxWidth="max-w-[75%]"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Form luôn hiển thị — server enforce quyền tạo (WMS03-003). Status khởi tạo OPEN,
                 server derive.
               </p>
-              <label className="grn-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.poCreateForm.code}
-                  onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Supplier code</span>
-                <input
-                  value={admin.poCreateForm.supplier_code}
-                  onChange={(e) =>
-                    admin.setPoCreateForm({ ...admin.poCreateForm, supplier_code: e.target.value })
-                  }
-                  list="grn-supplier-options"
-                  placeholder="SUP-…"
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Ngày đặt hàng</span>
-                <input
-                  type="date"
-                  value={admin.poCreateForm.order_date}
-                  onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, order_date: e.target.value })}
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Ngày giao dự kiến</span>
-                <input
-                  type="date"
-                  value={admin.poCreateForm.expected_delivery_date}
-                  onChange={(e) =>
-                    admin.setPoCreateForm({ ...admin.poCreateForm, expected_delivery_date: e.target.value })
-                  }
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Ghi chú</span>
-                <input
-                  value={admin.poCreateForm.notes ?? ''}
-                  onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, notes: e.target.value || null })}
-                />
-              </label>
-
-              <h4>Lines</h4>
-              {admin.poCreateForm.lines.map((line, idx) => (
-                <div className="grn-admin__line-row" key={idx}>
-                  <input
-                    placeholder="Line code"
-                    value={line.code}
-                    onChange={(e) => {
-                      const lines = [...admin.poCreateForm.lines]
-                      lines[idx] = { ...lines[idx], code: e.target.value }
-                      admin.setPoCreateForm({ ...admin.poCreateForm, lines })
-                    }}
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.poCreateForm.code}
+                    onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, code: e.target.value })}
                   />
-                  <input
-                    placeholder="Item code"
-                    value={line.item_code}
-                    list="grn-item-options"
-                    onChange={(e) => {
-                      const lines = [...admin.poCreateForm.lines]
-                      lines[idx] = { ...lines[idx], item_code: e.target.value }
-                      admin.setPoCreateForm({ ...admin.poCreateForm, lines })
-                    }}
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Supplier code</span>
+                  <Input
+                    value={admin.poCreateForm.supplier_code}
+                    onChange={(e) =>
+                      admin.setPoCreateForm({ ...admin.poCreateForm, supplier_code: e.target.value })
+                    }
+                    list="grn-supplier-options"
+                    placeholder="SUP-…"
                   />
-                  <input
-                    placeholder="Ordered qty"
-                    inputMode="decimal"
-                    value={line.ordered_qty || ''}
-                    onChange={(e) => {
-                      const lines = [...admin.poCreateForm.lines]
-                      lines[idx] = { ...lines[idx], ordered_qty: Number(e.target.value) || 0 }
-                      admin.setPoCreateForm({ ...admin.poCreateForm, lines })
-                    }}
-                  />
-                  <input
-                    placeholder="UoM code"
-                    value={line.uom_code}
-                    list="grn-uom-options"
-                    onChange={(e) => {
-                      const lines = [...admin.poCreateForm.lines]
-                      lines[idx] = { ...lines[idx], uom_code: e.target.value }
-                      admin.setPoCreateForm({ ...admin.poCreateForm, lines })
-                    }}
-                  />
-                  <input
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Ngày đặt hàng</span>
+                  <Input
                     type="date"
-                    value={line.requested_delivery_date}
-                    onChange={(e) => {
-                      const lines = [...admin.poCreateForm.lines]
-                      lines[idx] = { ...lines[idx], requested_delivery_date: e.target.value }
-                      admin.setPoCreateForm({ ...admin.poCreateForm, lines })
-                    }}
+                    value={admin.poCreateForm.order_date}
+                    onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, order_date: e.target.value })}
                   />
-                  <button type="button" onClick={() => admin.removePoLine(idx)}>Xóa</button>
-                </div>
-              ))}
-              <button type="button" onClick={admin.addPoLine}>+ Thêm line</button>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Ngày giao dự kiến</span>
+                  <Input
+                    type="date"
+                    value={admin.poCreateForm.expected_delivery_date}
+                    onChange={(e) =>
+                      admin.setPoCreateForm({ ...admin.poCreateForm, expected_delivery_date: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Ghi chú</span>
+                  <Input
+                    value={admin.poCreateForm.notes ?? ''}
+                    onChange={(e) => admin.setPoCreateForm({ ...admin.poCreateForm, notes: e.target.value || null })}
+                  />
+                </label>
+              </div>
 
-              <div className="grn-admin__actions">
-                <button
+              <div className="border-t border-[var(--border-default)] pt-4 mt-2">
+                <h4 className="font-bold text-xs uppercase tracking-wider mb-2 text-[var(--text-secondary)]">Lines</h4>
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                  {admin.poCreateForm.lines.map((line, idx) => (
+                    <div className="flex items-center gap-2" key={idx}>
+                      <Input
+                        placeholder="Line code"
+                        value={line.code}
+                        onChange={(e) => {
+                          const lines = [...admin.poCreateForm.lines]
+                          lines[idx] = { ...lines[idx], code: e.target.value }
+                          admin.setPoCreateForm({ ...admin.poCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="Item code"
+                        value={line.item_code}
+                        list="grn-item-options"
+                        onChange={(e) => {
+                          const lines = [...admin.poCreateForm.lines]
+                          lines[idx] = { ...lines[idx], item_code: e.target.value }
+                          admin.setPoCreateForm({ ...admin.poCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="Ordered qty"
+                        inputMode="decimal"
+                        value={line.ordered_qty || ''}
+                        onChange={(e) => {
+                          const lines = [...admin.poCreateForm.lines]
+                          lines[idx] = { ...lines[idx], ordered_qty: Number(e.target.value) || 0 }
+                          admin.setPoCreateForm({ ...admin.poCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="UoM code"
+                        value={line.uom_code}
+                        list="grn-uom-options"
+                        onChange={(e) => {
+                          const lines = [...admin.poCreateForm.lines]
+                          lines[idx] = { ...lines[idx], uom_code: e.target.value }
+                          admin.setPoCreateForm({ ...admin.poCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        type="date"
+                        value={line.requested_delivery_date}
+                        onChange={(e) => {
+                          const lines = [...admin.poCreateForm.lines]
+                          lines[idx] = { ...lines[idx], requested_delivery_date: e.target.value }
+                          admin.setPoCreateForm({ ...admin.poCreateForm, lines })
+                        }}
+                      />
+                      <Button type="button" variant="danger" className="h-9 px-3 shrink-0" onClick={() => admin.removePoLine(idx)}>Xóa</Button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="secondary" size="sm" className="mt-3 animate-none" onClick={admin.addPoLine}>+ Thêm line</Button>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button
                   type="button"
-                  className="grn-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closePoCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
                   disabled={admin.poCreateErrors.length > 0 || admin.createPoPending}
                   onClick={() => admin.createPo()}
                 >
                   {admin.createPoPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closePoCreate}>Hủy</button>
+                </Button>
               </div>
               {admin.createPoError ? (
-                <p className="grn-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createPoError.code}: {admin.createPoError.message}
                 </p>
               ) : null}
             </div>
-          ) : null}
+          </Dialog>
 
-          {(() => {
+          {admin.poListState === 'empty' || admin.poListState === 'no-result' ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-[var(--surface-1)] rounded-xl border border-[var(--border-default)] my-4">
+              <svg className="w-12 h-12 text-[var(--text-muted)] opacity-60 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {admin.poListState === 'empty' ? 'Chưa có đơn mua hàng (PO)' : 'Không tìm thấy đơn mua hàng nào'}
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mt-1">
+                {admin.poListState === 'empty'
+                  ? 'Hệ thống chưa ghi nhận đơn mua hàng nào.'
+                  : 'Thử điều chỉnh từ khóa tìm kiếm hoặc xóa bộ lọc để tìm lại.'}
+              </p>
+            </div>
+          ) : (() => {
             const banner = listStateMessage(admin.poListState, 'purchase order')
-            return banner ? (
+            return banner && admin.poListState !== 'ready' && admin.poListState !== 'loading' ? (
               <p className="grn-admin__state" role={admin.poListState === 'error' ? 'alert' : 'status'}>
                 {banner}
                 {admin.poListError ? ` (${admin.poListError.code})` : ''}
@@ -704,197 +760,241 @@ export function GoodsReceiptPage() {
           })()}
 
           {admin.poListState === 'ready' ? (
-            <div className="grn-admin__layout">
-              <div className="grn-admin__table-wrap">
-                <table className="grn-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Supplier</th>
-                      <th>Ngày giao</th>
-                      <th>Status</th>
+            <div className="grn-admin__table-wrap">
+              <table className="grn-admin__table">
+                <thead>
+                  <tr>
+                    <th>Mã đơn mua (PO)</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Ngày giao</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admin.poRows.map((row) => (
+                    <tr key={row.code} className={row.code === admin.selectedPoCode ? 'grn-admin__row--active' : ''}>
+                      <td>
+                        <button type="button" className="grn-admin__linkish" onClick={() => admin.selectPo(row.code)}>
+                          {row.code}
+                        </button>
+                      </td>
+                      <td>{row.supplierLabel}</td>
+                      <td>{row.expectedDeliveryDate}</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-info-bg)] text-[var(--color-info-text)]">
+                          {row.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {admin.poRows.map((row) => (
-                      <tr key={row.code} className={row.code === admin.selectedPoCode ? 'grn-admin__row--active' : ''}>
-                        <td>
-                          <button type="button" className="grn-admin__linkish" onClick={() => admin.selectPo(row.code)}>
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.supplierLabel}</td>
-                        <td>{row.expectedDeliveryDate}</td>
-                        <td>{row.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.poHasMore ? (
-                  <button type="button" className="grn-admin__more" onClick={admin.poLoadMore}>Tải thêm</button>
-                ) : null}
-              </div>
-              {admin.poDetailLoading ? (
-                <div className="grn-admin__state">Đang tải chi tiết…</div>
-              ) : admin.poDetail ? (
-                <PoDetail key={admin.poDetail.code} detail={admin.poDetail} admin={admin} />
-              ) : (
-                <div className="grn-admin__state">Chọn purchase order để xem chi tiết.</div>
-              )}
+                  ))}
+                </tbody>
+              </table>
+              {admin.poHasMore ? (
+                <button type="button" className="grn-admin__more" onClick={admin.poLoadMore}>Tải thêm</button>
+              ) : null}
             </div>
           ) : null}
+
+          <Dialog
+            isOpen={Boolean(admin.selectedPoCode)}
+            onClose={() => admin.selectPo(null)}
+            title={`Chi tiết đơn mua hàng (PO): ${admin.selectedPoCode || ''}`}
+          >
+            {admin.poDetailLoading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+            ) : admin.poDetail ? (
+              <PoDetail key={admin.poDetail.code} detail={admin.poDetail} admin={admin} />
+            ) : null}
+          </Dialog>
         </>
       ) : null}
 
       {admin.tab === 'asns' ? (
         <>
-          <form
-            className="grn-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'asnSearchInput',
+                type: 'text',
+                placeholder: 'Tìm theo mã ASN (Ví dụ: ASN-...)...',
+              }
+            ]}
+            values={{
+              asnSearchInput: admin.asnSearchInput,
+            }}
+            onChange={(_, val) => admin.setAsnSearchInput(val)}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyAsnSearch()
             }}
+            onReset={() => {
+              admin.setAsnSearchInput('')
+              admin.applyAsnSearch()
+            }}
+            isResetActive={Boolean(admin.asnSearchInput)}
           >
-            <label className="grn-admin__field">
-              <span>Tìm ASN (code)</span>
-              <input
-                value={admin.asnSearchInput}
-                onChange={(e) => admin.setAsnSearchInput(e.target.value)}
-                placeholder="ASN-…"
-              />
-            </label>
-            <button type="submit" className="grn-admin__btn">Lọc</button>
-            <button type="button" className="grn-admin__btn" onClick={admin.openAsnCreate}>
-              Tạo ASN
-            </button>
-          </form>
+            <div className="ml-auto flex items-center gap-2">
+              <Button type="button" onClick={admin.openAsnCreate} size="sm" className="h-9">
+                Tạo ASN
+              </Button>
+            </div>
+          </FilterBar>
 
-          {admin.showAsnCreate ? (
-            <div className="grn-admin__create">
-              <h3>Tạo ASN mới</h3>
-              <p className="grn-admin__muted">Form luôn hiển thị — server enforce quyền tạo (WMS03-008).</p>
-              <label className="grn-admin__field">
-                <span>Code</span>
-                <input
-                  value={admin.asnCreateForm.code}
-                  onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, code: e.target.value })}
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>PO code (tùy chọn)</span>
-                <input
-                  value={admin.asnCreateForm.purchase_order_code ?? ''}
-                  onChange={(e) =>
-                    admin.setAsnCreateForm({ ...admin.asnCreateForm, purchase_order_code: e.target.value || null })
-                  }
-                  placeholder="PO-…"
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Supplier code</span>
-                <input
-                  value={admin.asnCreateForm.supplier_code}
-                  onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, supplier_code: e.target.value })}
-                  list="grn-supplier-options"
-                  placeholder="SUP-…"
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Ngày giờ dự kiến đến</span>
-                <input
-                  type="datetime-local"
-                  value={admin.asnCreateForm.expected_arrival_at}
-                  onChange={(e) =>
-                    admin.setAsnCreateForm({ ...admin.asnCreateForm, expected_arrival_at: e.target.value })
-                  }
-                />
-              </label>
-              <label className="grn-admin__field">
-                <span>Số xe</span>
-                <input
-                  value={admin.asnCreateForm.vehicle_no ?? ''}
-                  onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, vehicle_no: e.target.value || null })}
-                />
-              </label>
+          <Dialog
+            isOpen={admin.showAsnCreate}
+            onClose={admin.closeAsnCreate}
+            title="Tạo ASN mới"
+            maxWidth="max-w-[75%]"
+          >
+            <div className="flex flex-col gap-4 font-sans text-sm text-[var(--text-primary)]">
+              <p className="text-xs text-[var(--text-secondary)]">Form luôn hiển thị — server enforce quyền tạo (WMS03-008).</p>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1">
+                  <span>Code</span>
+                  <Input
+                    value={admin.asnCreateForm.code}
+                    onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, code: e.target.value })}
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>PO code (tùy chọn)</span>
+                  <Input
+                    value={admin.asnCreateForm.purchase_order_code ?? ''}
+                    onChange={(e) =>
+                      admin.setAsnCreateForm({ ...admin.asnCreateForm, purchase_order_code: e.target.value || null })
+                    }
+                    placeholder="PO-…"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Supplier code</span>
+                  <Input
+                    value={admin.asnCreateForm.supplier_code}
+                    onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, supplier_code: e.target.value })}
+                    list="grn-supplier-options"
+                    placeholder="SUP-…"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span>Ngày giờ dự kiến đến</span>
+                  <Input
+                    type="datetime-local"
+                    value={admin.asnCreateForm.expected_arrival_at}
+                    onChange={(e) =>
+                      admin.setAsnCreateForm({ ...admin.asnCreateForm, expected_arrival_at: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-1 col-span-2">
+                  <span>Số xe</span>
+                  <Input
+                    value={admin.asnCreateForm.vehicle_no ?? ''}
+                    onChange={(e) => admin.setAsnCreateForm({ ...admin.asnCreateForm, vehicle_no: e.target.value || null })}
+                  />
+                </label>
+              </div>
 
-              <h4>Lines</h4>
-              {admin.asnCreateForm.lines.map((line, idx) => (
-                <div className="grn-admin__line-row" key={idx}>
-                  <input
-                    placeholder="Line code"
-                    value={line.code}
-                    onChange={(e) => {
-                      const lines = [...admin.asnCreateForm.lines]
-                      lines[idx] = { ...lines[idx], code: e.target.value }
-                      admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
-                    }}
-                  />
-                  <input
-                    placeholder="Item code"
-                    value={line.item_code}
-                    list="grn-item-options"
-                    onChange={(e) => {
-                      const lines = [...admin.asnCreateForm.lines]
-                      lines[idx] = { ...lines[idx], item_code: e.target.value }
-                      admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
-                    }}
-                  />
-                  <input
-                    placeholder="Supplier lot"
-                    value={line.supplier_lot}
-                    onChange={(e) => {
-                      const lines = [...admin.asnCreateForm.lines]
-                      lines[idx] = { ...lines[idx], supplier_lot: e.target.value }
-                      admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
-                    }}
-                  />
-                  <input
-                    placeholder="Shipped qty"
-                    inputMode="decimal"
-                    value={line.shipped_qty || ''}
-                    onChange={(e) => {
-                      const lines = [...admin.asnCreateForm.lines]
-                      lines[idx] = { ...lines[idx], shipped_qty: Number(e.target.value) || 0 }
-                      admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
-                    }}
-                  />
-                  <input
-                    placeholder="UoM code"
-                    value={line.uom_code}
-                    list="grn-uom-options"
-                    onChange={(e) => {
-                      const lines = [...admin.asnCreateForm.lines]
-                      lines[idx] = { ...lines[idx], uom_code: e.target.value }
-                      admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
-                    }}
-                  />
-                  <button type="button" onClick={() => admin.removeAsnLine(idx)}>Xóa</button>
+              <div className="border-t border-[var(--border-default)] pt-4 mt-2">
+                <h4 className="font-bold text-xs uppercase tracking-wider mb-2 text-[var(--text-secondary)]">Lines</h4>
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                  {admin.asnCreateForm.lines.map((line, idx) => (
+                    <div className="flex items-center gap-2" key={idx}>
+                      <Input
+                        placeholder="Line code"
+                        value={line.code}
+                        onChange={(e) => {
+                          const lines = [...admin.asnCreateForm.lines]
+                          lines[idx] = { ...lines[idx], code: e.target.value }
+                          admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="Item code"
+                        value={line.item_code}
+                        list="grn-item-options"
+                        onChange={(e) => {
+                          const lines = [...admin.asnCreateForm.lines]
+                          lines[idx] = { ...lines[idx], item_code: e.target.value }
+                          admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="Supplier lot"
+                        value={line.supplier_lot}
+                        onChange={(e) => {
+                          const lines = [...admin.asnCreateForm.lines]
+                          lines[idx] = { ...lines[idx], supplier_lot: e.target.value }
+                          admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="Shipped qty"
+                        inputMode="decimal"
+                        value={line.shipped_qty || ''}
+                        onChange={(e) => {
+                          const lines = [...admin.asnCreateForm.lines]
+                          lines[idx] = { ...lines[idx], shipped_qty: Number(e.target.value) || 0 }
+                          admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
+                        }}
+                      />
+                      <Input
+                        placeholder="UoM code"
+                        value={line.uom_code}
+                        list="grn-uom-options"
+                        onChange={(e) => {
+                          const lines = [...admin.asnCreateForm.lines]
+                          lines[idx] = { ...lines[idx], uom_code: e.target.value }
+                          admin.setAsnCreateForm({ ...admin.asnCreateForm, lines })
+                        }}
+                      />
+                      <Button type="button" variant="danger" className="h-9 px-3 shrink-0" onClick={() => admin.removeAsnLine(idx)}>Xóa</Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              <button type="button" onClick={admin.addAsnLine}>+ Thêm line</button>
+                <Button type="button" variant="secondary" size="sm" className="mt-3 animate-none" onClick={admin.addAsnLine}>+ Thêm line</Button>
+              </div>
 
-              <div className="grn-admin__actions">
-                <button
+              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-default)]">
+                <Button
                   type="button"
-                  className="grn-admin__btn"
+                  variant="secondary"
+                  onClick={admin.closeAsnCreate}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
                   disabled={admin.asnCreateErrors.length > 0 || admin.createAsnPending}
                   onClick={() => admin.createAsn()}
                 >
                   {admin.createAsnPending ? 'Đang tạo…' : 'Tạo'}
-                </button>
-                <button type="button" onClick={admin.closeAsnCreate}>Hủy</button>
+                </Button>
               </div>
               {admin.createAsnError ? (
-                <p className="grn-admin__error" role="alert">
+                <p className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs" role="alert">
                   {admin.createAsnError.code}: {admin.createAsnError.message}
                 </p>
               ) : null}
             </div>
-          ) : null}
+          </Dialog>
 
-          {(() => {
+          {admin.asnListState === 'empty' || admin.asnListState === 'no-result' ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-[var(--surface-1)] rounded-xl border border-[var(--border-default)] my-4">
+              <svg className="w-12 h-12 text-[var(--text-muted)] opacity-60 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {admin.asnListState === 'empty' ? 'Chưa có thông báo giao hàng (ASN)' : 'Không tìm thấy thông báo giao hàng nào'}
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mt-1">
+                {admin.asnListState === 'empty'
+                  ? 'Hệ thống chưa ghi nhận thông báo giao hàng (ASN) nào.'
+                  : 'Thử điều chỉnh từ khóa tìm kiếm hoặc xóa bộ lọc để tìm lại.'}
+              </p>
+            </div>
+          ) : (() => {
             const banner = listStateMessage(admin.asnListState, 'ASN')
-            return banner ? (
+            return banner && admin.asnListState !== 'ready' && admin.asnListState !== 'loading' ? (
               <p className="grn-admin__state" role={admin.asnListState === 'error' ? 'alert' : 'status'}>
                 {banner}
                 {admin.asnListError ? ` (${admin.asnListError.code})` : ''}
@@ -903,72 +1003,98 @@ export function GoodsReceiptPage() {
           })()}
 
           {admin.asnListState === 'ready' ? (
-            <div className="grn-admin__layout">
-              <div className="grn-admin__table-wrap">
-                <table className="grn-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Supplier</th>
-                      <th>Đến dự kiến</th>
-                      <th>Status</th>
+            <div className="grn-admin__table-wrap">
+              <table className="grn-admin__table">
+                <thead>
+                  <tr>
+                    <th>Mã ASN</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Đến dự kiến</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admin.asnRows.map((row) => (
+                    <tr key={row.code} className={row.code === admin.selectedAsnCode ? 'grn-admin__row--active' : ''}>
+                      <td>
+                        <button type="button" className="grn-admin__linkish" onClick={() => admin.selectAsn(row.code)}>
+                          {row.code}
+                        </button>
+                      </td>
+                      <td>{row.supplierLabel}</td>
+                      <td>{row.expectedArrivalAt}</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-info-bg)] text-[var(--color-info-text)]">
+                          {row.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {admin.asnRows.map((row) => (
-                      <tr key={row.code} className={row.code === admin.selectedAsnCode ? 'grn-admin__row--active' : ''}>
-                        <td>
-                          <button type="button" className="grn-admin__linkish" onClick={() => admin.selectAsn(row.code)}>
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.supplierLabel}</td>
-                        <td>{row.expectedArrivalAt}</td>
-                        <td>{row.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.asnHasMore ? (
-                  <button type="button" className="grn-admin__more" onClick={admin.asnLoadMore}>Tải thêm</button>
-                ) : null}
-              </div>
-              {admin.asnDetailLoading ? (
-                <div className="grn-admin__state">Đang tải chi tiết…</div>
-              ) : admin.asnDetail ? (
-                <AsnDetail key={admin.asnDetail.code} detail={admin.asnDetail} admin={admin} />
-              ) : (
-                <div className="grn-admin__state">Chọn ASN để xem chi tiết.</div>
-              )}
+                  ))}
+                </tbody>
+              </table>
+              {admin.asnHasMore ? (
+                <button type="button" className="grn-admin__more" onClick={admin.asnLoadMore}>Tải thêm</button>
+              ) : null}
             </div>
           ) : null}
+
+          <Dialog
+            isOpen={Boolean(admin.selectedAsnCode)}
+            onClose={() => admin.selectAsn(null)}
+            title={`Chi tiết ASN: ${admin.selectedAsnCode || ''}`}
+          >
+            {admin.asnDetailLoading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+            ) : admin.asnDetail ? (
+              <AsnDetail key={admin.asnDetail.code} detail={admin.asnDetail} admin={admin} />
+            ) : null}
+          </Dialog>
         </>
       ) : null}
 
       {admin.tab === 'goods_receipts' ? (
         <>
-          <form
-            className="grn-admin__filters"
+          <FilterBar
+            fields={[
+              {
+                name: 'grnSearchInput',
+                type: 'text',
+                placeholder: 'Tìm theo mã goods receipt (Ví dụ: GRN-...)...',
+              }
+            ]}
+            values={{
+              grnSearchInput: admin.grnSearchInput,
+            }}
+            onChange={(_, val) => admin.setGrnSearchInput(val)}
             onSubmit={(e) => {
               e.preventDefault()
               admin.applyGrnSearch()
             }}
-          >
-            <label className="grn-admin__field">
-              <span>Tìm goods receipt (code)</span>
-              <input
-                value={admin.grnSearchInput}
-                onChange={(e) => admin.setGrnSearchInput(e.target.value)}
-                placeholder="GRN-…"
-              />
-            </label>
-            <button type="submit" className="grn-admin__btn">Lọc</button>
-          </form>
+            onReset={() => {
+              admin.setGrnSearchInput('')
+              admin.applyGrnSearch()
+            }}
+            isResetActive={Boolean(admin.grnSearchInput)}
+          />
           <p className="grn-admin__muted">Create/Confirm goods receipt là PDA-only — không có form Web.</p>
 
-          {(() => {
+          {admin.grnListState === 'empty' || admin.grnListState === 'no-result' ? (
+            <div className="flex flex-col items-center justify-center text-center p-8 bg-[var(--surface-1)] rounded-xl border border-[var(--border-default)] my-4">
+              <svg className="w-12 h-12 text-[var(--text-muted)] opacity-60 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                {admin.grnListState === 'empty' ? 'Chưa có phiếu nhập kho (GRN)' : 'Không tìm thấy phiếu nhập kho nào'}
+              </h3>
+              <p className="text-sm text-[var(--text-secondary)] max-w-sm mt-1">
+                {admin.grnListState === 'empty'
+                  ? 'Hệ thống chưa ghi nhận phiếu nhập kho nào.'
+                  : 'Thử điều chỉnh từ khóa tìm kiếm hoặc xóa bộ lọc để tìm lại.'}
+              </p>
+            </div>
+          ) : (() => {
             const banner = listStateMessage(admin.grnListState, 'goods receipt')
-            return banner ? (
+            return banner && admin.grnListState !== 'ready' && admin.grnListState !== 'loading' ? (
               <p className="grn-admin__state" role={admin.grnListState === 'error' ? 'alert' : 'status'}>
                 {banner}
                 {admin.grnListError ? ` (${admin.grnListError.code})` : ''}
@@ -977,47 +1103,54 @@ export function GoodsReceiptPage() {
           })()}
 
           {admin.grnListState === 'ready' ? (
-            <div className="grn-admin__layout">
-              <div className="grn-admin__table-wrap">
-                <table className="grn-admin__table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Nguồn</th>
-                      <th>Supplier</th>
-                      <th>Received at</th>
-                      <th>Status</th>
+            <div className="grn-admin__table-wrap">
+              <table className="grn-admin__table">
+                <thead>
+                  <tr>
+                    <th>Mã phiếu nhận (GRN)</th>
+                    <th>Nguồn</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Thời điểm nhận</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {admin.grnRows.map((row) => (
+                    <tr key={row.code} className={row.code === admin.selectedGrnCode ? 'grn-admin__row--active' : ''}>
+                      <td>
+                        <button type="button" className="grn-admin__linkish" onClick={() => admin.selectGrn(row.code)}>
+                          {row.code}
+                        </button>
+                      </td>
+                      <td>{row.sourceLabel}</td>
+                      <td>{row.supplierLabel}</td>
+                      <td>{row.receivedAt}</td>
+                      <td>
+                        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--color-info-bg)] text-[var(--color-info-text)]">
+                          {row.status}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {admin.grnRows.map((row) => (
-                      <tr key={row.code} className={row.code === admin.selectedGrnCode ? 'grn-admin__row--active' : ''}>
-                        <td>
-                          <button type="button" className="grn-admin__linkish" onClick={() => admin.selectGrn(row.code)}>
-                            {row.code}
-                          </button>
-                        </td>
-                        <td>{row.sourceLabel}</td>
-                        <td>{row.supplierLabel}</td>
-                        <td>{row.receivedAt}</td>
-                        <td>{row.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {admin.grnHasMore ? (
-                  <button type="button" className="grn-admin__more" onClick={admin.grnLoadMore}>Tải thêm</button>
-                ) : null}
-              </div>
-              {admin.grnDetailLoading ? (
-                <div className="grn-admin__state">Đang tải chi tiết…</div>
-              ) : admin.grnDetail ? (
-                <GrnDetail key={admin.grnDetail.code} detail={admin.grnDetail} admin={admin} />
-              ) : (
-                <div className="grn-admin__state">Chọn goods receipt để xem chi tiết.</div>
-              )}
+                  ))}
+                </tbody>
+              </table>
+              {admin.grnHasMore ? (
+                <button type="button" className="grn-admin__more" onClick={admin.grnLoadMore}>Tải thêm</button>
+              ) : null}
             </div>
           ) : null}
+
+          <Dialog
+            isOpen={Boolean(admin.selectedGrnCode)}
+            onClose={() => admin.selectGrn(null)}
+            title={`Chi tiết phiếu nhập kho (GRN): ${admin.selectedGrnCode || ''}`}
+          >
+            {admin.grnDetailLoading ? (
+              <div className="p-8 text-center text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+            ) : admin.grnDetail ? (
+              <GrnDetail key={admin.grnDetail.code} detail={admin.grnDetail} admin={admin} />
+            ) : null}
+          </Dialog>
         </>
       ) : null}
 

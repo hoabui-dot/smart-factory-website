@@ -9,17 +9,17 @@ export interface DialogProps {
   maxWidth?: string // e.g. 'max-w-md' | 'max-w-xl'
 }
 
-export function Dialog({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' }: DialogProps) {
+export function Dialog({ isOpen, onClose, title, children, maxWidth = 'max-w-[75%]' }: DialogProps) {
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-[2px]">
-      <div className={`w-full ${maxWidth} bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex flex-col`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
+      <div className={`w-full ${maxWidth} bg-[var(--surface-3)] rounded-lg border border-[var(--border-strong)] shadow-lg overflow-hidden flex flex-col`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-strong)]">
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">{title}</h3>
           <button
             type="button"
-            className="text-slate-400 hover:text-slate-500 focus-visible:outline-none cursor-pointer"
+            className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] focus-visible:outline-none cursor-pointer"
             onClick={onClose}
           >
             <X size={20} />

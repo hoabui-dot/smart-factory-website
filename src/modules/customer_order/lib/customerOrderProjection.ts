@@ -9,6 +9,7 @@ import type {
   ShipmentRecord,
   ShipmentRow,
 } from '../types/customerOrder'
+import { formatDate, formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -64,8 +65,8 @@ export function projectCustomerOrderRow(row: CustomerOrderRecord): CustomerOrder
     customerLabel: row.customer_code || UNAVAILABLE,
     customerPoNo: row.customer_po_no || UNAVAILABLE,
     status: row.status || UNAVAILABLE,
-    receivedDate: row.received_date || UNAVAILABLE,
-    requestedDeliveryDate: row.requested_delivery_date || UNAVAILABLE,
+    receivedDate: row.received_date ? formatDate(row.received_date) : UNAVAILABLE,
+    requestedDeliveryDate: row.requested_delivery_date ? formatDate(row.requested_delivery_date) : UNAVAILABLE,
     incoterm: row.incoterm || UNAVAILABLE,
     createdByLabel: row.created_by ? `User #${row.created_by}` : UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
@@ -100,7 +101,7 @@ export function projectShipmentRow(row: ShipmentRecord): ShipmentRow {
     customerLabel: row.customer_code || UNAVAILABLE,
     carrier: row.carrier || UNAVAILABLE,
     trackingNo: row.tracking_no || UNAVAILABLE,
-    shippedAt: row.shipped_at || UNAVAILABLE,
+    shippedAt: row.shipped_at ? formatDateTime(row.shipped_at) : UNAVAILABLE,
     cocLabel: row.coc?.code || (row.coc_id ? `CoC #${row.coc_id}` : UNAVAILABLE),
     canUpdate: updateAction?.enabled === true,
     canAddLine: addLineAction?.enabled === true,

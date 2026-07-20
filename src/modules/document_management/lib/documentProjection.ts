@@ -8,6 +8,7 @@ import type {
   PpapSubmissionRecord,
   RevisionRow,
 } from '../types/document'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -59,8 +60,8 @@ export function projectRevisionRow(row: DocumentRevisionRecord): RevisionRow {
   return {
     code: row.code || UNAVAILABLE,
     status: row.status || UNAVAILABLE,
-    effectiveFrom: row.effective_from || UNAVAILABLE,
-    effectiveTo: row.effective_to || UNAVAILABLE,
+    effectiveFrom: formatDate(row.effective_from),
+    effectiveTo: row.effective_to ? formatDate(row.effective_to) : UNAVAILABLE,
     fileLabel: row.file_id != null && row.file_id > 0 ? `File #${row.file_id}` : UNAVAILABLE,
     canSubmit: submitAction?.enabled === true,
     canRelease: releaseAction?.enabled === true,

@@ -1,42 +1,95 @@
 /* DESIGN.sf.md semantic tokens — APP-WEB-SHELL baseline */
 :root {
+  /* Brand/Nav - sitting between surface-0 and surface-1 */
   --color-nav-surface: #11192d;
   --color-nav-content: #e2e8f0;
   --color-nav-muted: #94a3b8;
   --color-nav-active: #2563eb;
-  --color-page-surface: #f6f8fb;
-  --color-surface-card: #ffffff;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
+
+  /* Surfaces */
+  --surface-0: #f4f6fb;   /* page canvas */
+  --surface-1: #ffffff;   /* in-flow card */
+  --surface-2: #eef1f6;   /* nested panel, table header row, input background */
+  --surface-3: #ffffff;   /* popover/modal — pair with a stronger box-shadow (--shadow-lg) since light mode can use shadows for depth */
+
+  /* Legacy surface aliases */
+  --color-page-surface: var(--surface-0);
+  --color-surface-card: var(--surface-1);
+
+  /* Borders */
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Legacy border aliases */
+  --color-border-default: var(--border-default);
+
+  /* Texts */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  /* Legacy text aliases */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-text-on-primary: #ffffff;
+
+  /* Primary actions */
   --color-action-primary: #1d4ed8;
   --color-action-primary-hover: #1a45be;
-  --color-border-default: #e2e8f0;
-  --color-focus-ring: #2563eb;
-  --color-danger: #dc2626;
+  --color-focus-ring: #1d4ed8;
+
+  /* Semantic colors */
+  --color-danger-text: #dc2626;
+  --color-success-text: #16a34a;
+  --color-warning-text: #d97706;
+  --color-info-text: #1d4ed8;
+
+  /* Legacy semantic variables mapping */
+  --color-danger: var(--color-danger-text);
   --color-danger-bg: #fef2f2;
+  --color-success-bg: #f0fdf4;
+  --color-warning-bg: #fffbfa;
   --color-info-bg: #eff6ff;
-  --color-warn-bg: #fff7ed;
   --color-row-active: #eff6ff;
+
   --radius-card: 12px;
   --radius-button: 6px;
   --size-sidebar: 256px;
   --shadow-card: 0 1px 2px rgb(15 23 42 / 6%), 0 8px 24px rgb(15 23 42 / 4%);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
   --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
 [data-theme="dark"] {
-  --color-page-surface: #0b0f19;
-  --color-surface-card: #151d30;
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #cbd5e1;
-  --color-text-muted: #64748b;
-  --color-border-default: #1e293b;
-  --color-row-active: #1e293b;
-  --color-danger-bg: #2d1313;
-  --color-info-bg: #0c1c38;
-  --color-warn-bg: #301f0c;
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 8px 24px rgb(0 0 0 / 30%);
-}
+  /* Surfaces */
+  --surface-0: #0a0e1a;   /* page canvas — darkest */
+  --surface-1: #131a2b;   /* in-flow card — one step lighter than page */
+  --surface-2: #1a2338;   /* nested panel, table header row, input background — one more step lighter */
+  --surface-3: #202a42;   /* popover/modal/dropdown — lightest surface, since shadows barely read on dark backgrounds, depth here comes from lightness + border, not shadow */
 
+  /* Borders */
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Texts */
+  --text-primary: #f1f5f9;   /* not pure white — avoids glare */
+  --text-secondary: #a8b3c7;
+  --text-muted: #6b7690;
+
+  /* Semantic colors */
+  --color-danger-text: #f87171;   /* brighter than light mode's #dc2626 — needed for legibility on dark bg */
+  --color-success-text: #4ade80;
+  --color-warning-text: #fbbf24;
+  --color-info-text: #60a5fa;
+
+  --color-danger: var(--color-danger-text);
+  --color-danger-bg: #2d1313;
+  --color-success-bg: #14301e;
+  --color-warning-bg: #30240d;
+  --color-info-bg: #0c1c38;
+  --color-row-active: var(--surface-2);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 8px 24px rgb(0 0 0 / 30%);
+  --shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 40%), 0 8px 10px -6px rgb(0 0 0 / 40%);
+}

@@ -1,4 +1,5 @@
 import type { ApprovalItem, SearchResultItem } from '../api/approvalInboxApi'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -34,7 +35,7 @@ export function projectApprovalItem(item: ApprovalItem): ApprovalRow {
     approvalKey: item.approval_key,
     title: item.title || UNAVAILABLE,
     sourceLabel: `${item.source_module || UNAVAILABLE} · ${item.source_entity_type || UNAVAILABLE} · ${item.source_entity_code || UNAVAILABLE}`,
-    requestedAt: item.requested_at || UNAVAILABLE,
+    requestedAt: item.requested_at ? formatDateTime(item.requested_at) : UNAVAILABLE,
     sourceVersion: item.source_version || '',
     canApprove: actions.has('APPROVE'),
     canReject: actions.has('REJECT'),

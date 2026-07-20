@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=https://backend-api-dev-af72.up.railway.app
+        - VITE_SUPABASE_URL=https://ujudnazvnujspatxjylz.supabase.co
+        - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqdWRuYXp2bnVqc3BhdHhqeWx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzczNzAsImV4cCI6MjA5OTgxMzM3MH0.JwPzwSSl0GcGRnTYPs6u9AmudV8G_bo2uq0i52kqqw8
+        - VITE_ONESIGNAL_APP_ID=b93aec26-902e-4812-9416-ea11ebd1a5ab
+        - VITE_SENTRY_DSN=https://examplePublicKey@example.ingest.sentry.io/0
+    image: vanhoadotbui2628/smartfactory-web:latest
+    platform: linux/amd64
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_BASE_URL=https://backend-api-dev-af72.up.railway.app
+      - VITE_SUPABASE_URL=https://ujudnazvnujspatxjylz.supabase.co
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqdWRuYXp2bnVqc3BhdHhqeWx6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMzczNzAsImV4cCI6MjA5OTgxMzM3MH0.JwPzwSSl0GcGRnTYPs6u9AmudV8G_bo2uq0i52kqqw8
+      - VITE_ONESIGNAL_APP_ID=b93aec26-902e-4812-9416-ea11ebd1a5ab
+      - VITE_SENTRY_DSN=https://examplePublicKey@example.ingest.sentry.io/0

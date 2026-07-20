@@ -10,6 +10,7 @@ import type {
   WorkCenterRecord,
   WorkCenterRow,
 } from '../types/routing'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -71,8 +72,8 @@ export function projectMachineRow(m: MachineRecord, lookups: RoutingLookups): Ma
   return {
     code: m.code || UNAVAILABLE,
     workCenterLabel,
-    lastPmDate: m.last_pm_date || UNAVAILABLE,
-    nextPmDue: m.next_pm_due || UNAVAILABLE,
+    lastPmDate: m.last_pm_date ? formatDate(m.last_pm_date) : UNAVAILABLE,
+    nextPmDue: m.next_pm_due ? formatDate(m.next_pm_due) : UNAVAILABLE,
     status: m.status || UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canDeactivate: deactivateAction?.enabled === true,
@@ -97,8 +98,8 @@ export function projectRoutingRow(rh: RoutingHeaderRecord, lookups: RoutingLooku
     productItemLabel,
     version: rh.version || UNAVAILABLE,
     status: rh.status || UNAVAILABLE,
-    effectiveFrom: rh.effective_from || UNAVAILABLE,
-    effectiveTo: rh.effective_to || UNAVAILABLE,
+    effectiveFrom: formatDate(rh.effective_from),
+    effectiveTo: rh.effective_to ? formatDate(rh.effective_to) : UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canDeactivate: deactivateAction?.enabled === true,
     canRelease: releaseAction?.enabled === true,

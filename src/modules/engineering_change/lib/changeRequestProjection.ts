@@ -3,6 +3,7 @@ import type {
   ChangeRequestRecord,
   ChangeRequestRow,
 } from '../types/changeRequest'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -27,7 +28,7 @@ export function projectChangeRequestRow(row: ChangeRequestRecord): ChangeRequest
     changeType: row.change_type || UNAVAILABLE,
     itemLabel: row.target_item_code || UNAVAILABLE,
     reason: row.reason || UNAVAILABLE,
-    requestedAt: row.requested_at || UNAVAILABLE,
+    requestedAt: row.requested_at ? formatDateTime(row.requested_at) : UNAVAILABLE,
     canUpdate: updateAction?.enabled === true,
     canSubmit: submitAction?.enabled === true,
     canStartReview: startReviewAction?.enabled === true,

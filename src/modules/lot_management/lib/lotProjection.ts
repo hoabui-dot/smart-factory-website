@@ -7,6 +7,7 @@ import type {
   LotRow,
   SupplierLookupRecord,
 } from '../types/lot'
+import { formatDate } from '../../../shared/lib/formatDate.ts'
 
 const UNAVAILABLE = '-'
 
@@ -56,8 +57,8 @@ export function projectLotRow(lot: LotRecord, lookups: LotLookups): LotRow {
     supplierLot: lot.supplier_lot || UNAVAILABLE,
     millCertificateNo: lot.mill_certificate_no || UNAVAILABLE,
     qcStatus: lot.qc_status || UNAVAILABLE,
-    receivedDate: lot.received_date || UNAVAILABLE,
-    expiryDate: lot.expiry_date || UNAVAILABLE,
+    receivedDate: lot.received_date ? formatDate(lot.received_date) : UNAVAILABLE,
+    expiryDate: lot.expiry_date ? formatDate(lot.expiry_date) : UNAVAILABLE,
     receivedQty: lot.received_qty == null ? UNAVAILABLE : String(lot.received_qty),
     canUpdate: updateAction?.enabled === true,
     canPrint: printAction?.enabled === true,

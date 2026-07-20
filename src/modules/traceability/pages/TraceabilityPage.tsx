@@ -1,7 +1,13 @@
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { useTraceability } from '../hooks/useTraceability'
-import type { TraceRootRef } from '../types/traceability'
+import type { TraceRootRef, TraceSearchHitView } from '../types/traceability'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
 
 import './TraceabilityPage.css'
 
@@ -56,46 +62,87 @@ function exportStateMessage(state: string, jobCode: string | null): string {
 
 export function TraceabilityPage() {
   const admin = useTraceability()
+  const pagination = usePagination(admin.hits, 10)
+
+  const columns: ColumnDef<TraceSearchHitView>[] = [
+    {
+      header: 'Loại đối tượng',
+      cell: (row) => row.rootType,
+    },
+    {
+      header: 'Mã đối tượng',
+      cell: (row) => (
+        <button
+          type="button"
+          className="trace-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectHit({
+              root_type: row.rootType,
+              root_code: row.rootCode,
+              label: row.label,
+              route: row.route,
+            })
+          }}
+        >
+          {row.rootCode}
+        </button>
+      ),
+    },
+    {
+      header: 'Nhãn hiển thị',
+      cell: (row) => row.label,
+    },
+  ]
+
   const banner = listStateMessage(admin.listState)
   const graphBanner = graphStateMessage(admin.graphState)
   const exportBanner = exportStateMessage(admin.exportState, admin.exportJobCode)
 
   return (
     <section className="trace-admin" aria-labelledby="trace-admin-title">
-      <header className="trace-admin__header">
-        <div>
-          <p className="trace-admin__eyebrow">WEB-MES-07-TRACEABILITY · `/web/mes/traceability`</p>
-          <h2 id="trace-admin-title">Traceability Search</h2>
-          <p className="trace-admin__lead">
-            Tìm root theo lot / serial / WO, xem 4M+T graph, forward-impact và export bằng server{' '}
-            <code>allowed_actions</code>.
-          </p>
-        </div>
-        <div className="trace-admin__actions">
-          <Link to="/web/import-export">Import/Export Center</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'Traceability' },
+        ]}
+        title="Truy xuất nguồn gốc (Traceability)"
+        subtitle="Tìm kiếm cây gia phả sản phẩm (Genealogy), truy xuất theo số lô/serial/lệnh sản xuất và phân tích ảnh hưởng 4M+T."
+        actions={
+          <Link to="/web/import-export">
+            <Button variant="secondary">Nhập/Xuất Dữ liệu (Excel)</Button>
+          </Link>
+        }
+      />
 
-      <form
-        className="trace-admin__filters"
+      <FilterBar
+        fields={[
+          {
+            name: 'search',
+            type: 'text',
+            label: 'QR / lot / serial / WO',
+            placeholder: 'LOT-… / SN-… / WO-…',
+          },
+        ]}
+        values={{
+          search: admin.searchInput,
+        }}
+        onChange={(name, value) => {
+          if (name === 'search') {
+            admin.setSearchInput(value)
+          }
+        }}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
-      >
-        <label className="trace-admin__field">
-          <span>QR / lot / serial / WO</span>
-          <input
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="LOT-… / SN-… / WO-…"
-          />
-        </label>
-        <button type="submit" className="trace-admin__btn">
-          Tìm
-        </button>
-      </form>
+        onReset={() => {
+          admin.setSearchInput('')
+          admin.applySearch()
+        }}
+        isResetActive={Boolean(admin.searchInput)}
+      />
 
       {banner ? (
         <p className="trace-admin__state" role={admin.listState === 'error' ? 'alert' : 'status'}>
@@ -107,59 +154,37 @@ export function TraceabilityPage() {
       {admin.listState === 'ready' ? (
         <div className="trace-admin__layout">
           <div>
-            <div className="trace-admin__table-wrap">
-              <table className="trace-admin__table">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Code</th>
-                    <th>Label</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {admin.hits.map((hit) => {
-                    const raw: TraceRootRef = {
-                      root_type: hit.rootType,
-                      root_code: hit.rootCode,
-                      label: hit.label,
-                      route: hit.route,
-                    }
-                    return (
-                      <tr
-                        key={`${hit.rootType}:${hit.rootCode}`}
-                        className={
-                          admin.selectedHit?.root_code === hit.rootCode &&
-                          admin.selectedHit?.root_type === hit.rootType
-                            ? 'trace-admin__row--active'
-                            : undefined
-                        }
-                      >
-                        <td>{hit.rootType}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="trace-admin__linkish"
-                            onClick={() => admin.selectHit(raw)}
-                          >
-                            {hit.rootCode}
-                          </button>
-                        </td>
-                        <td>{hit.label}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div className="trace-admin__table-wrap flex flex-col gap-4">
+              <GenericDataTable
+                data={pagination.paginatedItems}
+                columns={columns}
+                pagination={pagination}
+                onRowClick={(row) =>
+                  admin.selectHit({
+                    root_type: row.rootType,
+                    root_code: row.rootCode,
+                    label: row.label,
+                    route: row.route,
+                  })
+                }
+                getRowClassName={(row) =>
+                  admin.selectedHit?.root_code === row.rootCode &&
+                  admin.selectedHit?.root_type === row.rootType
+                    ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                    : ''
+                }
+              />
+              {admin.hasMore && admin.nextCursor ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="self-center"
+                  onClick={() => admin.setCursor(admin.nextCursor as string)}
+                >
+                  Trang tiếp từ máy chủ
+                </Button>
+              ) : null}
             </div>
-            {admin.hasMore && admin.nextCursor ? (
-              <button
-                type="button"
-                className="trace-admin__more"
-                onClick={() => admin.setCursor(admin.nextCursor as string)}
-              >
-                Trang tiếp
-              </button>
-            ) : null}
           </div>
 
           <aside className="trace-admin__detail" aria-label="4M+T graph">
@@ -216,28 +241,26 @@ export function TraceabilityPage() {
                     ) : null}
 
                     <h4>Nodes</h4>
-                    <div className="trace-admin__table-wrap">
-                      <table className="trace-admin__table">
-                        <thead>
-                          <tr>
-                            <th>Role</th>
-                            <th>Type</th>
-                            <th>Code</th>
-                            <th>Label</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {admin.graphView.nodes.map((n) => (
-                            <tr key={n.node_key}>
-                              <td>{n.node_role}</td>
-                              <td>{n.entity_type}</td>
-                              <td>{n.code}</td>
-                              <td>{n.label}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+                      <TableHeader>
+                        <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+                          <TableHead>Vai trò quan hệ</TableHead>
+                          <TableHead>Loại liên kết</TableHead>
+                          <TableHead>Mã liên kết</TableHead>
+                          <TableHead>Nhãn hiển thị</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {admin.graphView.nodes.map((n) => (
+                          <TableRow key={n.node_key} className="hover:bg-[var(--surface-2)]">
+                            <TableCell>{n.node_role}</TableCell>
+                            <TableCell>{n.entity_type}</TableCell>
+                            <TableCell>{n.code}</TableCell>
+                            <TableCell>{n.label}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
 
                     <h4>Edges</h4>
                     <ul>

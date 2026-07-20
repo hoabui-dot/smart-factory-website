@@ -182,7 +182,7 @@ export function useLotManagement() {
     },
 
     selectedCode,
-    selectLot: (code: string) => {
+    selectLot: (code: string | null) => {
       setSelectedCode(code)
       setShowPrint(false)
       updateMutation.reset()

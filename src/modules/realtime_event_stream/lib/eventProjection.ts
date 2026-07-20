@@ -1,5 +1,7 @@
 import type { EventOutboxListItem, EventRow } from '../types/realtimeEvent'
 
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
+
 const UNAVAILABLE = '-'
 
 function formatPayloadPreview(payload: Record<string, unknown>): string {
@@ -25,7 +27,7 @@ export function projectEventRow(event: EventOutboxListItem): EventRow {
     retryCount: Number.isFinite(event.retry_count) ? event.retry_count : 0,
     lastError: event.last_error || UNAVAILABLE,
     requestId: event.request_id || UNAVAILABLE,
-    occurredAt: event.occurred_at || UNAVAILABLE,
+    occurredAt: event.occurred_at ? formatDateTime(event.occurred_at) : UNAVAILABLE,
     payloadPreview: formatPayloadPreview(event.payload_preview ?? {}),
     canReplay: event.allowed_actions?.includes('replay') ?? false,
   }

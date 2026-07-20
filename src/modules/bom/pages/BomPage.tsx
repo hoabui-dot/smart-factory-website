@@ -1,8 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 
+import { PageHeader } from '@/shared/components/layout/PageHeader'
+import { Button } from '@/shared/components/ui/Button'
+import { Input, Select, Textarea } from '@/shared/components/ui/Input'
+import { Dialog } from '@/shared/components/ui/Dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { Badge } from '@/shared/components/ui/Badge'
+import { Search, Download, AlertCircle, PlusCircle, RotateCw, Info, FileSpreadsheet } from 'lucide-react'
+import { FilterBar } from '@/shared/components/ui/FilterBar'
 import { useBom } from '../hooks/useBom'
-import type { BomHeaderDetailRecord, BomTreeNode } from '../types/bom'
+import type { BomHeaderDetailRecord, BomTreeNode, BomRow } from '../types/bom'
+import { usePagination } from '@/shared/lib/usePagination'
+import { GenericDataTable, ColumnDef } from '@/shared/components/ui/DataTable'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/shared/components/ui/Table'
+import { useImportExportCenter } from '@/modules/excel_import_export/hooks/useImportExportCenter'
 
 import './BomPage.css'
 
@@ -47,13 +59,13 @@ function BomTreeView({ node }: { node: BomTreeNode }) {
   )
 }
 
-function BomEditor({ detail, admin }: { detail: BomHeaderDetailRecord; admin: Api }) {
+function BomEditor({ detail, admin, onClose }: { detail: BomHeaderDetailRecord; admin: Api; onClose?: () => void }) {
   const [version, setVersion] = useState(detail.version)
   const [effectiveFrom, setEffectiveFrom] = useState(detail.effective_from.slice(0, 10))
   const row = admin.detailRow
 
   return (
-    <aside className="bom-admin__detail" aria-label="Chi tiết BOM">
+    <div className="flex flex-col gap-4 font-sans text-sm">
       <h3>{detail.code}</h3>
       <p className="bom-admin__muted">
         {row?.productItemLabel ?? '-'} · {detail.status} · v{detail.version}
@@ -79,28 +91,28 @@ function BomEditor({ detail, admin }: { detail: BomHeaderDetailRecord; admin: Ap
           Chưa có dòng vật tư. Thêm/sửa lô dòng qua BOM_IMPORT tại Import/Export Center.
         </p>
       ) : (
-        <table className="bom-admin__table bom-admin__table--compact">
-          <thead>
-            <tr>
-              <th>Line</th>
-              <th>Vật tư</th>
-              <th>Qty/unit</th>
-              <th>Scrap %</th>
-              <th>UoM</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table containerClassName="border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] overflow-hidden">
+          <TableHeader>
+            <TableRow className="pointer-events-none hover:bg-transparent bg-[var(--surface-2)]">
+              <TableHead>Hạng mục</TableHead>
+              <TableHead>Vật tư</TableHead>
+              <TableHead>Định mức (Qty/unit)</TableHead>
+              <TableHead>Tỷ lệ hao hụt (%)</TableHead>
+              <TableHead>ĐVT</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {admin.lineRows.map((line) => (
-              <tr key={line.code}>
-                <td>{line.code}</td>
-                <td>{line.materialItemLabel}</td>
-                <td>{line.qtyPerUnit}</td>
-                <td>{line.scrapRate}</td>
-                <td>{line.uomLabel}</td>
-              </tr>
+              <TableRow key={line.code} className="hover:bg-[var(--surface-2)]">
+                <TableCell>{line.code}</TableCell>
+                <TableCell>{line.materialItemLabel}</TableCell>
+                <TableCell>{line.qtyPerUnit}</TableCell>
+                <TableCell>{line.scrapRate}</TableCell>
+                <TableCell>{line.uomLabel}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
 
       <button type="button" className="bom-admin__btn" onClick={admin.toggleTree}>
@@ -115,288 +127,354 @@ function BomEditor({ detail, admin }: { detail: BomHeaderDetailRecord; admin: Ap
       ) : null}
 
       <h4>Sửa (chỉ khi DRAFT)</h4>
-      <label className="bom-admin__field">
-        <span>Version</span>
-        <input value={version} onChange={(e) => setVersion(e.target.value)} />
+      <label className="flex flex-col gap-1.5 mb-3">
+        <span className="text-xs font-semibold text-[var(--text-secondary)]">Version</span>
+        <Input value={version} onChange={(e) => setVersion(e.target.value)} />
       </label>
-      <label className="bom-admin__field">
-        <span>Effective from</span>
-        <input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
+      <label className="flex flex-col gap-1.5 mb-4">
+        <span className="text-xs font-semibold text-[var(--text-secondary)]">Effective from</span>
+        <Input type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} />
       </label>
-      <button
+      <Button
         type="button"
-        className="bom-admin__btn"
         disabled={!row?.canUpdate || admin.updatePending}
         title={row?.updateDisabledReason ?? undefined}
-        onClick={() =>
+        onClick={() => {
+          if (!window.confirm('Xác nhận lưu thay đổi BOM này?')) return
           admin.saveEdit({
             version: version.trim(),
             effective_from: effectiveFrom,
           })
-        }
+        }}
+        className="w-full justify-center"
       >
         {admin.updatePending ? 'Đang lưu…' : 'Lưu thay đổi'}
-      </button>
+      </Button>
       {!row?.canUpdate ? (
-        <p className="bom-admin__muted">
+        <p className="bom-admin__muted mt-2">
           Update không khả dụng{row?.updateDisabledReason ? ` (${row.updateDisabledReason})` : ''}.
         </p>
       ) : null}
       {admin.updateError ? (
-        <p className="bom-admin__error" role="alert">
+        <p className="bom-admin__error mt-2" role="alert">
           {admin.updateError.code}: {admin.updateError.message}
         </p>
       ) : null}
       {admin.updateSuccess ? (
-        <p className="bom-admin__banner" role="status">
+        <p className="bom-admin__banner mt-2" role="status">
           Đã lưu thay đổi.
         </p>
       ) : null}
 
-      <h4>State transitions</h4>
-      <div className="bom-admin__actions">
-        <button
+      <h4 className="mt-6">State transitions</h4>
+      <div className="flex flex-wrap gap-2 mt-2">
+        <Button
           type="button"
-          className="bom-admin__btn"
           disabled={!row?.canRelease}
           title={row?.releaseDisabledReason ?? undefined}
           onClick={() => admin.setConfirmRelease(true)}
         >
           Release
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="bom-admin__btn"
           disabled={!row?.canCopy}
           title={row?.copyDisabledReason ?? undefined}
           onClick={admin.openCopy}
         >
           Copy
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="bom-admin__btn bom-admin__btn--danger"
+          variant="danger"
           disabled={!row?.canObsolete}
           title={row?.obsoleteDisabledReason ?? undefined}
           onClick={admin.openObsolete}
         >
           Obsolete
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="bom-admin__btn bom-admin__btn--danger"
+          variant="danger"
           disabled={!row?.canDeactivate}
           title={row?.deactivateDisabledReason ?? undefined}
           onClick={() => admin.setConfirmDeactivate(true)}
         >
           Deactivate
-        </button>
+        </Button>
       </div>
 
-      {admin.confirmRelease ? (
-        <div className="bom-admin__confirm" role="dialog" aria-label="Xác nhận release">
-          <p>
-            Xác nhận release <strong>{detail.code}</strong>? BOM RELEASED trước đó của cùng sản phẩm
-            sẽ chuyển sang OBSOLETE.
-          </p>
-          <div className="bom-admin__actions">
-            <button
-              type="button"
-              disabled={admin.releaseState === 'pending'}
-              onClick={admin.releaseBom}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmRelease(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
-      {admin.releaseError ? (
-        <p className="bom-admin__error" role="alert">
-          {admin.releaseError.code}: {admin.releaseError.message}
-        </p>
-      ) : null}
+      <ConfirmDialog
+        isOpen={admin.confirmRelease}
+        onClose={() => admin.setConfirmRelease(false)}
+        onConfirm={admin.releaseBom}
+        title="Xác nhận release"
+        description={`Xác nhận release ${detail.code}? BOM RELEASED trước đó của cùng sản phẩm sẽ chuyển sang OBSOLETE.`}
+        isPending={admin.releaseState === 'pending'}
+      />
 
-      {admin.showCopy ? (
-        <div className="bom-admin__create">
-          <h4>Copy BOM sang version mới</h4>
-          <label className="bom-admin__field">
-            <span>New code</span>
-            <input
+      <Dialog
+        isOpen={admin.showCopy}
+        onClose={admin.closeCopy}
+        title="Copy BOM sang version mới"
+        maxWidth="max-w-[50%]"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!window.confirm('Xác nhận copy BOM này?')) return
+            admin.copyBom()
+          }}
+        >
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">New code</span>
+            <Input
               value={admin.copyForm.new_code}
               onChange={(e) => admin.setCopyForm({ ...admin.copyForm, new_code: e.target.value })}
+              required
             />
           </label>
-          <label className="bom-admin__field">
-            <span>New version</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">New version</span>
+            <Input
               value={admin.copyForm.new_version}
               onChange={(e) => admin.setCopyForm({ ...admin.copyForm, new_version: e.target.value })}
+              required
             />
           </label>
-          <label className="bom-admin__field">
-            <span>Effective from</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Effective from</span>
+            <Input
               type="date"
               value={admin.copyForm.effective_from}
               onChange={(e) =>
                 admin.setCopyForm({ ...admin.copyForm, effective_from: e.target.value })
               }
+              required
             />
           </label>
-          <div className="bom-admin__actions">
-            <button
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
               type="button"
+              variant="secondary"
+              onClick={admin.closeCopy}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
               disabled={admin.copyErrors.length > 0 || admin.copyPending}
-              onClick={admin.copyBom}
             >
               {admin.copyPending ? 'Đang copy…' : 'Copy'}
-            </button>
-            <button type="button" onClick={admin.closeCopy}>
-              Hủy
-            </button>
+            </Button>
           </div>
           {admin.copyError ? (
-            <p className="bom-admin__error" role="alert">
+            <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
               {admin.copyError.code}: {admin.copyError.message}
             </p>
           ) : null}
-        </div>
-      ) : null}
+        </form>
+      </Dialog>
 
-      {admin.showObsolete ? (
-        <div className="bom-admin__confirm" role="dialog" aria-label="Xác nhận obsolete">
-          <p>
-            Xác nhận obsolete <strong>{detail.code}</strong>? BOM sẽ không còn dùng cho lệnh sản xuất
-            mới.
+      <Dialog
+        isOpen={admin.showObsolete}
+        onClose={admin.closeObsolete}
+        title="Xác nhận obsolete BOM"
+        maxWidth="max-w-[50%]"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!window.confirm(`Xác nhận obsolete ${detail.code}? BOM sẽ không còn dùng cho lệnh sản xuất mới.`)) return
+            admin.obsoleteBom()
+          }}
+        >
+          <p className="text-sm text-[var(--text-secondary)]">
+            Xác nhận obsolete <strong>{detail.code}</strong>? BOM sẽ không còn dùng cho lệnh sản xuất mới.
           </p>
-          <label className="bom-admin__field">
-            <span>Effective to</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Effective to</span>
+            <Input
               type="date"
               value={admin.obsoleteEffectiveTo}
               onChange={(e) => admin.setObsoleteEffectiveTo(e.target.value)}
+              required
             />
           </label>
-          <div className="bom-admin__actions">
-            <button
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
               type="button"
-              className="bom-admin__btn--danger"
+              variant="secondary"
+              onClick={admin.closeObsolete}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              variant="danger"
               disabled={admin.obsoleteErrors.length > 0 || admin.obsoletePending}
-              onClick={admin.obsoleteBom}
             >
               {admin.obsoletePending ? 'Đang xử lý…' : 'Xác nhận'}
-            </button>
-            <button type="button" onClick={admin.closeObsolete}>
-              Hủy
-            </button>
+            </Button>
           </div>
-        </div>
-      ) : null}
-      {admin.obsoleteError ? (
-        <p className="bom-admin__error" role="alert">
-          {admin.obsoleteError.code}: {admin.obsoleteError.message}
-        </p>
-      ) : null}
+          {admin.obsoleteError ? (
+            <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
+              {admin.obsoleteError.code}: {admin.obsoleteError.message}
+            </p>
+          ) : null}
+        </form>
+      </Dialog>
+
+      <ConfirmDialog
+        isOpen={admin.confirmDeactivate}
+        onClose={() => admin.setConfirmDeactivate(false)}
+        onConfirm={admin.deactivate}
+        title="Xác nhận deactivate"
+        description={`Xác nhận deactivate ${detail.code}? BOM sẽ chuyển sang OBSOLETE.`}
+        isPending={admin.deactivateState === 'pending'}
+      />
+
       {admin.obsoleteSuccess ? (
-        <p className="bom-admin__banner" role="status">
+        <p className="bom-admin__banner mt-2" role="status">
           Đã obsolete BOM.
         </p>
       ) : null}
 
-      {admin.confirmDeactivate ? (
-        <div className="bom-admin__confirm" role="dialog" aria-label="Xác nhận deactivate">
-          <p>
-            Xác nhận deactivate <strong>{detail.code}</strong>? BOM sẽ chuyển sang OBSOLETE.
-          </p>
-          <div className="bom-admin__actions">
-            <button
-              type="button"
-              disabled={admin.deactivateState === 'pending'}
-              onClick={admin.deactivate}
-            >
-              Xác nhận
-            </button>
-            <button type="button" onClick={() => admin.setConfirmDeactivate(false)}>
-              Hủy
-            </button>
-          </div>
-        </div>
-      ) : null}
       {admin.deactivateError ? (
-        <p className="bom-admin__error" role="alert">
+        <p className="bom-admin__error mt-2" role="alert">
           {admin.deactivateError.code}: {admin.deactivateError.message}
         </p>
       ) : null}
       {admin.deactivateState === 'success' ? (
-        <p className="bom-admin__banner" role="status">
+        <p className="bom-admin__banner mt-2" role="status">
           Đã deactivate BOM.
         </p>
       ) : null}
-    </aside>
+    </div>
   )
 }
 
 export function BomPage() {
   const admin = useBom()
+  const pagination = usePagination(admin.rows, 10)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isExcelOpen, setIsExcelOpen] = useState(false)
+  const ie = useImportExportCenter()
+
+  const columns: ColumnDef<BomRow>[] = [
+    {
+      header: 'Mã định mức (BOM)',
+      cell: (row) => (
+        <button
+          type="button"
+          className="bom-admin__linkish"
+          onClick={(e) => {
+            e.stopPropagation()
+            admin.selectBom(row.code)
+            setIsDetailOpen(true)
+          }}
+        >
+          {row.code}
+        </button>
+      ),
+    },
+    {
+      header: 'Sản phẩm',
+      cell: (row) => row.productItemLabel,
+    },
+    {
+      header: 'Phiên bản',
+      cell: (row) => row.version,
+    },
+    {
+      header: 'Trạng thái',
+      cell: (row) => row.status,
+    },
+    {
+      header: 'Ngày hiệu lực',
+      cell: (row) => row.effectiveFrom,
+    },
+  ]
+
   const banner = listStateMessage(admin.listState)
 
   return (
     <section className="bom-admin" aria-labelledby="bom-admin-title">
-      <header className="bom-admin__header">
-        <div>
-          <p className="bom-admin__eyebrow">WEB-MES-02-BOM · `/web/mes/boms`</p>
-          <h2 id="bom-admin-title">BOM Đa cấp</h2>
-          <p className="bom-admin__lead">
-            Quản lý BOM đa cấp, version và line vật tư (MES02-001..009). Mutation gated bởi server{' '}
-            <code>allowed_actions</code>. Line vật tư quản lý qua BOM_IMPORT tại Import/Export Center.
-          </p>
-        </div>
-        <div className="bom-admin__actions">
-          <Link to="/web/import-export">Import / Export Center</Link>
-          <Link to="/home">Về trang chủ</Link>
-        </div>
-      </header>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Trang chủ', href: '/home' },
+          { label: 'MES' },
+          { label: 'BOM Đa cấp' },
+        ]}
+        title="Định mức vật tư đa cấp (BOM)"
+        subtitle="Quản lý định mức nguyên vật liệu đa cấp, các phiên bản cấu trúc sản phẩm và chi tiết line linh kiện."
+        actions={
+          <Button
+            variant="secondary"
+            onClick={() => {
+              ie.setTemplateCode('BOM_IMPORT')
+              ie.setExportTemplateCode('BOM_EXPORT')
+              setIsExcelOpen(true)
+            }}
+          >
+            Nhập/Xuất Dữ liệu (Excel)
+          </Button>
+        }
+      />
 
-      <form
-        className="bom-admin__filters"
+      <FilterBar
+        fields={[
+          {
+            name: 'searchInput',
+            type: 'text',
+            placeholder: 'Tìm theo mã / tên định mức (BOM)...'
+          }
+        ]}
+        values={{ searchInput: admin.searchInput }}
+        onChange={(_, val) => admin.setSearchInput(val)}
         onSubmit={(e) => {
           e.preventDefault()
           admin.applySearch()
         }}
+        onReset={admin.clearSearch}
+        isResetActive={!!admin.appliedQuery}
+        className="w-full flex-nowrap"
       >
-        <label className="bom-admin__field">
-          <span>Tìm BOM (code / sản phẩm)</span>
-          <input
-            value={admin.searchInput}
-            onChange={(e) => admin.setSearchInput(e.target.value)}
-            placeholder="BOM-… / FG-…"
-          />
-        </label>
-        <button type="submit" className="bom-admin__btn">
-          Lọc
-        </button>
-        <button type="button" className="bom-admin__btn" onClick={admin.openCreate}>
-          Tạo BOM
-        </button>
-      </form>
+        <div className="ml-auto flex items-center">
+          <Button type="button" variant="secondary" size="sm" onClick={admin.openCreate} className="mr-3">
+            Tạo BOM mới
+          </Button>
+        </div>
+      </FilterBar>
 
-      {admin.showCreate ? (
-        <div className="bom-admin__create">
-          <h3>Tạo BOM mới</h3>
-          <p className="bom-admin__muted">Form luôn hiển thị — server enforce quyền tạo (MES02-003).</p>
-          <label className="bom-admin__field">
-            <span>Code</span>
-            <input
+      <Dialog
+        isOpen={admin.showCreate}
+        onClose={admin.closeCreate}
+        title="Tạo BOM mới"
+        maxWidth="max-w-[50%]"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (!window.confirm('Xác nhận tạo BOM này?')) return
+            admin.create()
+          }}
+        >
+          <p className="text-xs text-[var(--text-muted)]">Form luôn hiển thị — server enforce quyền tạo (MES02-003).</p>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Code</span>
+            <Input
               value={admin.createForm.code}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, code: e.target.value })}
+              required
             />
           </label>
-          <label className="bom-admin__field">
-            <span>Sản phẩm (item)</span>
-            <select
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Sản phẩm (item)</span>
+            <Select
               value={admin.createForm.product_item_id}
               onChange={(e) =>
                 admin.setCreateForm({
@@ -411,54 +489,58 @@ export function BomPage() {
                   {item.code} — {item.item_name}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
-          <label className="bom-admin__field">
-            <span>Version</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Version</span>
+            <Input
               value={admin.createForm.version}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, version: e.target.value })}
+              required
             />
           </label>
-          <label className="bom-admin__field">
-            <span>Status khởi tạo</span>
-            <select
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Status khởi tạo</span>
+            <Select
               value={admin.createForm.status}
               onChange={(e) => admin.setCreateForm({ ...admin.createForm, status: e.target.value })}
             >
               <option value="DRAFT">DRAFT</option>
-            </select>
+            </Select>
           </label>
-          <label className="bom-admin__field">
-            <span>Effective from</span>
-            <input
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold text-[var(--text-secondary)]">Effective from</span>
+            <Input
               type="date"
               value={admin.createForm.effective_from}
               onChange={(e) =>
                 admin.setCreateForm({ ...admin.createForm, effective_from: e.target.value })
               }
+              required
             />
           </label>
-          <div className="bom-admin__actions">
-            <button
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
               type="button"
-              className="bom-admin__btn"
+              variant="secondary"
+              onClick={admin.closeCreate}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
               disabled={admin.createErrors.length > 0 || admin.createPending}
-              onClick={() => admin.create()}
             >
               {admin.createPending ? 'Đang tạo…' : 'Tạo'}
-            </button>
-            <button type="button" onClick={admin.closeCreate}>
-              Hủy
-            </button>
+            </Button>
           </div>
           {admin.createError ? (
-            <p className="bom-admin__error" role="alert">
+            <p className="text-sm text-[var(--color-danger-text)] mt-2" role="alert">
               {admin.createError.code}: {admin.createError.message}
             </p>
           ) : null}
-        </div>
-      ) : null}
+        </form>
+      </Dialog>
 
       {banner ? (
         <p className="bom-admin__state" role={admin.listState === 'error' ? 'alert' : 'status'}>
@@ -468,57 +550,269 @@ export function BomPage() {
       ) : null}
 
       {admin.listState === 'ready' ? (
-        <div className="bom-admin__layout">
-          <div className="bom-admin__table-wrap">
-            <table className="bom-admin__table">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Sản phẩm</th>
-                  <th>Version</th>
-                  <th>Status</th>
-                  <th>Effective from</th>
-                </tr>
-              </thead>
-              <tbody>
-                {admin.rows.map((row) => (
-                  <tr
-                    key={row.code}
-                    className={row.code === admin.selectedCode ? 'bom-admin__row--active' : ''}
-                  >
-                    <td>
-                      <button
-                        type="button"
-                        className="bom-admin__linkish"
-                        onClick={() => admin.selectBom(row.code)}
-                      >
-                        {row.code}
-                      </button>
-                    </td>
-                    <td>{row.productItemLabel}</td>
-                    <td>{row.version}</td>
-                    <td>{row.status}</td>
-                    <td>{row.effectiveFrom}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {admin.hasMore ? (
-              <button type="button" className="bom-admin__more" onClick={admin.loadMore}>
-                Tải thêm
-              </button>
-            ) : null}
-          </div>
-
-          {admin.detailLoading ? (
-            <div className="bom-admin__state">Đang tải chi tiết…</div>
-          ) : admin.detail ? (
-            <BomEditor key={admin.detail.code} detail={admin.detail} admin={admin} />
-          ) : (
-            <div className="bom-admin__state">Chọn BOM để xem chi tiết.</div>
-          )}
+        <div className="flex flex-col gap-4">
+          <GenericDataTable
+            data={pagination.paginatedItems}
+            columns={columns}
+            pagination={pagination}
+            hasMore={admin.hasMore}
+            onLoadMore={admin.loadMore}
+            onRowClick={(row) => {
+              admin.selectBom(row.code)
+              setIsDetailOpen(true)
+            }}
+            getRowClassName={(row) =>
+              row.code === admin.selectedCode
+                ? 'bg-[var(--surface-2)] border-l-4 border-l-[var(--color-action-primary)]'
+                : ''
+            }
+          />
         </div>
       ) : null}
+
+      {/* Details Dialog Modal */}
+      <Dialog
+        isOpen={isDetailOpen && (!!admin.detail || admin.detailLoading)}
+        onClose={() => setIsDetailOpen(false)}
+        title={admin.detail ? `Chi tiết BOM: ${admin.detail.code}` : 'Chi tiết BOM'}
+        maxWidth="max-w-[75%]"
+      >
+        {admin.detailLoading ? (
+          <div className="p-8 text-center text-sm text-[var(--text-secondary)]">Đang tải chi tiết…</div>
+        ) : admin.detail ? (
+          <BomEditor
+            key={admin.detail.code}
+            detail={admin.detail}
+            admin={admin}
+            onClose={() => setIsDetailOpen(false)}
+          />
+        ) : null}
+      </Dialog>
+
+      {/* Excel Import/Export Dialog Modal */}
+      <Dialog
+        isOpen={isExcelOpen}
+        onClose={() => setIsExcelOpen(false)}
+        title="Nhập / Xuất dữ liệu Excel (BOM)"
+        maxWidth="max-w-[75%]"
+      >
+        <div className="flex flex-col gap-6 font-sans text-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Import segment */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <FileSpreadsheet size={16} className="text-[var(--color-action-primary)]" />
+                Khởi tạo Batch Nhập dữ liệu mới
+              </h3>
+              <form
+                className="flex flex-col gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  if (!window.confirm('Xác nhận tạo lô nạp dữ liệu (Import Batch) mới từ file nguồn?')) return
+                  ie.createBatch()
+                }}
+              >
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">ID File nguồn</span>
+                  <Input
+                    value={ie.sourceFileId}
+                    onChange={(event) => ie.setSourceFileId(event.target.value)}
+                    placeholder="Nhập ID file dữ liệu nguồn..."
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ ghi nhận (Commit Mode)</span>
+                    <Select
+                      value={ie.mode}
+                      onChange={(event) => ie.setMode(event.target.value)}
+                    >
+                      <option value="ALL_OR_NOTHING">Lưu tất cả hoặc hủy (ALL_OR_NOTHING)</option>
+                      <option value="PARTIAL">Lưu một phần (PARTIAL)</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Chế độ nhập (Import Mode)</span>
+                    <Select
+                      value={ie.importMode}
+                      onChange={(event) => ie.setImportMode(event.target.value)}
+                    >
+                      <option value="UPSERT">Cập nhật hoặc thêm mới (UPSERT)</option>
+                      <option value="CREATE_ONLY">Chỉ thêm mới (CREATE_ONLY)</option>
+                      <option value="UPDATE_ONLY">Chỉ cập nhật (UPDATE_ONLY)</option>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={ie.downloadTemplate}
+                    disabled={ie.downloadPending}
+                  >
+                    <Download size={14} className="mr-1.5" />
+                    Tải template
+                  </Button>
+                  <Button type="submit" disabled={ie.createPending}>
+                    Tạo import batch
+                  </Button>
+                </div>
+              </form>
+              {ie.createError && (
+                <div className="p-3 rounded-lg bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-[var(--color-danger-text)] text-xs flex items-center gap-2" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{ie.createError.code}: {ie.createError.message}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Export segment */}
+            <div className="flex flex-col gap-4 bg-[var(--surface-1)] p-5 rounded-xl border border-[var(--border-default)]">
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <Download size={16} className="text-[var(--color-action-primary)]" />
+                Xuất dữ liệu sản phẩm
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Nhấp nút bên dưới để tạo tác vụ xuất dữ liệu BOM sang định dạng Excel.
+              </p>
+              <Button
+                type="button"
+                disabled={ie.exportPending}
+                onClick={() => {
+                  if (!window.confirm('Xác nhận xuất dữ liệu BOM sang Excel?')) return
+                  ie.createExport()
+                }}
+              >
+                Khởi tạo tác vụ xuất dữ liệu
+              </Button>
+              {ie.exportError && (
+                <div className="p-3 rounded bg-[var(--color-danger-bg)] text-[var(--color-danger-text)] border border-[var(--color-danger)]/20 text-xs flex items-center gap-2" role="alert">
+                  <AlertCircle size={14} />
+                  <span>{ie.exportError.code}: {ie.exportError.message}</span>
+                </div>
+              )}
+              {ie.exportResult && (
+                <div className="p-4 bg-[var(--surface-2)] border border-[var(--border-default)] rounded-lg flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Trạng thái:</span>
+                    <Badge variant={ie.exportResult.status === 'COMPLETED' ? 'active' : 'inactive'}>
+                      {ie.exportResult.status}
+                    </Badge>
+                  </div>
+                  {ie.exportResult.result_file_id && (
+                    <a
+                      href={`/api/files/download/${ie.exportResult.result_file_id}`}
+                      download
+                      className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg bg-[var(--color-action-primary)] text-white hover:opacity-90 transition-opacity"
+                    >
+                      <Download size={14} className="mr-2" />
+                      Tải File Excel
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Active Batch details if available */}
+          {ie.detailRow && (
+            <div className="flex flex-col gap-4 p-5 rounded-xl border border-[var(--border-default)] bg-[var(--surface-2)]">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-[var(--text-primary)]">Lô đang hoạt động: {ie.detailRow.code}</h4>
+                <Badge variant={ie.detailRow.status === 'COMMITTED' ? 'active' : ie.detailRow.status === 'FAILED' ? 'inactive' : 'default'}>
+                  {ie.detailRow.status}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Tổng số bản ghi</span>
+                  <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{ie.detailRow.totalRows}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Số dòng lỗi</span>
+                  <p className="font-semibold text-sm text-[var(--color-danger-text)] mt-0.5">{ie.detailRow.failedRows}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Nạp thành công</span>
+                  <p className="font-semibold text-sm text-[var(--color-success-text)] mt-0.5">{ie.detailRow.successRows}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase">Người tạo</span>
+                  <p className="font-semibold text-sm text-[var(--text-primary)] mt-0.5">{ie.detailRow.startedBy}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 border-t border-[var(--border-default)] pt-4 mt-2">
+                {ie.detailRow.canValidate && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!window.confirm('Xác nhận kiểm tra tính hợp lệ của lô dữ liệu này?')) return
+                      ie.runValidate()
+                    }}
+                    disabled={ie.mutationState === 'pending'}
+                  >
+                    Kiểm tra (Validate)
+                  </Button>
+                )}
+                {ie.detailRow.canCommit && (
+                  <Button
+                    type="button"
+                    onClick={() => ie.setConfirmAction('commit')}
+                    disabled={ie.mutationState === 'pending'}
+                  >
+                    Ghi nhận (Commit)
+                  </Button>
+                )}
+                {ie.detailRow.canCancel && (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    onClick={() => ie.setConfirmAction('cancel')}
+                    disabled={ie.mutationState === 'pending'}
+                  >
+                    Hủy lô (Cancel)
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Errors list */}
+          {ie.errors.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <h4 className="text-xs font-bold text-[var(--color-danger-text)] uppercase px-1">Danh sách lỗi phát sinh ({ie.errors.length})</h4>
+              <div className="max-h-40 overflow-y-auto border border-[var(--border-default)] rounded-lg bg-[var(--surface-1)] p-3 flex flex-col gap-2">
+                {ie.errors.map((err, idx) => (
+                  <div key={idx} className="text-xs text-[var(--color-danger-text)] border-b border-[var(--border-default)] last:border-0 pb-1.5">
+                    Mã dòng {err.code} - cột {err.column_name ?? '-'}: {err.error_message_vi} ({err.error_code})
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <ConfirmDialog
+            isOpen={ie.confirmAction === 'commit'}
+            onClose={() => ie.setConfirmAction(null)}
+            onConfirm={ie.runConfirmedAction}
+            title="Xác nhận nạp dữ liệu"
+            description="Bạn có chắc chắn muốn ghi nhận (Commit) lô dữ liệu này vào hệ thống? Thao tác không thể hoàn tác."
+            isPending={ie.mutationState === 'pending'}
+          />
+
+          <ConfirmDialog
+            isOpen={ie.confirmAction === 'cancel'}
+            onClose={() => ie.setConfirmAction(null)}
+            onConfirm={ie.runConfirmedAction}
+            title="Xác nhận hủy lô dữ liệu"
+            description="Bạn có chắc chắn muốn hủy (Cancel) lô dữ liệu này? Thao tác không thể hoàn tác."
+            isPending={ie.mutationState === 'pending'}
+          />
+        </div>
+      </Dialog>
     </section>
   )
 }

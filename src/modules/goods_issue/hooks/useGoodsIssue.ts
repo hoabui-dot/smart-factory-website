@@ -229,7 +229,7 @@ export function useGoodsIssue() {
       if (next) setMrCursor(next)
     },
     selectedMrCode,
-    selectMr: (code: string) => {
+    selectMr: (code: string | null) => {
       setSelectedMrCode(code)
       setConfirmCancel(false)
       setCancelReason('')
@@ -257,7 +257,7 @@ export function useGoodsIssue() {
       if (next) setGiCursor(next)
     },
     selectedGiCode,
-    selectGi: (code: string) => {
+    selectGi: (code: string | null) => {
       setSelectedGiCode(code)
       setConfirmApprove(false)
       setConfirmReject(false)

@@ -1,4 +1,5 @@
 import type { ActivityEvent } from '../types/activityEvent.ts'
+import { formatDateTime } from '../../../shared/lib/formatDate.ts'
 
 export type AuditEventRow = {
   id: number
@@ -54,7 +55,7 @@ export function projectAuditEventRow(event: ActivityEvent): AuditEventRow {
     action: event.action,
     fromState: event.from_state ?? UNAVAILABLE,
     toState: event.to_state ?? UNAVAILABLE,
-    occurredAt: event.occurred_at,
+    occurredAt: formatDateTime(event.occurred_at),
     ipAddress: event.ip_address,
     locationLabel: projectionOrDash(event.location_code),
     workOrderLabel: projectionOrDash(event.work_order_code),
